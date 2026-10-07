@@ -353,9 +353,9 @@ export const getAssessmentQuestions = async (req, res) => {
     const candidateId = req.user?.id;
     const candidateEmail = req.user?.email;
 
-    const allowRetake = req.query?.retake === 'true' || 
-                        req.headers?.['x-allow-retake'] === 'true' || 
-                        process.env.ALLOW_ASSESSMENT_RETAKE === 'true' || 
+    const allowRetake = (req.query?.retake === 'true' && isAdmin) || 
+                        (req.headers?.['x-allow-retake'] === 'true' && isAdmin) || 
+                        (process.env.ALLOW_ASSESSMENT_RETAKE === 'true' && isAdmin) || 
                         isAdmin;
 
     // Single Attempt Policy: If already completed and retakes are not allowed, block attempt
