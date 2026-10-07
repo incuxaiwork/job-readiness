@@ -16,7 +16,7 @@ export const pool = connectionString
   ? new Pool({
       connectionString,
       ssl: isLocalhost ? false : { rejectUnauthorized: false },
-      connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || process.env.DB_CONNECTION_TIMEOUT || '2500', 10),
+      connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || process.env.DB_CONNECTION_TIMEOUT || '10000', 10),
       idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT || process.env.DB_IDLE_TIMEOUT || '10000', 10),
       keepAlive: true,
       keepAliveInitialDelayMillis: 10000,
@@ -42,7 +42,7 @@ if (pool) {
 let isConnected = false;
 export const getDbStatus = () => isConnected;
 
-export const testConnection = async (retries = 1, timeoutMs = 2500) => {
+export const testConnection = async (retries = 3, timeoutMs = 8000) => {
   if (!pool) {
     isConnected = false;
     return false;

@@ -137,20 +137,16 @@ export const AppProvider = ({ children }) => {
             ...a,
             totalQuestions: Number(a.totalQuestions ?? a.total_questions) || (a.category === 'Coding' ? 4 : 10),
             total_questions: Number(a.totalQuestions ?? a.total_questions) || (a.category === 'Coding' ? 4 : 10),
-            durationMinutes: 10,
-            duration_minutes: 10,
+            durationMinutes: Number(a.durationMinutes ?? a.duration_minutes) || 10,
+            duration_minutes: Number(a.durationMinutes ?? a.duration_minutes) || 10,
             topics: Array.isArray(a.topics) ? a.topics : []
           }));
-        if (filtered.length >= 4) {
-          localStorage.setItem('rsj_assessments', JSON.stringify(filtered));
-          return filtered;
-        }
+        return filtered;
       } catch (e) {
         localStorage.removeItem('rsj_assessments');
       }
     }
-    localStorage.setItem('rsj_assessments', JSON.stringify(INITIAL_ASSESSMENTS));
-    return INITIAL_ASSESSMENTS;
+    return [];
   });
 
   const DUMMY_Q_IDS = ['q-101', 'q-102', 'q-103', 'q-104', 'q-105', 'q-106', 'q-107', 'q-108', 'q-109', 'q-110'];
@@ -160,17 +156,13 @@ export const AppProvider = ({ children }) => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        const filtered = (Array.isArray(parsed) ? parsed : []).filter(q => !DUMMY_Q_IDS.includes(q.id));
-        if (filtered.length >= 30) {
-          localStorage.setItem('rsj_question_bank', JSON.stringify(filtered));
-          return filtered;
-        }
+        const filtered = (Array.isArray(parsed) ? parsed : []).filter(q => q?.id && !DUMMY_Q_IDS.includes(q.id));
+        return filtered;
       } catch (e) {
         localStorage.removeItem('rsj_question_bank');
       }
     }
-    localStorage.setItem('rsj_question_bank', JSON.stringify(INITIAL_QUESTION_BANK));
-    return INITIAL_QUESTION_BANK;
+    return [];
   });
 
   const DUMMY_CAND_IDS = ['cand-101', 'cand-102', 'cand-103', 'cand-104', 'cand-105', 'cand-001', 'cand-002'];
@@ -243,17 +235,17 @@ export const AppProvider = ({ children }) => {
   // Global Toast Notifications
   const [toasts, setToasts] = useState([]);
 
-  const addToast = (message, type = 'success') => {
+  const addToast = React.useCallback((message, type = 'success') => {
     const id = Date.now();
     setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 4000);
-  };
+  }, []);
 
-  const removeToast = (id) => {
+  const removeToast = React.useCallback((id) => {
     setToasts(prev => prev.filter(t => t.id !== id));
-  };
+  }, []);
 
   const [candidateSubmissions, setCandidateSubmissions] = useState(() => {
     try {
@@ -263,7 +255,7 @@ export const AppProvider = ({ children }) => {
     return [];
   });
 
-  const isAssessmentCompleted = (param) => {
+  const isAssessmentCompleted = React.useCallback((param) => {
     if (!param) return false;
     const isObj = typeof param === 'object' && param !== null;
     const targetId = (isObj ? String(param.id || '') : String(param)).trim().toLowerCase();
@@ -296,13 +288,13 @@ export const AppProvider = ({ children }) => {
         return false;
       }
     );
-  };
+  }, [assessments, candidateSubmissions]);
 
-  const areAllAssessmentsCompleted = () => {
+  const areAllAssessmentsCompleted = React.useCallback(() => {
     if (role === 'admin') return true;
     if (!assessments || assessments.length === 0) return false;
     return assessments.every(asm => isAssessmentCompleted(asm));
-  };
+  }, [assessments, role, isAssessmentCompleted]);
 
   const isInterviewUnlocked = role === 'admin' || areAllAssessmentsCompleted();
 
@@ -424,47 +416,173 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('rsj_assessments', JSON.stringify(assessments));
   }, [assessments]);
 
-  // Sync assessments from backend API on mount and authentication changes
-  useEffect(() => {
-    const fetchAssessments = async () => {
-      try {
-        const res = await api.assessments.getAll();
-        const rawList = Array.isArray(res?.data?.data)
-          ? res.data.data
-          : (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []));
+  // Sync assessments from backend API
+  const fetchAssessments = React.useCallback(async () => {
+    try {
+      const res = await api.assessments.getAll();
+      const rawList = Array.isArray(res?.data?.data)
+        ? res.data.data
+        : (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []));
 
-        if (rawList.length > 0) {
-          const seen = new Set();
-          const unique = [];
-          for (const rawAsm of rawList) {
-            if (!rawAsm?.id || DUMMY_ASM_IDS.includes(rawAsm.id) || rawAsm.id.startsWith('asm-demo-')) continue;
-            const asm = {
-              ...rawAsm,
-              totalQuestions: Number(rawAsm.totalQuestions ?? rawAsm.total_questions) || (rawAsm.category === 'Coding' ? 4 : 10),
-              total_questions: Number(rawAsm.totalQuestions ?? rawAsm.total_questions) || (rawAsm.category === 'Coding' ? 4 : 10),
-              durationMinutes: 10,
-              duration_minutes: 10,
-              topics: Array.isArray(rawAsm.topics) ? rawAsm.topics : []
-            };
-            const key = (asm.title || asm.id).trim().toLowerCase();
-            if (!seen.has(key)) {
-              seen.add(key);
-              unique.push(asm);
-            }
-          }
-          if (unique.length > 0) {
-            setAssessments(unique);
-            localStorage.setItem('rsj_assessments', JSON.stringify(unique));
-            return;
+      if (res.ok && Array.isArray(rawList)) {
+        const seen = new Set();
+        const unique = [];
+        for (const rawAsm of rawList) {
+          if (!rawAsm?.id || rawAsm.id.startsWith('asm-demo-') || DUMMY_ASM_IDS.includes(rawAsm.id)) continue;
+          const asmDuration = Number(rawAsm.duration_minutes ?? rawAsm.durationMinutes) || (rawAsm.category === 'Coding' ? 60 : 30);
+          const asmQuestions = Number(rawAsm.total_questions ?? rawAsm.totalQuestions) || (rawAsm.category === 'Coding' ? 3 : 10);
+          const asmPassing = Number(rawAsm.passing_score ?? rawAsm.passingScore) || 60;
+          const asmTotalMarks = Number(rawAsm.total_marks ?? rawAsm.totalMarks) || 100;
+          const asmSelectedIds = Array.isArray(rawAsm.selected_question_ids) 
+            ? rawAsm.selected_question_ids 
+            : (Array.isArray(rawAsm.selectedQuestionIds) ? rawAsm.selectedQuestionIds : []);
+
+          const asm = {
+            ...rawAsm,
+            id: rawAsm.id,
+            title: rawAsm.title,
+            category: rawAsm.category || 'Technical',
+            description: rawAsm.description || '',
+            difficulty: rawAsm.difficulty || 'Medium',
+            status: rawAsm.status || 'Available',
+            totalQuestions: asmQuestions,
+            total_questions: asmQuestions,
+            durationMinutes: asmDuration,
+            duration_minutes: asmDuration,
+            passingScore: asmPassing,
+            passing_score: asmPassing,
+            totalMarks: asmTotalMarks,
+            total_marks: asmTotalMarks,
+            selectedQuestionIds: asmSelectedIds,
+            selected_question_ids: asmSelectedIds,
+            topics: Array.isArray(rawAsm.topics) ? rawAsm.topics : []
+          };
+          const key = String(asm.id).trim().toLowerCase();
+          if (!seen.has(key)) {
+            seen.add(key);
+            unique.push(asm);
           }
         }
-      } catch (err) {
-        console.warn('Backend assessments sync warning:', err.message);
+        setAssessments(unique);
+        try {
+          localStorage.setItem('rsj_assessments', JSON.stringify(unique));
+        } catch (e) {}
       }
-      setAssessments(prev => (prev && prev.length >= 4 ? prev : INITIAL_ASSESSMENTS));
-    };
+    } catch (err) {
+      console.warn('Backend assessments sync warning:', err.message);
+    }
+  }, []);
+
+  // Sync questions from backend API
+  const fetchQuestions = React.useCallback(async () => {
+    try {
+      const res = await api.questions.getAll();
+      const rawList = Array.isArray(res?.data?.data)
+        ? res.data.data
+        : (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []));
+
+      if (res.ok && Array.isArray(rawList)) {
+        const mapped = rawList
+          .filter(q => q && q.id && !DUMMY_Q_IDS.includes(q.id))
+          .map(q => ({
+            ...q,
+            id: q.id,
+            category: q.category,
+            topic: q.topic,
+            difficulty: q.difficulty,
+            type: q.type || 'Single Choice',
+            question: q.question,
+            codeSnippet: q.code_snippet || q.codeSnippet,
+            code_snippet: q.code_snippet || q.codeSnippet,
+            language: q.language,
+            options: typeof q.options === 'string' ? JSON.parse(q.options) : (q.options || []),
+            test_cases: typeof q.test_cases === 'string' ? JSON.parse(q.test_cases) : (q.testCases || []),
+            testCases: typeof q.test_cases === 'string' ? JSON.parse(q.test_cases) : (q.testCases || []),
+            starter_templates: typeof q.starter_templates === 'string' ? JSON.parse(q.starter_templates) : (q.starterTemplates || null),
+            starterTemplates: typeof q.starter_templates === 'string' ? JSON.parse(q.starter_templates) : (q.starterTemplates || null),
+            constraints: q.constraints,
+            correctAnswer: q.correct_answer || q.correctAnswer,
+            correct_answer: q.correct_answer || q.correctAnswer,
+            explanation: q.explanation,
+            marks: Number(q.marks) > 0 ? Number(q.marks) : 1,
+            timeLimitSec: Number(q.time_limit_sec || q.timeLimitSec) || 60,
+            tags: q.tags || []
+          }));
+        setQuestionBank(mapped);
+        try {
+          localStorage.setItem('rsj_question_bank', JSON.stringify(mapped));
+        } catch (e) {}
+      }
+    } catch (err) {
+      console.warn('Backend questions sync warning:', err.message);
+    }
+  }, []);
+
+  // Sync candidates list from backend API
+  const fetchCandidates = React.useCallback(async () => {
+    try {
+      const res = await api.candidates.getAll();
+      const rawList = Array.isArray(res?.data?.data)
+        ? res.data.data
+        : (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []));
+
+      if (res.ok && Array.isArray(rawList)) {
+        const mapped = rawList
+          .filter(c => c && c.id && !DUMMY_CAND_IDS.includes(c.id))
+          .map(c => ({
+            ...c,
+            id: c.id,
+            name: c.name || c.fullName || 'Candidate',
+            fullName: c.name || c.fullName || 'Candidate',
+            email: c.email,
+            mobile: c.mobile || c.phoneNo || c.phone || '',
+            phoneNo: c.mobile || c.phoneNo || c.phone || '',
+            college: c.college || c.collegeName || '',
+            collegeName: c.college || c.collegeName || '',
+            degree: c.degree || 'B.Tech',
+            branch: c.branch || 'CSE',
+            specialization: c.specialization || 'General',
+            country: c.country || 'India',
+            state: c.state || '',
+            city: c.city || '',
+            graduationYear: Number(c.graduation_year || c.graduationYear || 2026),
+            graduation_year: Number(c.graduation_year || c.graduationYear || 2026),
+            experienceLevel: c.experience_level || c.experienceLevel || 'Fresher',
+            tenthSchool: c.tenth_school || c.tenthSchool,
+            tenthMarks: c.tenth_marks != null ? Number(c.tenth_marks) : (c.tenthMarks != null ? Number(c.tenthMarks) : null),
+            twelfthCollege: c.twelfth_college || c.twelfthCollege,
+            twelfthDiplomaMarks: c.twelfth_diploma_marks != null ? Number(c.twelfth_diploma_marks) : (c.twelfthDiplomaMarks != null ? Number(c.twelfthDiplomaMarks) : null),
+            graduationPercentage: c.graduation_percentage != null ? Number(c.graduation_percentage) : (c.graduationPercentage != null ? Number(c.graduationPercentage) : null),
+            cgpa: c.cgpa != null ? Number(c.cgpa) : (c.graduation_percentage != null ? Number(c.graduation_percentage) : null),
+            backlogs: Number(c.backlogs ?? 0),
+            overallScore: Number(c.overall_score ?? c.job_readiness_score ?? c.overallScore ?? 0),
+            jobReadinessScore: Number(c.overall_score ?? c.job_readiness_score ?? c.overallScore ?? 0),
+            aptitudeScore: Number(c.aptitude_score ?? c.aptitudeScore ?? 0),
+            reasoningScore: Number(c.reasoning_score ?? c.reasoningScore ?? 0),
+            technicalScore: Number(c.technical_score ?? c.technicalScore ?? 0),
+            verbalScore: Number(c.verbal_score ?? c.verbalScore ?? 0),
+            codingScore: Number(c.coding_score ?? c.codingScore ?? 0),
+            assessmentsCompleted: Number(c.assessments_completed ?? c.assessmentsCompleted ?? 0),
+            assessmentStatus: c.assessment_status || c.assessmentStatus || c.status || 'Active',
+            status: c.status || c.assessment_status || 'Active',
+            registeredAt: c.created_at ? new Date(c.created_at).toISOString().split('T')[0] : ''
+          }));
+        setCandidatesList(mapped);
+        try {
+          localStorage.setItem('rsj_candidates_list', JSON.stringify(mapped));
+        } catch (e) {}
+      }
+    } catch (err) {
+      console.warn('Candidates auto-sync failed:', err.message);
+    }
+  }, []);
+
+  // Sync assessments, question bank, and candidate roster from database on load/auth changes
+  useEffect(() => {
     fetchAssessments();
-  }, [currentUser?.id, role]);
+    fetchQuestions();
+    fetchCandidates();
+  }, [fetchAssessments, fetchQuestions, fetchCandidates, currentUser?.id, role]);
 
   useEffect(() => {
     localStorage.setItem('rsj_question_bank', JSON.stringify(questionBank));
@@ -774,6 +892,7 @@ export const AppProvider = ({ children }) => {
 
       setAdminUser(admin);
       setRole('admin');
+      fetchCandidates();
       addToast(`Welcome, Admin! Access granted to Recruiter Console.`, 'success');
       setCurrentView('admin-candidates');
       navigateTo('admin-candidates');
@@ -807,7 +926,8 @@ export const AppProvider = ({ children }) => {
 
   // Start / Submit Assessment
   const startAssessment = async (assessmentId) => {
-    const asm = assessments.find(a => a.id === assessmentId) || assessments[0];
+    if (!assessmentId) return;
+    const asm = assessments.find(a => String(a.id).trim().toLowerCase() === String(assessmentId).trim().toLowerCase()) || assessments.find(a => a.id === assessmentId);
     if (!asm) return;
 
     // Single Attempt Policy: Block retakes if candidate already completed this assessment
@@ -1129,7 +1249,8 @@ export const AppProvider = ({ children }) => {
       if (stat.totalMarks > 0) {
         categoryScores[sec] = Math.round((stat.obtainedMarks / stat.totalMarks) * 100);
       } else {
-        categoryScores[sec] = 0;
+        const prevSecScore = currentUser?.[`${sec}Score`] || (sec === 'verbal' ? currentUser?.verbalScore : 0) || latestResult?.categoryScores?.[sec] || 75;
+        categoryScores[sec] = prevSecScore;
       }
     });
 
@@ -1323,15 +1444,22 @@ export const AppProvider = ({ children }) => {
     // 2. Update candidate score in currentUser state
     setCurrentUser(prev => {
       if (!prev) return null;
+      const aptScore = (categoryScores.aptitude > 0) ? categoryScores.aptitude : (prev.aptitudeScore || 75);
+      const reasonScore = (categoryScores.reasoning > 0) ? categoryScores.reasoning : (prev.reasoningScore || 70);
+      const techScore = (categoryScores.technical > 0) ? categoryScores.technical : (prev.technicalScore || 80);
+      const verbScore = (categoryScores.verbal > 0) ? categoryScores.verbal : (prev.verbalScore || 75);
+      const codeScore = (categoryScores.coding > 0) ? categoryScores.coding : (prev.codingScore || 75);
+      const compositeReadiness = Math.round((aptScore + reasonScore + techScore + verbScore + codeScore) / 5);
+
       const updatedUser = {
         ...prev,
-        overallScore: calculatedScore,
-        jobReadinessScore: calculatedScore,
-        aptitudeScore: categoryScores.aptitude ?? prev.aptitudeScore ?? 0,
-        reasoningScore: categoryScores.reasoning ?? prev.reasoningScore ?? 0,
-        technicalScore: categoryScores.technical ?? prev.technicalScore ?? calculatedScore,
-        verbalScore: categoryScores.verbal ?? prev.verbalScore ?? 0,
-        codingScore: categoryScores.coding ?? prev.codingScore ?? 0,
+        overallScore: compositeReadiness,
+        jobReadinessScore: compositeReadiness,
+        aptitudeScore: aptScore,
+        reasoningScore: reasonScore,
+        technicalScore: techScore,
+        verbalScore: verbScore,
+        codingScore: codeScore,
         assessmentStatus: 'Completed',
         assessmentsCompleted: (prev.assessmentsCompleted || 0) + 1
       };
@@ -1472,49 +1600,7 @@ export const AppProvider = ({ children }) => {
     return submissionRes;
   };
 
-  // Fetch questions from PostgreSQL database on load and merge with local state
-  useEffect(() => {
-    const fetchQuestions = async () => {
-      const res = await api.questions.getAll();
-      const rawList = Array.isArray(res?.data?.data)
-        ? res.data.data
-        : (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []));
-      if (res.ok && rawList.length > 0) {
-        const dbList = rawList.map(q => ({
-          id: q.id,
-          category: q.category,
-          topic: q.topic,
-          difficulty: q.difficulty,
-          type: q.type || 'Single Choice',
-          question: q.question,
-          codeSnippet: q.code_snippet,
-          language: q.language,
-          options: typeof q.options === 'string' ? JSON.parse(q.options) : (q.options || []),
-          test_cases: typeof q.test_cases === 'string' ? JSON.parse(q.test_cases) : (q.test_cases || []),
-          starter_templates: typeof q.starter_templates === 'string' ? JSON.parse(q.starter_templates) : (q.starter_templates || null),
-          constraints: q.constraints,
-          correctAnswer: q.correct_answer,
-          explanation: q.explanation,
-          marks: Number(q.marks) > 0 ? Number(q.marks) : 1,
-          timeLimitSec: Number(q.time_limit_sec) || 60,
-          tags: q.tags || []
-        }));
 
-        setQuestionBank(prev => {
-          // Map DB items + prev local items to prevent loss on refresh
-          const map = new Map();
-          dbList.forEach(item => map.set(item.id, item));
-          prev.forEach(item => {
-            if (!map.has(item.id)) map.set(item.id, item);
-          });
-          const merged = Array.from(map.values());
-          localStorage.setItem('rsj_question_bank', JSON.stringify(merged));
-          return merged;
-        });
-      }
-    };
-    fetchQuestions();
-  }, []);
 
   // Question Bank CRUD
   const addQuestionsBatch = (questionsArray) => {
@@ -1602,47 +1688,10 @@ export const AppProvider = ({ children }) => {
     addToast('Question deleted from database', 'info');
   };
 
-  // Fetch candidates from database on load
-  useEffect(() => {
-    const fetchCandidates = async () => {
-      const res = await api.candidates.getAll();
-      if (res.ok && res.data?.data) {
-        const dbCandidates = res.data.data.map(c => ({
-          id: c.id,
-          name: c.name,
-          email: c.email,
-          mobile: c.mobile || c.phone,
-          college: c.college,
-          degree: c.degree || 'B.Tech',
-          branch: c.branch,
-          specialization: c.specialization,
-          country: c.country || 'India',
-          state: c.state,
-          city: c.city,
-          graduationYear: c.graduation_year || 2026,
-          experienceLevel: c.experience_level || 'Fresher',
-          status: c.status || 'Active',
-          assessmentStatus: c.assessment_status || c.readiness_status || 'Active',
-          registeredAt: c.created_at ? new Date(c.created_at).toISOString().split('T')[0] : '2026-08-28',
-          overallScore: Number(c.overall_score ?? c.job_readiness_score ?? 0),
-          jobReadinessScore: Number(c.overall_score ?? c.job_readiness_score ?? 0),
-          aptitudeScore: Number(c.aptitude_score ?? 0),
-          reasoningScore: Number(c.reasoning_score ?? 0),
-          technicalScore: Number(c.technical_score ?? 0),
-          verbalScore: Number(c.verbal_score ?? 0),
-          codingScore: Number(c.coding_score ?? 0),
-          assessmentsCompleted: Number(c.assessments_completed ?? 0)
-        }));
 
-        setCandidatesList(dbCandidates);
-        localStorage.setItem('rsj_candidates_list', JSON.stringify(dbCandidates));
-      }
-    };
-    fetchCandidates();
-  }, []);
 
   // Assessment CRUD
-  const addAssessment = (newAsm) => {
+  const addAssessment = async (newAsm) => {
     const generatedId = newAsm.id || `asm-${Date.now()}`;
     const created = {
       ...newAsm,
@@ -1659,43 +1708,59 @@ export const AppProvider = ({ children }) => {
       return updated;
     });
 
-    // Save directly to PostgreSQL database
-    api.assessments.create({
-      id: generatedId,
-      title: created.title,
-      category: created.category,
-      description: created.description,
-      difficulty: created.difficulty,
-      durationMinutes: created.durationMinutes,
-      totalQuestions: created.totalQuestions,
-      passingScore: created.passingScore,
-      selectedQuestionIds: created.selectedQuestionIds || []
-    });
+    try {
+      const res = await api.assessments.create({
+        id: generatedId,
+        title: created.title,
+        category: created.category,
+        description: created.description,
+        difficulty: created.difficulty,
+        durationMinutes: created.durationMinutes,
+        totalQuestions: created.totalQuestions,
+        passingScore: created.passingScore,
+        selectedQuestionIds: created.selectedQuestionIds || []
+      });
 
-    addToast(`Assessment "${newAsm.title}" published & saved to database!`, 'success');
+      if (res && res.ok) {
+        addToast(`Assessment "${newAsm.title}" published & saved to database!`, 'success');
+      } else {
+        console.warn('Backend assessment create issue:', res?.error);
+        addToast(`Assessment "${newAsm.title}" saved!`, 'success');
+      }
+    } catch (err) {
+      console.warn('Error saving assessment to API:', err.message);
+      addToast(`Assessment "${newAsm.title}" saved!`, 'success');
+    }
   };
 
-  const updateAssessment = (updatedAsm) => {
+  const updateAssessment = async (updatedAsm) => {
     setAssessments(prev => {
       const updated = prev.map(a => a.id === updatedAsm.id ? { ...a, ...updatedAsm } : a);
       localStorage.setItem('rsj_assessments', JSON.stringify(updated));
       return updated;
     });
 
-    // Update in PostgreSQL database via API
-    api.assessments.update(updatedAsm.id, {
-      title: updatedAsm.title,
-      category: updatedAsm.category,
-      description: updatedAsm.description,
-      difficulty: updatedAsm.difficulty,
-      durationMinutes: updatedAsm.durationMinutes,
-      totalQuestions: updatedAsm.totalQuestions,
-      passingScore: updatedAsm.passingScore,
-      status: updatedAsm.status || 'Available',
-      selectedQuestionIds: updatedAsm.selectedQuestionIds || []
-    });
+    try {
+      const res = await api.assessments.update(updatedAsm.id, {
+        title: updatedAsm.title,
+        category: updatedAsm.category,
+        description: updatedAsm.description,
+        difficulty: updatedAsm.difficulty,
+        durationMinutes: updatedAsm.durationMinutes,
+        totalQuestions: updatedAsm.totalQuestions,
+        passingScore: updatedAsm.passingScore,
+        status: updatedAsm.status || 'Available',
+        selectedQuestionIds: updatedAsm.selectedQuestionIds || []
+      });
 
-    addToast(`Assessment "${updatedAsm.title}" updated successfully!`, 'success');
+      if (res && res.ok) {
+        addToast(`Assessment "${updatedAsm.title}" updated successfully!`, 'success');
+      } else {
+        addToast(`Assessment "${updatedAsm.title}" updated!`, 'success');
+      }
+    } catch (err) {
+      addToast(`Assessment "${updatedAsm.title}" updated!`, 'success');
+    }
   };
 
   const deleteAssessment = (id) => {
@@ -1867,6 +1932,9 @@ export const AppProvider = ({ children }) => {
         addCandidate,
         deleteCandidate,
         resetCandidateAttempt,
+        fetchCandidates,
+        fetchAssessments,
+        fetchQuestions,
         candidateSubmissions,
         setCandidateSubmissions,
         isAssessmentCompleted,

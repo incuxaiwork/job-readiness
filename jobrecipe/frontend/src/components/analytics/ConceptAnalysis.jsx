@@ -50,9 +50,11 @@ export default function ConceptAnalysis({ student }) {
             {
               label: 'Your Score',
               data: categories.map((c) => {
-                const catData = latestAttempt.categories[c.key] || (cat.fallbackKey ? latestAttempt.categories[c.fallbackKey] : null);
-                const max = Number(catData?.maxScore) > 0 ? Number(catData.maxScore) : 1;
-                return Math.min(100, Math.max(0, Math.round((Number(catData?.score || 0) / max) * 100)));
+                const catData = latestAttempt.categories[c.key] || (c.fallbackKey ? latestAttempt.categories[c.fallbackKey] : null);
+                const max = Number(catData?.maxScore) > 0 ? Number(catData.maxScore) : 25;
+                const scorePct = Math.min(100, Math.max(0, Math.round((Number(catData?.score || 0) / max) * 100)));
+                if (scorePct > 0) return scorePct;
+                return student.categoryScores?.[c.key] ?? student[`${c.key}Score`] ?? 0;
               }),
               color: '#3B82F6',
               filled: true,

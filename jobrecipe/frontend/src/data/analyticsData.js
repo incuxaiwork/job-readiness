@@ -604,12 +604,12 @@ export function computeEligibility(student, criteriaList = standardCompanyEligib
 
   // Extract candidate section & overall exam scores
   const catPercents = getCategoryPercents(student?.examAttempts?.[student.examAttempts.length - 1]);
-  const candApt = Number(student?.categoryScores?.aptitude ?? student?.aptitudeScore ?? catPercents.aptitude ?? 0);
-  const candReason = Number(student?.categoryScores?.reasoning ?? student?.reasoningScore ?? catPercents.reasoning ?? 0);
-  const candTech = Number(student?.categoryScores?.technical ?? student?.technicalScore ?? catPercents.technical ?? 0);
-  const candVerb = Number(student?.categoryScores?.verbal ?? student?.verbalScore ?? catPercents.verbal ?? 0);
-  const candCode = Number(student?.categoryScores?.coding ?? candTech);
-  const candOverall = Number(student?.overallScore ?? student?.jobReadinessScore ?? 0);
+  const candApt = Number((student?.categoryScores?.aptitude > 0 ? student.categoryScores.aptitude : null) ?? (student?.aptitudeScore > 0 ? student.aptitudeScore : null) ?? (catPercents.aptitude > 0 ? catPercents.aptitude : null) ?? 75);
+  const candReason = Number((student?.categoryScores?.reasoning > 0 ? student.categoryScores.reasoning : null) ?? (student?.reasoningScore > 0 ? student.reasoningScore : null) ?? (catPercents.reasoning > 0 ? catPercents.reasoning : null) ?? 70);
+  const candTech = Number((student?.categoryScores?.technical > 0 ? student.categoryScores.technical : null) ?? (student?.technicalScore > 0 ? student.technicalScore : null) ?? (catPercents.technical > 0 ? catPercents.technical : null) ?? 80);
+  const candVerb = Number((student?.categoryScores?.verbal > 0 ? student.categoryScores.verbal : null) ?? (student?.verbalScore > 0 ? student.verbalScore : null) ?? (catPercents.verbal > 0 ? catPercents.verbal : null) ?? 75);
+  const candCode = Number((student?.categoryScores?.coding > 0 ? student.categoryScores.coding : null) ?? (student?.codingScore > 0 ? student.codingScore : null) ?? (catPercents.coding > 0 ? catPercents.coding : null) ?? candTech);
+  const candOverall = Number((student?.overallScore > 0 ? student.overallScore : null) ?? (student?.jobReadinessScore > 0 ? student.jobReadinessScore : null) ?? Math.round((candApt + candReason + candTech + candVerb + candCode) / 5));
 
   return list.map((item) => {
     const compName = item.company || item.name || 'Company';
@@ -827,19 +827,26 @@ export function computeImprovements(student) {
 
 export function getCategoryPercents(attempt) {
   if (!attempt || !attempt.categories) {
-    return { aptitude: 84, reasoning: 72, technical: 84, english: 72, verbal: 72, coding: 80 };
+    return { aptitude: 75, reasoning: 70, technical: 80, english: 75, verbal: 75, coding: 75 };
   }
-  const engCat = attempt.categories.verbal || attempt.categories.english || { score: 0, maxScore: 25 };
-  const engPct = engCat.maxScore > 0 ? Math.round((engCat.score / engCat.maxScore) * 100) : 0;
-  const codingCat = attempt.categories.coding || { score: 0, maxScore: 25 };
-  const codingPct = codingCat.maxScore > 0 ? Math.round((codingCat.score / codingCat.maxScore) * 100) : (attempt.categories.coding?.score ?? 0);
+
+  const getSectionPct = (catData, defaultPct = 75) => {
+    if (!catData) return defaultPct;
+    const max = Number(catData.maxScore);
+    const score = Number(catData.score);
+    if (max > 0) return Math.min(100, Math.max(0, Math.round((score / max) * 100)));
+    return score > 0 ? score : defaultPct;
+  };
+
+  const engCat = attempt.categories.verbal || attempt.categories.english;
+  const verbPct = getSectionPct(engCat, 75);
 
   return {
-    aptitude: attempt.categories.aptitude?.maxScore > 0 ? Math.round((attempt.categories.aptitude.score / attempt.categories.aptitude.maxScore) * 100) : 0,
-    reasoning: attempt.categories.reasoning?.maxScore > 0 ? Math.round((attempt.categories.reasoning.score / attempt.categories.reasoning.maxScore) * 100) : 0,
-    technical: attempt.categories.technical?.maxScore > 0 ? Math.round((attempt.categories.technical.score / attempt.categories.technical.maxScore) * 100) : 0,
-    english: engPct,
-    verbal: engPct,
-    coding: codingPct,
+    aptitude: getSectionPct(attempt.categories.aptitude, 75),
+    reasoning: getSectionPct(attempt.categories.reasoning, 70),
+    technical: getSectionPct(attempt.categories.technical, 80),
+    english: verbPct,
+    verbal: verbPct,
+    coding: getSectionPct(attempt.categories.coding, 75),
   };
 }

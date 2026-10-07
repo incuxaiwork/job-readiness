@@ -71,7 +71,7 @@ const schemaSQL = `
       total_questions INT NOT NULL,
       total_marks INT NOT NULL DEFAULT 100,
       passing_score INT NOT NULL DEFAULT 65,
-      status VARCHAR(32) DEFAULT 'Draft',
+      status VARCHAR(32) DEFAULT 'Available',
       created_by VARCHAR(64) REFERENCES users(id) ON DELETE SET NULL,
       created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
@@ -270,6 +270,7 @@ export const initSchema = async () => {
       ALTER TABLE assessments ADD COLUMN IF NOT EXISTS passing_score INT DEFAULT 65;
       ALTER TABLE assessments ADD COLUMN IF NOT EXISTS created_by VARCHAR(64);
       ALTER TABLE assessments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;
+      UPDATE assessments SET status = 'Available' WHERE status = 'Draft' OR status IS NULL;
 
       ALTER TABLE questions ADD COLUMN IF NOT EXISTS topic_id VARCHAR(64);
       ALTER TABLE questions ADD COLUMN IF NOT EXISTS topic VARCHAR(255) DEFAULT 'General';
@@ -314,8 +315,6 @@ export const initSchema = async () => {
       CREATE INDEX IF NOT EXISTS idx_proctoring_attempt ON proctoring_events(attempt_id);
       CREATE INDEX IF NOT EXISTS idx_proctoring_candidate ON proctoring_events(candidate_id);
       CREATE INDEX IF NOT EXISTS idx_proctoring_assessment ON proctoring_events(assessment_id);
-
-      UPDATE assessments SET duration_minutes = 10;
     `);
     console.log('✅ Safe column alterations applied.');
 
