@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+build/
+
+# Secrets - never commit
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Uploads / logs / OS / editor
+uploads/
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.vite/
