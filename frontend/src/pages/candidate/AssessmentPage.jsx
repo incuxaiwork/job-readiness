@@ -291,6 +291,10 @@ export const AssessmentPage = () => {
     requestCamera();
   }, [phase]);
 
+  useEffect(() => () => {
+    stopMediaStream();
+  }, []);
+
   // Load section metadata for the pre-start rules screen
   useEffect(() => {
     if (phase !== 'rules' || !activeAssessment?.id) return;
@@ -484,7 +488,7 @@ export const AssessmentPage = () => {
       }
       const d = res.data?.data || {};
       if (d.isLastSection) {
-        if (auto) handleAutoSubmit('section_time_expired');
+        if (auto) handleAutoSubmit('section_time_expired', { force: true });
         else setShowSubmitModal(true);
         return;
       }
@@ -549,8 +553,9 @@ export const AssessmentPage = () => {
     };
   }, [assessmentAnswers, phase]);
 
-  const handleAutoSubmit = async (reason) => {
-    if (isSubmittedRef.current || isSubmitting || totalQuestions === 0 || loadingQuestions) return;
+  const handleAutoSubmit = async (reason, { force = false } = {}) => {
+    if (isSubmittedRef.current || totalQuestions === 0 || loadingQuestions) return;
+    if (isSubmitting && !force) return;
     isSubmittedRef.current = true;
     setIsSubmitting(true);
 

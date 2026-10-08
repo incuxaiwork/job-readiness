@@ -194,10 +194,12 @@ export const AppProvider = ({ children }) => {
   const [timeRemainingSeconds, setTimeRemainingSeconds] = useState(18 * 60 + 42);
 
   const stopMediaStream = () => {
-    if (mediaStream) {
-      mediaStream.getTracks().forEach(track => track.stop());
-      setMediaStream(null);
-    }
+    setMediaStream(prev => {
+      if (prev) {
+        prev.getTracks().forEach(track => track.stop());
+      }
+      return null;
+    });
   };
   const [latestResult, setLatestResult] = useState(() => {
     try {
