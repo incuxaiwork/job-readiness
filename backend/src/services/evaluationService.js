@@ -191,8 +191,10 @@ export const evaluateSubmission = async ({
       categoryStats[qCategory].totalMarks += qMarks;
       categoryStats[qCategory].totalQuestions += 1;
 
-      if (!topicStats[qTopic]) {
-        topicStats[qTopic] = {
+      // Group topic stats by unique combination of category and topic
+      const topicKey = `${qCategory}:::${qTopic}`;
+      if (!topicStats[topicKey]) {
+        topicStats[topicKey] = {
           topic: qTopic,
           category: qCategory,
           totalMarks: 0,
@@ -203,8 +205,8 @@ export const evaluateSubmission = async ({
           unansweredCount: 0,
         };
       }
-      topicStats[qTopic].totalMarks += qMarks;
-      topicStats[qTopic].totalQuestions += 1;
+      topicStats[topicKey].totalMarks += qMarks;
+      topicStats[topicKey].totalQuestions += 1;
 
       const userAnswer = answerEntries[qId];
       const isCodingAnswer = typeof userAnswer === 'object' && userAnswer !== null && (userAnswer.code !== undefined || userAnswer.score !== undefined);
@@ -216,15 +218,15 @@ export const evaluateSubmission = async ({
           const earned = Math.round((codingScorePct / 100) * qMarks);
           totalObtainedMarks += earned;
           categoryStats[qCategory].obtainedMarks += earned;
-          topicStats[qTopic].obtainedMarks += earned;
+          topicStats[topicKey].obtainedMarks += earned;
 
           if (codingScorePct >= 60) {
             correctCount += 1;
             categoryStats[qCategory].correctCount += 1;
-            topicStats[qTopic].correctCount += 1;
+            topicStats[topicKey].correctCount += 1;
           } else {
             incorrectCount += 1;
-            topicStats[qTopic].incorrectCount += 1;
+            topicStats[topicKey].incorrectCount += 1;
           }
         } else {
           const isCorrect = matchOptionAnswer(userAnswer, q.correctAnswer, q.options);
@@ -235,16 +237,16 @@ export const evaluateSubmission = async ({
             categoryStats[qCategory].correctCount += 1;
             categoryStats[qCategory].obtainedMarks += qMarks;
 
-            topicStats[qTopic].correctCount += 1;
-            topicStats[qTopic].obtainedMarks += qMarks;
+            topicStats[topicKey].correctCount += 1;
+            topicStats[topicKey].obtainedMarks += qMarks;
           } else {
             incorrectCount += 1;
-            topicStats[qTopic].incorrectCount += 1;
+            topicStats[topicKey].incorrectCount += 1;
           }
         }
       } else {
         unansweredCount += 1;
-        topicStats[qTopic].unansweredCount += 1;
+        topicStats[topicKey].unansweredCount += 1;
       }
     });
   } else {

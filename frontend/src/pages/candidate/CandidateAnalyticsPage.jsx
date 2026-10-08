@@ -263,23 +263,24 @@ export default function CandidateAnalyticsPage() {
           try { catScores = JSON.parse(catScores); } catch (e) { catScores = null; }
         }
         if (catScores && typeof catScores === 'object') {
-          for (const k of keys) {
-            const val = catScores[k] ?? catScores[`${k}Score`] ?? catScores[`${k}_score`];
-            if (typeof val === 'number') {
-              const total = 5;
-              let obtained = Math.round((val / 100) * total);
-              if (Number(activeSubmission.obtained_marks ?? activeSubmission.obtainedMarks ?? 0) === 0) {
-                obtained = 0;
-              }
-              return {
-                obtained,
-                total,
-                pct: val,
-                title: `${defaultCatName} Section`,
-                isSubmitted: true,
-                inCurrentTest: true
-              };
+          const matchingKey = Object.keys(catScores).find(ck =>
+            keys.some(k => ck.toLowerCase().includes(k))
+          );
+          if (matchingKey && typeof catScores[matchingKey] === 'number') {
+            const val = catScores[matchingKey];
+            const total = 5;
+            let obtained = Math.round((val / 100) * total);
+            if (Number(activeSubmission.obtained_marks ?? activeSubmission.obtainedMarks ?? 0) === 0) {
+              obtained = 0;
             }
+            return {
+              obtained,
+              total,
+              pct: val,
+              title: `${defaultCatName} Section`,
+              isSubmitted: true,
+              inCurrentTest: true
+            };
           }
         }
 
