@@ -19,7 +19,7 @@ import {
 
 const JWT_SECRET = process.env.JWT_SECRET || 'incuxai_readysetjob_secret_key_2026_jwt_auth';
 const BCRYPT_SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || "10", 10);
-const ACCESS_TOKEN_TTL  = "15m";   // Short-lived access token
+const ACCESS_TOKEN_TTL  = "24h";   // Access token valid for 1 day
 const REFRESH_TOKEN_TTL = "7d";    // Long-lived refresh token (HttpOnly cookie)
 const REFRESH_COOKIE    = "rsj_refresh";
 

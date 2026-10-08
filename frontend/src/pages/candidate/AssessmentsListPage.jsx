@@ -58,25 +58,27 @@ export const AssessmentsListPage = () => {
             Assessments & Mock Tests
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Complete all four modules (Coding, Aptitude, Reasoning, Technical) to generate your verified Job Readiness Report.
+            One proctored exam covering Verbal, Aptitude, Reasoning and Technical — each section individually timed and attempted in order.
           </p>
         </div>
 
-        {/* Category Filter Tabs */}
-        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
-          {['All', 'Coding', 'Technical', 'Aptitude', 'Reasoning'].map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1.5 rounded-lg transition-all ${selectedCategory === cat
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-                }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+        {/* Category Filter Tabs (hidden when a single exam is available) */}
+        {activeList.length > 1 && (
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+            {['All', 'Coding', 'Technical', 'Aptitude', 'Reasoning'].map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3 py-1.5 rounded-lg transition-all ${selectedCategory === cat
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+                  }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ASSESSMENT CARDS GRID */}

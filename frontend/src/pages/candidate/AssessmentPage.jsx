@@ -36,8 +36,22 @@ import {
   RefreshCw,
   AlertTriangle,
   Lock,
-  BarChart2
+  BarChart2,
+  BookOpen,
+  Layers,
+  ArrowRight,
+  Save
 } from 'lucide-react';
+
+// Section API returns assessment_questions rows where `id` is the link id.
+// The rest of the app (answer keys, save/submit) expects `id` === question_id,
+// matching AppContext's normalization of activeAssessment.questions.
+const normalizeSectionQuestions = (list) => (Array.isArray(list) ? list : []).map((q) => ({
+  ...q,
+  assessmentQuestionId: q.id,
+  id: q.question_id || q.id,
+  questionId: q.question_id || q.id,
+}));
 
 export const AssessmentPage = () => {
   const {
@@ -73,6 +87,17 @@ export const AssessmentPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
 
+  // Multi-section attempt state: 'rules' → pre-start instructions, 'exam' → live test
+  const [phase, setPhase] = useState('rules');
+  const [rulesSections, setRulesSections] = useState(null);
+  const [rulesAck, setRulesAck] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [attemptId, setAttemptId] = useState(null);
+  const [attemptSections, setAttemptSections] = useState([]);
+  const [sectionIndex, setSectionIndex] = useState(0);
+  const [sectionQuestions, setSectionQuestions] = useState([]);
+  const [saveStatus, setSaveStatus] = useState('idle'); // idle | saving | saved | error
+
   // Proctoring & Camera States
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraDenied, setCameraDenied] = useState(false);
@@ -99,6 +124,12 @@ export const AssessmentPage = () => {
   const isSubmittedRef = useRef(false);
   const timerRef = useRef(null);
   const hasRedirectedRef = useRef(false);
+
+  // Save-as-you-go refs (debounced auto-save of answers)
+  const lastAnswersRef = useRef({});
+  const pendingSavesRef = useRef({});
+  const autoSaveTimerRef = useRef(null);
+  const advancingRef = useRef(false);
 
   // Single Attempt Policy: Prevent candidate from taking an already completed assessment
   useEffect(() => {
@@ -254,9 +285,23 @@ export const AssessmentPage = () => {
     }
   };
 
+  // Camera gating: request webcam access only once the exam phase starts
   useEffect(() => {
+    if (phase !== 'exam') return;
     requestCamera();
-  }, []);
+  }, [phase]);
+
+  // Load section metadata for the pre-start rules screen
+  useEffect(() => {
+    if (phase !== 'rules' || !activeAssessment?.id) return;
+    let alive = true;
+    (async () => {
+      const res = await api.assessments.getSections(activeAssessment.id);
+      if (!alive) return;
+      setRulesSections(res.ok ? (res.data?.data || []) : []);
+    })();
+    return () => { alive = false; };
+  }, [phase, activeAssessment?.id]);
 
   // Helper to ensure any written coding solutions are authoritatively graded before submission
   const evaluatePendingCodingAnswers = async (currentAnswers) => {
@@ -303,6 +348,207 @@ export const AssessmentPage = () => {
     return finalAnswers;
   };
 
+  // Persist final answers server-side & close the attempt (sections + stats)
+  const closeServerAttempt = async (finalAnswers) => {
+    if (!attemptId) return;
+    try {
+      const res = await api.attempts.submit(attemptId, { finalAnswers });
+      if (!res.ok && res.status !== 409) {
+        console.warn('[closeServerAttempt]', res.error);
+      }
+    } catch (err) {
+      console.warn('[closeServerAttempt]', err.message);
+    }
+  };
+
+  // Flush queued debounced answers immediately (explicit Save & Continue / section change)
+  const flushPendingSaves = async () => {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+    const pending = pendingSavesRef.current;
+    pendingSavesRef.current = {};
+    const entries = Object.entries(pending);
+    if (!attemptId || entries.length === 0) return;
+
+    setSaveStatus('saving');
+    let failures = 0;
+    await Promise.all(entries.map(async ([qid, val]) => {
+      try {
+        const payload = { questionId: qid, selectedOption: val };
+        const res = await api.attempts.saveAnswer(attemptId, payload);
+        if (!res.ok) failures += 1;
+      } catch (e) {
+        failures += 1;
+      }
+    }));
+    setSaveStatus(failures > 0 ? 'error' : 'saved');
+  };
+
+  // Rules screen → Start: open (or resume) the server-side attempt
+  const handleStartExam = async () => {
+    if (!rulesAck || starting) return;
+    setStarting(true);
+    let proceedToExam = false;
+    try {
+      const res = await api.assessments.startAttempt(activeAssessment?.id);
+      if (!res.ok) {
+        if (res.status === 403) {
+          addToast(res.error || 'You have already completed this assessment. Retakes are not allowed.', 'warning');
+          navigateTo('candidate-analytics');
+          return;
+        }
+        throw new Error(res.error || 'Could not start the assessment.');
+      }
+
+      const data = res.data?.data || {};
+      attemptIdRef.current = data.attemptId || attemptIdRef.current;
+      setAttemptId(data.attemptId);
+      setAttemptSections(data.sections || []);
+      setSectionIndex(data.sectionIndex || 0);
+      setSectionQuestions(normalizeSectionQuestions(data.currentSection?.questions));
+
+      const seeded = { ...data.answers };
+      lastAnswersRef.current = { ...seeded };
+      setAssessmentAnswers(seeded);
+      setTimeRemainingSeconds(
+        data.currentSection?.timeRemainingSeconds ??
+        data.currentSection?.timeLimitSeconds ??
+        ((Number(activeAssessment?.durationMinutes) || 30) * 60)
+      );
+      if (data.resumed) {
+        addToast('Resumed your in-progress attempt — saved answers were restored.', 'info');
+      }
+      proceedToExam = true;
+    } catch (err) {
+      // Offline / server hiccup: run in legacy single-section mode (no server attempt tracking)
+      console.warn('[startAttempt] falling back to offline mode:', err.message);
+      const qs = (activeAssessment?.questions && activeAssessment.questions.length > 0)
+        ? activeAssessment.questions
+        : questionBank;
+      setAttemptId(null);
+      setAttemptSections([{ id: null, name: 'All Questions', durationMinutes: Number(activeAssessment?.durationMinutes) || 30, status: 'InProgress' }]);
+      setSectionIndex(0);
+      setSectionQuestions(qs);
+      setTimeRemainingSeconds((Number(activeAssessment?.durationMinutes) || 30) * 60);
+      lastAnswersRef.current = {};
+      setAssessmentAnswers({});
+      addToast('Offline mode: start could not reach the server. Your answers will sync on submit.', 'warning');
+      proceedToExam = true;
+    } finally {
+      setStarting(false);
+      if (proceedToExam) {
+        setPhase('exam');
+        requestExamFullscreen();
+      }
+    }
+  };
+
+  // Next Section (or Submit on the last section) — forward-only, never goes back
+  const handleGoToNextSection = async ({ auto = false } = {}) => {
+    if (advancingRef.current || isSubmittedRef.current) return;
+    const isLast = sectionIndex >= attemptSections.length - 1;
+
+    if (isLast || !attemptId) {
+      if (auto) {
+        handleAutoSubmit('section_time_expired');
+      } else {
+        setShowSubmitModal(true);
+      }
+      return;
+    }
+
+    advancingRef.current = true;
+    setIsSubmitting(true);
+    try {
+      await flushPendingSaves();
+      // Send this section's answers along with completion so they're persisted
+      // server-side even if a debounced auto-save never landed.
+      const sectionAnswers = {};
+      sectionQuestions.forEach((q) => {
+        if (Object.prototype.hasOwnProperty.call(assessmentAnswers, q.id)) {
+          const val = assessmentAnswers[q.id];
+          if (val === null || val === undefined || typeof val !== 'object') {
+            sectionAnswers[q.id] = val === undefined ? null : val;
+          }
+        }
+      });
+      const res = await api.attempts.completeSection(attemptId, {
+        sectionId: attemptSections[sectionIndex]?.id ?? null,
+        answers: sectionAnswers,
+      });
+      if (!res.ok) {
+        addToast(res.error || 'Could not advance to the next section.', 'error');
+        return;
+      }
+      const d = res.data?.data || {};
+      if (d.isLastSection) {
+        if (auto) handleAutoSubmit('section_time_expired');
+        else setShowSubmitModal(true);
+        return;
+      }
+
+      const next = d.currentSection;
+      setSectionIndex(d.sectionIndex);
+      setAttemptSections(prev => prev.map((s, i) => ({
+        ...s,
+        status: i < d.sectionIndex ? 'Completed' : (i === d.sectionIndex ? 'InProgress' : s.status),
+      })));
+      setSectionQuestions(normalizeSectionQuestions(next.questions));
+      setCurrentQuestionIndex(0);
+      setTimeRemainingSeconds(next.timeRemainingSeconds ?? next.timeLimitSeconds ?? 1800);
+      addToast(
+        auto
+          ? `Section time over — auto-advanced to "${next.name}".`
+          : `Section completed. Now attempting "${next.name}".`,
+        'info'
+      );
+    } catch (err) {
+      addToast('Could not advance to the next section. Please retry.', 'error');
+      console.warn('[completeSection]', err.message);
+    } finally {
+      advancingRef.current = false;
+      setIsSubmitting(false);
+    }
+  };
+
+  // Debounced save-as-you-go (800ms after each answer change)
+  useEffect(() => {
+    if (phase !== 'exam') return;
+    const prev = lastAnswersRef.current;
+    const changed = [];
+    Object.keys(assessmentAnswers).forEach(qid => {
+      if (assessmentAnswers[qid] !== prev[qid]) changed.push(qid);
+    });
+    Object.keys(prev).forEach(qid => {
+      if (!(qid in assessmentAnswers)) changed.push(qid);
+    });
+    lastAnswersRef.current = { ...assessmentAnswers };
+    if (changed.length === 0) return;
+
+    changed.forEach(qid => {
+      const val = assessmentAnswers[qid];
+      // Coding solutions are graded & persisted at final submit, not auto-saved
+      if (val !== null && val !== undefined && typeof val === 'object') return;
+      pendingSavesRef.current[qid] = val === undefined ? null : val;
+    });
+    if (Object.keys(pendingSavesRef.current).length === 0) return;
+
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    setSaveStatus('saving');
+    autoSaveTimerRef.current = setTimeout(() => {
+      autoSaveTimerRef.current = null;
+      flushPendingSaves();
+    }, 800);
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
+      }
+    };
+  }, [assessmentAnswers, phase]);
+
   const handleAutoSubmit = async (reason) => {
     if (isSubmittedRef.current || isSubmitting || totalQuestions === 0 || loadingQuestions) return;
     isSubmittedRef.current = true;
@@ -320,6 +566,7 @@ export const AssessmentPage = () => {
 
     try {
       const finalAnswers = await evaluatePendingCodingAnswers(assessmentAnswers);
+      await closeServerAttempt(finalAnswers);
       const durationSec = ((activeAssessment?.durationMinutes || 10) * 60) - timeRemainingSeconds;
       const timeSpentMin = Math.max(1, Math.round(durationSec / 60));
       const res = await submitAssessment(finalAnswers, timeSpentMin, {
@@ -356,6 +603,7 @@ export const AssessmentPage = () => {
 
     try {
       const finalAnswers = await evaluatePendingCodingAnswers(assessmentAnswers);
+      await closeServerAttempt(finalAnswers);
       const durationSec = ((activeAssessment?.durationMinutes || 10) * 60) - timeRemainingSeconds;
       const timeSpentMin = Math.max(1, Math.round(durationSec / 60));
       const res = await submitAssessment(finalAnswers, timeSpentMin, {
@@ -512,8 +760,10 @@ export const AssessmentPage = () => {
     };
   }, [cameraReady, mediaStream, isPausedForWarning, isSubmitting]);
 
-  // Fullscreen, Keydown & Tab Switch Violation Listeners
+  // Fullscreen, Keydown & Tab Switch Violation Listeners (exam phase only)
   useEffect(() => {
+    if (phase !== 'exam') return;
+
     requestExamFullscreen();
 
     const checkTimer = setTimeout(() => {
@@ -580,11 +830,12 @@ export const AssessmentPage = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [phase]);
 
-  // Live Timer Countdown (Pauses during camera blocking or proctoring warning modal)
+  // Live Section Timer Countdown (Pauses during camera blocking or proctoring warning modal)
+  // On expiry: auto-complete the current section and advance; last section auto-submits the test.
   useEffect(() => {
-    if (cameraDenied || isPausedForWarning || isSubmitting) {
+    if (phase !== 'exam' || cameraDenied || isPausedForWarning || isSubmitting) {
       return;
     }
 
@@ -592,7 +843,7 @@ export const AssessmentPage = () => {
       setTimeRemainingSeconds((prev) => {
         if (prev <= 1) {
           if (timerRef.current) clearInterval(timerRef.current);
-          handleSubmit();
+          handleGoToNextSection({ auto: true });
           return 0;
         }
         return prev - 1;
@@ -602,7 +853,7 @@ export const AssessmentPage = () => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [cameraDenied, isPausedForWarning, isSubmitting]);
+  }, [phase, cameraDenied, isPausedForWarning, isSubmitting]);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
@@ -610,11 +861,17 @@ export const AssessmentPage = () => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const questions = (activeAssessment?.questions && activeAssessment.questions.length > 0)
-    ? activeAssessment.questions
-    : questionBank;
+  // Exam phase shows only the active section's questions; rules phase / offline
+  // mode falls back to the full assessment list.
+  const questions = (phase === 'exam' && sectionQuestions.length > 0)
+    ? sectionQuestions
+    : ((activeAssessment?.questions && activeAssessment.questions.length > 0)
+      ? activeAssessment.questions
+      : questionBank);
   const currentQuestion = questions[currentQuestionIndex] || questions[0];
   const totalQuestions = questions.length;
+  const isLastSection = sectionIndex >= Math.max(1, attemptSections.length) - 1;
+  const isLastQuestionInSection = currentQuestionIndex >= totalQuestions - 1;
 
   const handleSelectOption = (optionId) => {
     setAssessmentAnswers(prev => ({
@@ -637,6 +894,12 @@ export const AssessmentPage = () => {
     }
   };
 
+  // "Save & Continue": flush the pending auto-save, then advance a question
+  const handleSaveAndContinue = () => {
+    flushPendingSaves();
+    handleNext();
+  };
+
   const handlePrev = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(prev => prev - 1);
@@ -649,9 +912,17 @@ export const AssessmentPage = () => {
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  const answeredCount = Object.keys(assessmentAnswers).length;
+  // Section-scoped palette counters
+  const answeredCount = questions.filter(q => assessmentAnswers[q.id] !== undefined && assessmentAnswers[q.id] !== null).length;
   const unansweredCount = totalQuestions - answeredCount;
-  const reviewCount = markedForReview.length;
+  const reviewCount = markedForReview.filter(id => questions.some(q => q.id === id)).length;
+
+  // Totals across every section (used by the final submit confirmation)
+  const allQuestionsForSubmit = (activeAssessment?.questions && activeAssessment.questions.length > 0)
+    ? activeAssessment.questions
+    : questions;
+  const totalAnsweredCount = allQuestionsForSubmit.filter(q => assessmentAnswers[q.id] !== undefined && assessmentAnswers[q.id] !== null).length;
+  const totalUnansweredCount = allQuestionsForSubmit.length - totalAnsweredCount;
 
   const isMarked = markedForReview.includes(currentQuestion?.id);
   const selectedOption = assessmentAnswers[currentQuestion?.id];
@@ -706,6 +977,215 @@ export const AssessmentPage = () => {
     );
   }
 
+  // ================= PRE-START RULES & INSTRUCTIONS SCREEN =================
+  if (phase === 'rules') {
+    const questionsLoaded = (activeAssessment?.questions?.length > 0) || loadingQuestions;
+    const displaySections = (rulesSections && rulesSections.length > 0)
+      ? rulesSections
+      : (rulesSections !== null && activeAssessment)
+        ? [{
+            id: null,
+            name: 'All Questions',
+            questionCount: activeAssessment?.questions?.length || activeAssessment?.totalQuestions || 0,
+            durationMinutes: Number(activeAssessment?.durationMinutes) || 30,
+            marksPerQuestion: null,
+          }]
+        : [];
+    const totalDurationMin = displaySections.reduce((s, sec) => s + (Number(sec.durationMinutes) || 0), 0)
+      || Number(activeAssessment?.durationMinutes) || 30;
+    const totalSectionQuestions = displaySections.reduce((s, sec) => s + (Number(sec.questionCount) || 0), 0)
+      || activeAssessment?.questions?.length || 0;
+
+    const rules = [
+      {
+        icon: <Layers className="w-4 h-4 text-brand-600" />,
+        title: `${displaySections.length || 1} Section${displaySections.length === 1 ? '' : 's'}, Forward-Only`,
+        text: 'The test is divided into sections. You can move freely between questions inside the current section, but once a section is completed you can never return to it.'
+      },
+      {
+        icon: <Clock className="w-4 h-4 text-rose-600" />,
+        title: 'Strict Per-Section Timer',
+        text: 'Each section has its own countdown. When it reaches zero the section auto-submits and the next section begins immediately — the last section submits the entire test.'
+      },
+      {
+        icon: <Save className="w-4 h-4 text-emerald-600" />,
+        title: 'Answers Auto-Save As You Go',
+        text: 'Every answer is saved to the server automatically. Use "Save & Continue" to save and move to the next question — nothing is lost if you lose your connection.'
+      },
+      {
+        icon: <CheckCircle2 className="w-4 h-4 text-emerald-600" />,
+        title: 'One Submit Button for the Whole Test',
+        text: 'A single Submit button (top and bottom of the screen) finalizes every section at once. Submitting early ends the test permanently.'
+      },
+      {
+        icon: <ShieldAlert className="w-4 h-4 text-amber-600" />,
+        title: 'Fullscreen + Webcam Proctoring',
+        text: 'Full-screen mode and face-presence proctoring are mandatory. Leaving full screen twice or switching tabs will auto-submit your test.'
+      },
+      {
+        icon: <Lock className="w-4 h-4 text-slate-600" />,
+        title: 'Single Attempt Only',
+        text: 'You get one attempt per assessment. Once submitted, the result is final and retakes are disabled.'
+      },
+    ];
+
+    return (
+      <div className="min-h-screen bg-slate-100/70">
+        {/* Header */}
+        <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs">
+          <div className="w-full px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-brand-600 text-white flex items-center justify-center shadow-xs">
+                  <BookOpen className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <h1 className="text-sm sm:text-base font-bold text-slate-900 leading-tight">
+                    {activeAssessment?.title || 'Assessment'}
+                  </h1>
+                  <span className="text-xs text-slate-500">
+                    Read the instructions carefully before you begin
+                  </span>
+                </div>
+              </div>
+              <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-slate-500">
+                <span className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg">{totalSectionQuestions} Questions</span>
+                <span className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg">{totalDurationMin} Min</span>
+                <span className="px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg">
+                  Pass: {activeAssessment?.passingScore || activeAssessment?.passing_score || 70}%
+                </span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+          <div className="max-w-3xl mx-auto space-y-6">
+
+            {/* Section structure */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-card overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-brand-600" />
+                <h2 className="text-sm font-bold text-slate-900">Test Structure</h2>
+                <span className="text-xs text-slate-400 ml-auto">Sections are attempted in order</span>
+              </div>
+
+              {rulesSections === null ? (
+                <div className="px-6 py-8 text-center space-y-3">
+                  <div className="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                  <p className="text-xs text-slate-500">Loading section details…</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {displaySections.map((sec, idx) => (
+                    <div key={sec.id || idx} className="px-6 py-3.5 flex items-center gap-4">
+                      <div className="w-7 h-7 rounded-lg bg-brand-50 border border-brand-200 text-brand-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                        {idx + 1}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-slate-800 truncate">{sec.name}</p>
+                        {sec.description && (
+                          <p className="text-xs text-slate-500 truncate">{sec.description}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs font-semibold text-slate-500 flex-shrink-0">
+                        <span className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg">
+                          {sec.questionCount || 0} Qs
+                        </span>
+                        {sec.marksPerQuestion ? (
+                          <span className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg">
+                            {sec.marksPerQuestion} mk/Q
+                          </span>
+                        ) : null}
+                        <span className="px-2 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {sec.durationMinutes || 30} min
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  {displaySections.length === 0 && (
+                    <div className="px-6 py-6 text-center text-xs text-slate-500">
+                      Preparing your sections…
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Rules */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-card p-6 space-y-5">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-amber-600" />
+                <h2 className="text-sm font-bold text-slate-900">Rules & Instructions</h2>
+              </div>
+              <div className="space-y-4">
+                {rules.map((rule, idx) => (
+                  <div key={idx} className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      {rule.icon}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-800">{rule.title}</p>
+                      <p className="text-xs text-slate-500 leading-relaxed mt-0.5">{rule.text}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Acknowledgment & Start */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-card p-6 space-y-4">
+              <label
+                htmlFor="rules-ack"
+                className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${rulesAck
+                  ? 'bg-brand-50 border-brand-500 ring-1 ring-brand-500'
+                  : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <input
+                  id="rules-ack"
+                  type="checkbox"
+                  checked={rulesAck}
+                  onChange={(e) => setRulesAck(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                />
+                <span className="text-xs sm:text-sm font-semibold text-slate-700 leading-relaxed">
+                  I have read and understood the rules. I understand that sections are forward-only,
+                  timers are strict, and submitting is final.
+                </span>
+              </label>
+
+              <button
+                onClick={handleStartExam}
+                disabled={!rulesAck || starting || !activeAssessment || (rulesSections === null) || (!questionsLoaded && !attemptId)}
+                className="w-full py-3.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-sm font-extrabold shadow-lg shadow-brand-600/25 transition-all flex items-center justify-center gap-2 active:scale-[0.99]"
+              >
+                {starting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Preparing Your Sections…</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Start Assessment</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+
+              {!questionsLoaded && (
+                <p className="text-center text-[11px] text-slate-400">Loading questions — the start button enables shortly…</p>
+              )}
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-100/70 pb-16">
 
@@ -729,10 +1209,43 @@ export const AssessmentPage = () => {
                   <span className="font-semibold text-brand-600">{currentQuestion?.category} / {currentQuestion?.topic}</span>
                 </div>
               </div>
+
+              {/* Section progress indicator */}
+              {attemptSections.length > 0 && (
+                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-50 border border-brand-200">
+                  <Layers className="w-3.5 h-3.5 text-brand-600" />
+                  <span className="text-xs font-bold text-brand-700">
+                    Section {sectionIndex + 1} of {attemptSections.length}
+                  </span>
+                  <span className="text-xs text-brand-500 font-semibold truncate max-w-[140px]">
+                    {attemptSections[sectionIndex]?.name}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Live Countdown Timer & Submit Button */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              {/* Save-as-you-go status chip */}
+              <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[11px] font-bold transition-all ${saveStatus === 'saving'
+                ? 'bg-slate-50 border-slate-200 text-slate-500'
+                : saveStatus === 'saved'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                  : saveStatus === 'error'
+                    ? 'bg-rose-50 border-rose-200 text-rose-600'
+                    : 'bg-slate-50 border-slate-200 text-slate-400'
+                }`}>
+                {saveStatus === 'saving' ? (
+                  <><div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" /> Saving…</>
+                ) : saveStatus === 'saved' ? (
+                  <><CheckCircle2 className="w-3 h-3" /> Saved</>
+                ) : saveStatus === 'error' ? (
+                  <>Not saved — retrying</>
+                ) : (
+                  <><Save className="w-3 h-3" /> Auto-save on</>
+                )}
+              </div>
+
               <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border font-mono text-sm font-bold shadow-2xs ${timeRemainingSeconds < 300
                 ? 'bg-rose-50 border-rose-200 text-rose-600 animate-pulse'
                 : 'bg-slate-50 border-slate-200 text-slate-800'
@@ -911,14 +1424,57 @@ export const AssessmentPage = () => {
                 )}
 
                 <button
-                  onClick={handleNext}
+                  onClick={handleSaveAndContinue}
                   disabled={currentQuestionIndex === totalQuestions - 1}
                   className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-xs transition-colors"
                 >
-                  <span>Next</span>
+                  <span>Save &amp; Continue</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
+
+              {/* SECTION FOOTER: appears at the last question of the section — forward-only */}
+              {isLastQuestionInSection && (
+                <div className="bg-gradient-to-r from-brand-600 to-brand-700 rounded-2xl shadow-lg shadow-brand-600/20 p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-white text-center sm:text-left">
+                    <p className="text-sm font-bold">
+                      {isLastSection
+                        ? 'All sections complete — ready to submit?'
+                        : `End of "${attemptSections[sectionIndex]?.name || 'this section'}"`}
+                    </p>
+                    <p className="text-xs text-brand-100/90 mt-0.5">
+                      {isLastSection
+                        ? 'Submitting finalizes your entire test.'
+                        : 'Continue to the next section — you cannot come back to this one.'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleGoToNextSection()}
+                    disabled={isSubmitting || advancingRef.current}
+                    className={`px-6 py-3 rounded-xl text-sm font-extrabold shadow-md transition-all active:scale-[0.99] flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${isLastSection
+                      ? 'bg-white text-brand-700 hover:bg-brand-50'
+                      : 'bg-slate-900 hover:bg-slate-800 text-white'
+                      }`}
+                  >
+                    {isSubmitting || advancingRef.current ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        <span>Saving…</span>
+                      </>
+                    ) : isLastSection ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Submit Test</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Save &amp; Continue to Next Section</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* RIGHT SIDEBAR: CAMERA PREVIEW & QUESTION PALETTE */}
@@ -934,6 +1490,47 @@ export const AssessmentPage = () => {
                     violationCount={violationCount}
                     isDetecting={cameraReady && !isSubmitting && !isPausedForWarning}
                   />
+                </div>
+              )}
+
+              {/* Sections Progress Card (multi-section mode only) */}
+              {attemptSections.length > 1 && (
+                <div className="bg-white rounded-2xl border border-slate-200/90 shadow-card p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-slate-900">Sections</h3>
+                    <span className="text-[11px] font-bold text-brand-600">
+                      {sectionIndex + 1}/{attemptSections.length} in progress
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {attemptSections.map((sec, idx) => {
+                      const done = idx < sectionIndex;
+                      const current = idx === sectionIndex;
+                      return (
+                        <div
+                          key={sec.id ?? idx}
+                          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all ${current
+                            ? 'bg-brand-50 border-brand-300 text-brand-800 ring-1 ring-brand-400'
+                            : done
+                              ? 'bg-emerald-50/70 border-emerald-200 text-emerald-700'
+                              : 'bg-slate-50 border-slate-200 text-slate-400'
+                            }`}
+                        >
+                          {done ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+                          ) : current ? (
+                            <div className="w-3.5 h-3.5 rounded-full border-2 border-brand-600 border-t-transparent animate-spin flex-shrink-0" />
+                          ) : (
+                            <Lock className="w-3.5 h-3.5 flex-shrink-0" />
+                          )}
+                          <span className="truncate flex-1">{sec.name}</span>
+                          <span className="text-[10px] font-bold uppercase opacity-70 flex-shrink-0">
+                            {done ? 'Done' : current ? 'Now' : 'Next'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
@@ -1001,37 +1598,20 @@ export const AssessmentPage = () => {
                 {/* Summary Metrics */}
                 <div className="border-t border-slate-100 pt-4 space-y-2 text-xs">
                   <div className="flex justify-between text-slate-500">
-                    <span>Total Questions:</span>
+                    <span>Section Questions:</span>
                     <strong className="text-slate-800">{totalQuestions}</strong>
                   </div>
                   <div className="flex justify-between text-slate-500">
-                    <span>Total Time:</span>
-                    <strong className="text-slate-800">{activeAssessment?.durationMinutes || 10} mins</strong>
+                    <span>Section Time Left:</span>
+                    <strong className={`text-slate-800 ${timeRemainingSeconds < 60 ? 'text-rose-600' : ''}`}>
+                      {formatTime(timeRemainingSeconds)}
+                    </strong>
                   </div>
                   <div className="flex justify-between text-slate-500">
                     <span>Passing Mark:</span>
                     <strong className="text-slate-800">{activeAssessment?.passingScore || 65}%</strong>
                   </div>
                 </div>
-
-                {/* Submit CTA */}
-                <button
-                  onClick={() => setShowSubmitModal(true)}
-                  disabled={isSubmitting}
-                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Submitting Assessment...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Submit & next section</span>
-                    </>
-                  )}
-                </button>
 
               </div>
             </div>
@@ -1049,18 +1629,18 @@ export const AssessmentPage = () => {
       >
         <div className="space-y-5">
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-            Are you sure you want to finish and submit the <strong>{activeAssessment?.title || 'Technical Assessment'}</strong>? Once submitted, your answers will be locked and processed by the AI evaluation engine.
+            Are you sure you want to finish and submit the <strong>{activeAssessment?.title || 'Technical Assessment'}</strong>? This finalizes <strong>every section</strong> at once. Once submitted, your answers will be locked and processed by the AI evaluation engine.
           </p>
 
-          {/* Submission Summary Table */}
+          {/* Submission Summary Table (test-wide) */}
           <div className="grid grid-cols-3 gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200 text-center">
             <div className="p-2 bg-white rounded-lg border border-slate-100">
               <span className="text-[11px] font-semibold text-slate-500 block">Answered</span>
-              <span className="text-lg font-bold text-emerald-600">{answeredCount}</span>
+              <span className="text-lg font-bold text-emerald-600">{totalAnsweredCount}</span>
             </div>
             <div className="p-2 bg-white rounded-lg border border-slate-100">
               <span className="text-[11px] font-semibold text-slate-500 block">Unanswered</span>
-              <span className="text-lg font-bold text-slate-700">{unansweredCount}</span>
+              <span className="text-lg font-bold text-slate-700">{totalUnansweredCount}</span>
             </div>
             <div className="p-2 bg-white rounded-lg border border-slate-100">
               <span className="text-[11px] font-semibold text-slate-500 block">Marked Review</span>
@@ -1068,10 +1648,10 @@ export const AssessmentPage = () => {
             </div>
           </div>
 
-          {unansweredCount > 0 && (
+          {totalUnansweredCount > 0 && (
             <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
               <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-              <span>You still have {unansweredCount} unanswered questions. You can go back to answer them or submit now.</span>
+              <span>You still have {totalUnansweredCount} unanswered questions across all sections. Sections already completed cannot be revisited — submit now to finish.</span>
             </div>
           )}
 

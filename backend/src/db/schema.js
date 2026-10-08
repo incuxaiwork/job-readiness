@@ -157,6 +157,21 @@ const schemaSQL = `
       CONSTRAINT uq_assessment_question UNIQUE (assessment_id, question_id)
     );
 
+    -- 8b. assessment_sections: Sections inside an assessment (multi-section tests)
+    CREATE TABLE IF NOT EXISTS assessment_sections (
+      id VARCHAR(64) PRIMARY KEY,
+      assessment_id VARCHAR(64) NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
+      name VARCHAR(128) NOT NULL,
+      description TEXT,
+      question_count INT DEFAULT 0,
+      marks_per_question INT DEFAULT 1,
+      duration_minutes INT DEFAULT 30,
+      display_order INT DEFAULT 1,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    );
+
+    ALTER TABLE assessment_questions ADD COLUMN IF NOT EXISTS section_id VARCHAR(64) REFERENCES assessment_sections(id) ON DELETE SET NULL;
+
     -- 9. company_eligibility_criteria: Standardized company eligibility criteria and cutoffs
     CREATE TABLE IF NOT EXISTS company_eligibility_criteria (
       id VARCHAR(64) PRIMARY KEY,
@@ -186,6 +201,63 @@ const schemaSQL = `
       type VARCHAR(64) NOT NULL,
       timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
       details JSONB
+    );
+
+    -- 11. test_attempts: Stores every candidate's attempt of an assessment
+    CREATE TABLE IF NOT EXISTS test_attempts (
+      id VARCHAR(64) PRIMARY KEY,
+      candidate_id VARCHAR(64) NOT NULL REFERENCES candidate_profiles(id) ON DELETE CASCADE,
+      assessment_id VARCHAR(64) NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
+      attempt_number INT DEFAULT 1,
+      status VARCHAR(32) DEFAULT 'InProgress',
+      started_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      submitted_at TIMESTAMPTZ,
+      time_taken_seconds INT,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- 12. candidate_answers: Individual saved answers for an attempt (save-as-you-go)
+    CREATE TABLE IF NOT EXISTS candidate_answers (
+      id VARCHAR(64) PRIMARY KEY,
+      attempt_id VARCHAR(64) NOT NULL REFERENCES test_attempts(id) ON DELETE CASCADE,
+      question_id VARCHAR(64) NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+      selected_option VARCHAR(8),
+      is_correct BOOLEAN,
+      marks_obtained NUMERIC DEFAULT 0,
+      time_taken_seconds INT,
+      answered_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_candidate_answer ON candidate_answers(attempt_id, question_id);
+
+    -- 13. performance_analysis: Overall analysis per attempt
+    CREATE TABLE IF NOT EXISTS performance_analysis (
+      id VARCHAR(64) PRIMARY KEY,
+      attempt_id VARCHAR(64) NOT NULL UNIQUE REFERENCES test_attempts(id) ON DELETE CASCADE,
+      overall_score NUMERIC DEFAULT 0,
+      accuracy NUMERIC DEFAULT 0,
+      speed_score NUMERIC DEFAULT 0,
+      aptitude_score NUMERIC,
+      reasoning_score NUMERIC,
+      technical_score NUMERIC,
+      strengths JSONB,
+      weaknesses JSONB,
+      ai_summary TEXT,
+      recommendations JSONB,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- 14. section_attempts: Tracks per-section progress & strict timer for a test attempt
+    --      section_id is NULL for a single implicit section (assessments with no admin-defined sections)
+    CREATE TABLE IF NOT EXISTS section_attempts (
+      id VARCHAR(64) PRIMARY KEY,
+      attempt_id VARCHAR(64) NOT NULL REFERENCES test_attempts(id) ON DELETE CASCADE,
+      section_id VARCHAR(64) REFERENCES assessment_sections(id) ON DELETE CASCADE,
+      status VARCHAR(32) DEFAULT 'Pending',
+      started_at TIMESTAMPTZ,
+      completed_at TIMESTAMPTZ,
+      time_limit_seconds INT DEFAULT 1800,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT uq_attempt_section UNIQUE (attempt_id, section_id)
     );
 `;
 
@@ -225,6 +297,10 @@ export const initSchema = async () => {
     await client.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(32) DEFAULT 'active';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;
+
+      -- Section-based assessment: per-section strict timer
+      ALTER TABLE assessment_sections ADD COLUMN IF NOT EXISTS duration_minutes INT DEFAULT 30;
+      ALTER TABLE section_attempts ALTER COLUMN section_id DROP NOT NULL;
 
       ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS specialization VARCHAR(128);
       ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS country VARCHAR(128) DEFAULT 'India';

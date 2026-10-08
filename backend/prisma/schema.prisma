@@ -121,13 +121,34 @@ model AssessmentSection {
   questionCount    Int       @map("question_count")
   marksPerQuestion Int?      @default(1) @map("marks_per_question")
   displayOrder     Int       @map("display_order")
+  durationMinutes  Int?      @default(30) @map("duration_minutes")
   createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamptz
 
   // Relations
   assessment Assessment           @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   questions  AssessmentQuestion[]
+  sectionAttempts SectionAttempt[]
 
   @@map("assessment_sections")
+}
+
+// 4b. section_attempts — Per-section progress & strict timer for a test attempt
+//     section_id is NULL for the single implicit section (assessments with no admin-defined sections)
+model SectionAttempt {
+  id               String    @id @db.VarChar(64)
+  attemptId        String    @map("attempt_id") @db.VarChar(64)
+  sectionId        String?   @map("section_id") @db.VarChar(64)
+  status           String?   @default("Pending") @db.VarChar(32)
+  startedAt        DateTime? @map("started_at") @db.Timestamptz
+  completedAt      DateTime? @map("completed_at") @db.Timestamptz
+  timeLimitSeconds Int?      @default(1800) @map("time_limit_seconds")
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  attempt TestAttempt        @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  section AssessmentSection? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, sectionId])
+  @@map("section_attempts")
 }
 
 // 5. assessment_questions — Links assessments and questions with question metadata and marks
@@ -270,6 +291,7 @@ model TestAttempt {
   candidate        CandidateProfile     @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   assessment       Assessment           @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   answers          CandidateAnswer[]
+  sectionAttempts  SectionAttempt[]
   performance      PerformanceAnalysis?
   skillPerformance SkillPerformance[]
   companyReadiness CompanyReadiness[]

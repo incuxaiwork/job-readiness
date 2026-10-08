@@ -28,6 +28,7 @@ import submissionsRoutes from './routes/submissions.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import codeRoutes from './routes/code.routes.js';
 import interviewRoutes from './routes/interview.routes.js';
+import attemptsRoutes from './routes/attempts.routes.js';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '5000', 10);
@@ -112,6 +113,7 @@ app.use(['/api/submissions', '/submissions'], submissionsRoutes);
 app.use(['/api/admin', '/admin'], adminRoutes);
 app.use(['/api/code', '/code'], codeRoutes);
 app.use(['/api/interview', '/interview'], interviewRoutes);
+app.use(['/api/attempts', '/attempts'], attemptsRoutes);
 
 // ─── Static Files & SPA Fallback ─────────────────────────────────────────────
 if (fs.existsSync(distPath)) {

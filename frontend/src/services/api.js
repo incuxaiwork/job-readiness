@@ -230,6 +230,16 @@ export const api = {
     getQuestions:   (id)        => request("GET",    "/assessments/" + id + "/questions"),
     addQuestions:   (id, body)  => request("POST",   "/assessments/" + id + "/questions", body),
     removeQuestion: (id, qId)   => request("DELETE", "/assessments/" + id + "/questions/" + qId),
+    getSections:    (id)        => request("GET",    "/assessments/" + id + "/sections"),
+    replaceSections:(id, body)  => request("PUT",    "/assessments/" + id + "/sections", body),
+    startAttempt:   (id)        => request("POST",   "/assessments/" + id + "/attempt/start"),
+  },
+
+  attempts: {
+    status:         (attemptId)             => request("GET",  "/attempts/" + attemptId + "/status"),
+    saveAnswer:     (attemptId, body)       => request("POST", "/attempts/" + attemptId + "/answers", body),
+    completeSection: (attemptId, body)      => request("POST", "/attempts/" + attemptId + "/section/complete", body),
+    submit:         (attemptId, body)       => request("POST", "/attempts/" + attemptId + "/submit", body),
   },
 
   questions: {

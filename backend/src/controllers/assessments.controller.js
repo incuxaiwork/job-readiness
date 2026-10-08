@@ -19,7 +19,12 @@ export const getAllAssessments = async (req, res) => {
     }
 
     const now = Date.now();
-    if (assessmentsCache && (now - lastAssessmentsFetch < CACHE_TTL_MS)) {
+
+    // Archived assessments are hidden from candidates but still visible to admins
+    const includeArchived = req.user?.role === 'admin';
+
+    // Cache serves the candidate view only (admin view must stay fresh & must not poison it)
+    if (!includeArchived && assessmentsCache && (now - lastAssessmentsFetch < CACHE_TTL_MS)) {
       return res.json(assessmentsCache);
     }
 
@@ -36,6 +41,7 @@ export const getAllAssessments = async (req, res) => {
           '[]'::json
         ) as selected_question_ids
       FROM assessments a
+      ${includeArchived ? '' : "WHERE a.status IS DISTINCT FROM 'Archived'"}
       ORDER BY a.created_at DESC
     `);
     const rows = result.rows.map(r => ({
@@ -48,8 +54,10 @@ export const getAllAssessments = async (req, res) => {
     }));
     const responsePayload = { success: true, data: rows };
 
-    assessmentsCache = responsePayload;
-    lastAssessmentsFetch = now;
+    if (!includeArchived) {
+      assessmentsCache = responsePayload;
+      lastAssessmentsFetch = now;
+    }
 
     res.json(responsePayload);
   } catch (err) {
@@ -399,6 +407,19 @@ export const getAssessmentQuestions = async (req, res) => {
         : fallbackQuestions.filter(q => String(q.category).toLowerCase() === cat.toLowerCase());
       return res.json({ success: true, data: matchingQuestions, total: matchingQuestions.length });
     }
+
+    const result = await pool.query(
+      `SELECT aq.id, aq.question_id, aq.section_id, aq.category, aq.topic, aq.question, aq.difficulty, aq.options,
+              COALESCE(q.type, 'Single Choice') as type,
+              aq.test_cases, aq.starter_templates, aq.constraints,
+              ${isAdmin ? 'aq.correct_answer,' : ''}
+              aq.marks, aq.created_at
+       FROM assessment_questions aq
+       JOIN questions q ON q.id = aq.question_id
+       WHERE aq.assessment_id = $1
+       ORDER BY aq.created_at ASC, aq.id ASC`,
+      [req.params.id]
+    );
 
     let questionsList = result.rows;
     if (questionsList.length === 0) {

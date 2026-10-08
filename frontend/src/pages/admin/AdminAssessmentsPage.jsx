@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../../components/common/Modal';
+import { SectionsEditorModal } from '../../components/admin/SectionsEditorModal';
 import { parseQuestionsFromExcel, downloadExcelQuestionTemplate } from '../../utils/excelParser';
 import {
   Layers,
@@ -178,6 +179,7 @@ export const AdminAssessmentsPage = () => {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [previewAsm, setPreviewAsm] = useState(null);
+  const [sectionsAsm, setSectionsAsm] = useState(null);
   const [editingAsmId, setEditingAsmId] = useState(null);
   const [step2CategoryFilter, setStep2CategoryFilter] = useState('all');
 
@@ -729,6 +731,14 @@ export const AdminAssessmentsPage = () => {
                     title="Preview assessment details"
                   >
                     <Eye className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSectionsAsm(asm)}
+                    className="p-2 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 transition-colors"
+                    title="Manage sections"
+                  >
+                    <Layers className="w-4 h-4" />
                   </button>
                   <button
                     type="button"
@@ -1524,6 +1534,15 @@ export const AdminAssessmentsPage = () => {
             </div>
           </div>
         </Modal>
+      )}
+
+      {sectionsAsm && (
+        <SectionsEditorModal
+          isOpen={!!sectionsAsm}
+          onClose={() => setSectionsAsm(null)}
+          assessment={sectionsAsm}
+          addToast={addToast}
+        />
       )}
 
     </div>
