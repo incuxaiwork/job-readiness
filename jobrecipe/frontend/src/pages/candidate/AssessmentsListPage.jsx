@@ -41,9 +41,7 @@ export const AssessmentsListPage = () => {
     navigateTo('take-assessment');
   };
 
-  const activeList = (Array.isArray(assessments) && assessments.length > 0)
-    ? assessments
-    : INITIAL_ASSESSMENTS;
+  const activeList = Array.isArray(assessments) ? assessments : [];
 
   const filteredAssessments = activeList.filter(a => {
     return selectedCategory === 'All' || a.category === selectedCategory;

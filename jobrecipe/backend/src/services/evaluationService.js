@@ -325,8 +325,6 @@ export const evaluateSubmission = async ({
 
   if (categoryStats['Coding'] && categoryStats['Coding'].totalMarks > 0) {
     categoryScores.coding = Math.round((categoryStats['Coding'].obtainedMarks / categoryStats['Coding'].totalMarks) * 100);
-  } else if (categoryScores.technical > 0) {
-    categoryScores.coding = categoryScores.technical;
   }
 
   // Build topic breakdown with accurate topic marks & performance

@@ -14,12 +14,12 @@ export const clearCandidatesCache = () => {
 export const getAllCandidates = async (req, res) => {
   try {
     if (!pool || !getDbStatus()) {
-      return res.json({ success: true, data: fallbackCandidates, total: fallbackCandidates.length });
+      return res.json({ success: true, data: [], total: 0 });
     }
 
     const result = await pool.query(`
       SELECT 
-        COALESCE(cp.id, c.id) as id,
+        COALESCE(cp.id, u.id, c.id) as id,
         COALESCE(cp.name, u.name, 'Candidate') as name,
         COALESCE(cp.email, u.email) as email,
         cp.mobile,
@@ -27,10 +27,10 @@ export const getAllCandidates = async (req, res) => {
         cp.degree,
         cp.branch,
         cp.specialization,
-        cp.country,
+        COALESCE(cp.country, 'India') as country,
         cp.state,
         cp.city,
-        cp.graduation_year,
+        COALESCE(cp.graduation_year, 2026) as graduation_year,
         COALESCE(cp.experience_level, c.experience_level, 'Fresher') as experience_level,
         cp.tenth_school,
         COALESCE(cp.tenth_marks, c.tenth_marks) as tenth_marks,
@@ -39,29 +39,41 @@ export const getAllCandidates = async (req, res) => {
         COALESCE(cp.graduation_percentage, c.graduation_percentage) as graduation_percentage,
         COALESCE(cp.cgpa, cp.graduation_percentage) as cgpa,
         COALESCE(cp.backlogs, c.backlogs, 0) as backlogs,
-        COALESCE(c.job_readiness_score, s.latest_score, 0) as job_readiness_score,
-        COALESCE(c.job_readiness_score, s.latest_score, 0) as overall_score,
-        COALESCE(c.aptitude_score, NULLIF((s.category_scores->>'aptitude'), '')::int, NULLIF((s.category_scores->>'Aptitude'), '')::int, 0) as aptitude_score,
-        COALESCE(c.reasoning_score, NULLIF((s.category_scores->>'reasoning'), '')::int, NULLIF((s.category_scores->>'Reasoning'), '')::int, 0) as reasoning_score,
-        COALESCE(c.technical_score, NULLIF((s.category_scores->>'technical'), '')::int, NULLIF((s.category_scores->>'Technical'), '')::int, 0) as technical_score,
-        COALESCE(c.verbal_score, NULLIF((s.category_scores->>'verbal'), '')::int, NULLIF((s.category_scores->>'Verbal'), '')::int, NULLIF((s.category_scores->>'english'), '')::int, 0) as verbal_score,
-        COALESCE(c.coding_score, NULLIF((s.category_scores->>'coding'), '')::int, NULLIF((s.category_scores->>'Coding'), '')::int, 0) as coding_score,
-        COALESCE(c.assessments_completed, 0) as assessments_completed,
-        CASE WHEN s.latest_score IS NOT NULL OR COALESCE(c.assessments_completed, 0) > 0 THEN 'Completed' ELSE 'Active' END as assessment_status,
-        COALESCE(cp.created_at, c.created_at) as created_at
-      FROM candidate_profiles cp
-      LEFT JOIN candidates c ON cp.id = c.id
-      LEFT JOIN users u ON cp.user_id = u.id
+        COALESCE(NULLIF(c.job_readiness_score, 0), CASE WHEN s.total_possible > 0 THEN ROUND((s.total_obtained * 100.0) / s.total_possible) ELSE s.avg_score END, 0) as job_readiness_score,
+        COALESCE(NULLIF(c.job_readiness_score, 0), CASE WHEN s.total_possible > 0 THEN ROUND((s.total_obtained * 100.0) / s.total_possible) ELSE s.avg_score END, 0) as overall_score,
+        COALESCE(NULLIF(c.aptitude_score, 0), s.apt_score, 0) as aptitude_score,
+        COALESCE(NULLIF(c.reasoning_score, 0), s.reason_score, 0) as reasoning_score,
+        COALESCE(NULLIF(c.technical_score, 0), s.tech_score, 0) as technical_score,
+        COALESCE(NULLIF(c.verbal_score, 0), s.verb_score, 0) as verbal_score,
+        COALESCE(NULLIF(c.coding_score, 0), s.code_score, 0) as coding_score,
+        COALESCE(s.total_submissions, c.assessments_completed, 0) as assessments_completed,
+        CASE WHEN s.total_submissions > 0 OR COALESCE(c.assessments_completed, 0) > 0 THEN 'Completed' ELSE 'Active' END as assessment_status,
+        COALESCE(cp.created_at, u.created_at, c.created_at) as created_at
+      FROM users u
+      LEFT JOIN candidate_profiles cp ON (cp.user_id = u.id OR cp.id = u.id OR (cp.email IS NOT NULL AND LOWER(cp.email) = LOWER(u.email)))
+      LEFT JOIN candidates c ON (cp.id = c.id OR u.id = c.id)
       LEFT JOIN (
-        SELECT DISTINCT ON (candidate_id)
+        SELECT 
           candidate_id,
-          candidate_email,
-          score as latest_score,
-          category_scores,
-          created_at
+          LOWER(candidate_email) as norm_email,
+          COUNT(DISTINCT id) as total_submissions,
+          SUM(COALESCE(obtained_marks, score)) as total_obtained,
+          SUM(COALESCE(total_marks, 40)) as total_possible,
+          ROUND(AVG(score)) as avg_score,
+          MAX(CASE WHEN LOWER(assessment_title) LIKE '%tech%' THEN score 
+                   WHEN (category_scores->>'technical') IS NOT NULL AND (category_scores->>'technical')::int > 0 THEN (category_scores->>'technical')::int ELSE NULL END) as tech_score,
+          MAX(CASE WHEN LOWER(assessment_title) LIKE '%apt%' THEN score 
+                   WHEN (category_scores->>'aptitude') IS NOT NULL AND (category_scores->>'aptitude')::int > 0 THEN (category_scores->>'aptitude')::int ELSE NULL END) as apt_score,
+          MAX(CASE WHEN LOWER(assessment_title) LIKE '%reason%' THEN score 
+                   WHEN (category_scores->>'reasoning') IS NOT NULL AND (category_scores->>'reasoning')::int > 0 THEN (category_scores->>'reasoning')::int ELSE NULL END) as reason_score,
+          MAX(CASE WHEN LOWER(assessment_title) LIKE '%code%' THEN score 
+                   WHEN (category_scores->>'coding') IS NOT NULL AND (category_scores->>'coding')::int > 0 THEN (category_scores->>'coding')::int ELSE NULL END) as code_score,
+          MAX(CASE WHEN LOWER(assessment_title) LIKE '%verb%' THEN score 
+                   WHEN (category_scores->>'verbal') IS NOT NULL AND (category_scores->>'verbal')::int > 0 THEN (category_scores->>'verbal')::int ELSE NULL END) as verb_score
         FROM assessment_submissions
-        ORDER BY candidate_id, created_at DESC
-      ) s ON cp.id = s.candidate_id OR cp.user_id = s.candidate_id OR LOWER(cp.email) = LOWER(s.candidate_email)
+        GROUP BY candidate_id, LOWER(candidate_email)
+      ) s ON cp.id = s.candidate_id OR cp.user_id = s.candidate_id OR u.id = s.candidate_id OR (cp.email IS NOT NULL AND LOWER(cp.email) = s.norm_email) OR (u.email IS NOT NULL AND LOWER(u.email) = s.norm_email)
+      WHERE (u.role = 'candidate' OR u.role IS NULL) AND COALESCE(cp.id, u.id, c.id) IS NOT NULL
       ORDER BY created_at DESC
     `);
     const responsePayload = { success: true, data: result.rows, total: result.rowCount };
@@ -101,29 +113,40 @@ export const getCandidateById = async (req, res) => {
         COALESCE(cp.graduation_percentage, c.graduation_percentage) as graduation_percentage,
         COALESCE(cp.cgpa, cp.graduation_percentage) as cgpa,
         COALESCE(cp.backlogs, c.backlogs, 0) as backlogs,
-        COALESCE(c.job_readiness_score, s.latest_score, 0) as job_readiness_score,
-        COALESCE(c.job_readiness_score, s.latest_score, 0) as overall_score,
-        COALESCE(c.aptitude_score, NULLIF((s.category_scores->>'aptitude'), '')::int, NULLIF((s.category_scores->>'Aptitude'), '')::int, 0) as aptitude_score,
-        COALESCE(c.reasoning_score, NULLIF((s.category_scores->>'reasoning'), '')::int, NULLIF((s.category_scores->>'Reasoning'), '')::int, 0) as reasoning_score,
-        COALESCE(c.technical_score, NULLIF((s.category_scores->>'technical'), '')::int, NULLIF((s.category_scores->>'Technical'), '')::int, 0) as technical_score,
-        COALESCE(c.verbal_score, NULLIF((s.category_scores->>'verbal'), '')::int, NULLIF((s.category_scores->>'Verbal'), '')::int, NULLIF((s.category_scores->>'english'), '')::int, 0) as verbal_score,
-        COALESCE(c.coding_score, NULLIF((s.category_scores->>'coding'), '')::int, NULLIF((s.category_scores->>'Coding'), '')::int, 0) as coding_score,
-        COALESCE(c.assessments_completed, 0) as assessments_completed,
-        CASE WHEN s.latest_score IS NOT NULL OR COALESCE(c.assessments_completed, 0) > 0 THEN 'Completed' ELSE 'Active' END as assessment_status,
+        COALESCE(NULLIF(c.job_readiness_score, 0), CASE WHEN s.total_possible > 0 THEN ROUND((s.total_obtained * 100.0) / s.total_possible) ELSE s.avg_score END, 0) as job_readiness_score,
+        COALESCE(NULLIF(c.job_readiness_score, 0), CASE WHEN s.total_possible > 0 THEN ROUND((s.total_obtained * 100.0) / s.total_possible) ELSE s.avg_score END, 0) as overall_score,
+        COALESCE(NULLIF(c.aptitude_score, 0), s.apt_score, 0) as aptitude_score,
+        COALESCE(NULLIF(c.reasoning_score, 0), s.reason_score, 0) as reasoning_score,
+        COALESCE(NULLIF(c.technical_score, 0), s.tech_score, 0) as technical_score,
+        COALESCE(NULLIF(c.verbal_score, 0), s.verb_score, 0) as verbal_score,
+        COALESCE(NULLIF(c.coding_score, 0), s.code_score, 0) as coding_score,
+        COALESCE(s.total_submissions, c.assessments_completed, 0) as assessments_completed,
+        CASE WHEN s.total_submissions > 0 OR COALESCE(c.assessments_completed, 0) > 0 THEN 'Completed' ELSE 'Active' END as assessment_status,
         COALESCE(cp.created_at, c.created_at) as created_at
       FROM candidate_profiles cp
       LEFT JOIN candidates c ON cp.id = c.id
       LEFT JOIN users u ON cp.user_id = u.id
       LEFT JOIN (
-        SELECT DISTINCT ON (candidate_id)
+        SELECT 
           candidate_id,
-          candidate_email,
-          score as latest_score,
-          category_scores,
-          created_at
+          LOWER(candidate_email) as norm_email,
+          COUNT(DISTINCT id) as total_submissions,
+          SUM(COALESCE(obtained_marks, score)) as total_obtained,
+          SUM(COALESCE(total_marks, 40)) as total_possible,
+          ROUND(AVG(score)) as avg_score,
+          MAX(CASE WHEN LOWER(category) LIKE '%tech%' OR LOWER(assessment_title) LIKE '%tech%' THEN score 
+                   WHEN (category_scores->>'technical') IS NOT NULL AND (category_scores->>'technical')::int > 0 THEN (category_scores->>'technical')::int ELSE NULL END) as tech_score,
+          MAX(CASE WHEN LOWER(category) LIKE '%apt%' OR LOWER(assessment_title) LIKE '%apt%' THEN score 
+                   WHEN (category_scores->>'aptitude') IS NOT NULL AND (category_scores->>'aptitude')::int > 0 THEN (category_scores->>'aptitude')::int ELSE NULL END) as apt_score,
+          MAX(CASE WHEN LOWER(category) LIKE '%reason%' OR LOWER(assessment_title) LIKE '%reason%' THEN score 
+                   WHEN (category_scores->>'reasoning') IS NOT NULL AND (category_scores->>'reasoning')::int > 0 THEN (category_scores->>'reasoning')::int ELSE NULL END) as reason_score,
+          MAX(CASE WHEN LOWER(category) LIKE '%code%' OR LOWER(assessment_title) LIKE '%code%' THEN score 
+                   WHEN (category_scores->>'coding') IS NOT NULL AND (category_scores->>'coding')::int > 0 THEN (category_scores->>'coding')::int ELSE NULL END) as code_score,
+          MAX(CASE WHEN LOWER(category) LIKE '%verb%' OR LOWER(assessment_title) LIKE '%verb%' THEN score 
+                   WHEN (category_scores->>'verbal') IS NOT NULL AND (category_scores->>'verbal')::int > 0 THEN (category_scores->>'verbal')::int ELSE NULL END) as verb_score
         FROM assessment_submissions
-        ORDER BY candidate_id, created_at DESC
-      ) s ON cp.id = s.candidate_id OR cp.user_id = s.candidate_id OR LOWER(cp.email) = LOWER(s.candidate_email)
+        GROUP BY candidate_id, LOWER(candidate_email)
+      ) s ON cp.id = s.candidate_id OR cp.user_id = s.candidate_id OR (cp.email IS NOT NULL AND LOWER(cp.email) = s.norm_email)
       WHERE cp.id=$1 OR cp.user_id=$1 OR c.id=$1
       LIMIT 1
     `, [req.params.id]);

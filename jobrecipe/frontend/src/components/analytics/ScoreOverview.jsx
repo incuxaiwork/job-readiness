@@ -5,7 +5,14 @@ export default function ScoreOverview({ student }) {
   const latestAttempt = student.examAttempts[student.examAttempts.length - 1];
   const prevAttempt = student.examAttempts.length > 1 ? student.examAttempts[student.examAttempts.length - 2] : null;
 
-  const currentPercents = latestAttempt ? getCategoryPercents(latestAttempt) : { aptitude: 0, reasoning: 0, technical: 0, english: 0, verbal: 0, coding: 0 };
+  const currentPercents = {
+    aptitude: student.categoryScores?.aptitude ?? (latestAttempt ? getCategoryPercents(latestAttempt).aptitude : 0),
+    reasoning: student.categoryScores?.reasoning ?? (latestAttempt ? getCategoryPercents(latestAttempt).reasoning : 0),
+    technical: student.categoryScores?.technical ?? (latestAttempt ? getCategoryPercents(latestAttempt).technical : 0),
+    verbal: student.categoryScores?.verbal ?? student.categoryScores?.english ?? (latestAttempt ? getCategoryPercents(latestAttempt).verbal : 0),
+    english: student.categoryScores?.verbal ?? student.categoryScores?.english ?? (latestAttempt ? getCategoryPercents(latestAttempt).verbal : 0),
+    coding: student.categoryScores?.coding ?? (latestAttempt ? getCategoryPercents(latestAttempt).coding : 0),
+  };
 
   const scoreTrend = student.examAttempts.map((att) => {
     const cats = Object.values(att.categories || {});

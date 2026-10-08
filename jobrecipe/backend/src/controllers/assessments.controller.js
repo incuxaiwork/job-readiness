@@ -15,7 +15,7 @@ export const clearAssessmentsCache = () => {
 export const getAllAssessments = async (req, res) => {
   try {
     if (!pool || !getDbStatus()) {
-      return res.json({ success: true, data: fallbackAssessments });
+      return res.json({ success: true, data: [] });
     }
 
     const now = Date.now();
@@ -40,6 +40,7 @@ export const getAllAssessments = async (req, res) => {
     `);
     const rows = result.rows.map(r => ({
       ...r,
+      status: (!r.status || r.status === 'Draft') ? 'Available' : r.status,
       durationMinutes: Number(r.duration_minutes) || 10,
       totalQuestions: Number(r.total_questions) || 0,
       passingScore: Number(r.passing_score) || 70,
@@ -126,6 +127,46 @@ export const syncAssessmentQuestions = async (client, assessmentId, selectedQues
       [idsToLink]
     );
 
+    // 2b. Auto-seed missing question IDs from fallbackQuestions into questions table if needed
+    const foundIds = new Set(qDetailsRes.rows.map(r => r.id));
+    const missingIds = idsToLink.filter(id => !foundIds.has(id));
+
+    if (missingIds.length > 0 && Array.isArray(fallbackQuestions)) {
+      for (const mId of missingIds) {
+        const fallbackQ = fallbackQuestions.find(fq => fq.id === mId || String(fq.id).toLowerCase() === String(mId).toLowerCase());
+        if (fallbackQ) {
+          const isCoding = fallbackQ.type === 'Coding' || fallbackQ.category === 'Coding';
+          try {
+            const insQ = await client.query(
+              `INSERT INTO questions (id, category, topic, difficulty, type, question, options, correct_answer, marks, test_cases, starter_templates, constraints)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+               ON CONFLICT (id) DO UPDATE SET
+                 category = EXCLUDED.category,
+                 question = EXCLUDED.question
+               RETURNING id, category, topic, question, difficulty, options, correct_answer, marks, test_cases, starter_templates, constraints`,
+              [
+                fallbackQ.id,
+                fallbackQ.category || fallbackCategory || 'Technical',
+                fallbackQ.topic || 'General',
+                fallbackQ.difficulty || 'Medium',
+                fallbackQ.type || (isCoding ? 'Coding' : 'Single Choice'),
+                fallbackQ.question,
+                JSON.stringify(fallbackQ.options || []),
+                fallbackQ.correctAnswer || fallbackQ.correct_answer || 'A',
+                fallbackQ.marks || (isCoding ? 10 : 4),
+                fallbackQ.test_cases ? JSON.stringify(fallbackQ.test_cases) : null,
+                fallbackQ.starter_templates ? JSON.stringify(fallbackQ.starter_templates) : null,
+                fallbackQ.constraints || null
+              ]
+            );
+            if (insQ.rows.length > 0) {
+              qDetailsRes.rows.push(insQ.rows[0]);
+            }
+          } catch (e) {}
+        }
+      }
+    }
+
     // 3. Upsert questions into assessment_questions
     for (const q of qDetailsRes.rows) {
       const aqId = `aq-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
@@ -180,9 +221,19 @@ export const createAssessment = async (req, res) => {
     await client.query('BEGIN');
     clearAssessmentsCache();
 
+    let createdBy = req.user?.id || null;
+    if (createdBy) {
+      const uCheck = await client.query('SELECT id FROM users WHERE id = $1', [createdBy]);
+      if (uCheck.rows.length === 0) {
+        createdBy = null;
+      }
+    }
+
+    const totalMarksVal = Number(req.body.totalMarks) || 100;
+    const statusVal = req.body.status || 'Available';
     const result = await client.query(
-      `INSERT INTO assessments (id, title, category, description, difficulty, duration_minutes, total_questions, passing_score, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      `INSERT INTO assessments (id, title, category, description, difficulty, duration_minutes, total_questions, total_marks, passing_score, status, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        ON CONFLICT (id) DO UPDATE SET
          title = EXCLUDED.title,
          category = EXCLUDED.category,
@@ -190,10 +241,12 @@ export const createAssessment = async (req, res) => {
          difficulty = EXCLUDED.difficulty,
          duration_minutes = EXCLUDED.duration_minutes,
          total_questions = EXCLUDED.total_questions,
+         total_marks = EXCLUDED.total_marks,
          passing_score = EXCLUDED.passing_score,
+         status = EXCLUDED.status,
          updated_at = CURRENT_TIMESTAMP
        RETURNING *`,
-      [id, title, category || 'Technical', description || null, difficulty || 'Medium', Number(durationMinutes) || 30, finalTotalQuestions, Number(passingScore) || 65, req.user?.id || 'admin']
+      [id, title, category || 'Technical', description || null, difficulty || 'Medium', Number(durationMinutes) || 30, finalTotalQuestions, totalMarksVal, Number(passingScore) || 65, statusVal, createdBy]
     );
 
     // Sync questions into assessment_questions table
@@ -203,6 +256,7 @@ export const createAssessment = async (req, res) => {
     res.status(201).json({ success: true, data: result.rows[0] });
   } catch (err) {
     await client.query('ROLLBACK');
+    console.error('createAssessment error:', err.message);
     res.status(500).json({ error: err.message });
   } finally {
     client.release();
@@ -299,9 +353,9 @@ export const getAssessmentQuestions = async (req, res) => {
     const candidateId = req.user?.id;
     const candidateEmail = req.user?.email;
 
-    const allowRetake = req.query?.retake === 'true' || 
-                        req.headers?.['x-allow-retake'] === 'true' || 
-                        process.env.ALLOW_ASSESSMENT_RETAKE === 'true' || 
+    const allowRetake = (req.query?.retake === 'true' && isAdmin) || 
+                        (req.headers?.['x-allow-retake'] === 'true' && isAdmin) || 
+                        (process.env.ALLOW_ASSESSMENT_RETAKE === 'true' && isAdmin) || 
                         isAdmin;
 
     // Single Attempt Policy: If already completed and retakes are not allowed, block attempt
@@ -346,22 +400,27 @@ export const getAssessmentQuestions = async (req, res) => {
       return res.json({ success: true, data: matchingQuestions, total: matchingQuestions.length });
     }
 
-    const result = await pool.query(
-      `SELECT aq.id, aq.assessment_id, aq.question_id, aq.category, aq.topic,
-              aq.question, aq.difficulty, aq.options,
-              COALESCE(q.type, 'Single Choice') as type,
-              COALESCE(aq.test_cases, q.test_cases) as test_cases,
-              COALESCE(aq.starter_templates, q.starter_templates) as starter_templates,
-              COALESCE(aq.constraints, q.constraints) as constraints,
-              ${isAdmin ? 'aq.correct_answer,' : ''}
-              aq.marks, aq.created_at
-       FROM assessment_questions aq
-       LEFT JOIN questions q ON aq.question_id = q.id
-       WHERE aq.assessment_id = $1
-       ORDER BY aq.created_at ASC`,
-      [req.params.id]
-    );
-    res.json({ success: true, data: result.rows, total: result.rowCount });
+    let questionsList = result.rows;
+    if (questionsList.length === 0) {
+      const asmCheck = await pool.query('SELECT category, total_questions FROM assessments WHERE id = $1', [req.params.id]);
+      if (asmCheck.rows.length > 0) {
+        const asmCat = asmCheck.rows[0].category || 'Technical';
+        const asmCount = Number(asmCheck.rows[0].total_questions) || 10;
+        const autoQRes = await pool.query(
+          `SELECT q.id, q.id as question_id, q.category, q.topic, q.question, q.difficulty, q.options,
+                  COALESCE(q.type, 'Single Choice') as type,
+                  q.test_cases, q.starter_templates, q.constraints,
+                  ${isAdmin ? 'q.correct_answer,' : ''}
+                  q.marks, q.created_at
+           FROM questions q
+           WHERE q.category ILIKE $1 OR $1 = 'All'
+           ORDER BY q.created_at DESC LIMIT $2`,
+          [asmCat, asmCount]
+        );
+        questionsList = autoQRes.rows;
+      }
+    }
+    res.json({ success: true, data: questionsList, total: questionsList.length });
   } catch (err) {
     if (!pool || !getDbStatus()) {
       const asm = fallbackAssessments.find(a => String(a.id).toLowerCase() === String(req.params.id).toLowerCase());

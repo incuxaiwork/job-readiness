@@ -19,12 +19,7 @@ export const clearQuestionsCache = () => {
 export const getAllQuestions = async (req, res) => {
   try {
     if (!pool || !getDbStatus()) {
-      let filtered = [...fallbackQuestions];
-      const { category, difficulty, topic } = req.query;
-      if (category) filtered = filtered.filter(q => String(q.category).toLowerCase() === category.toLowerCase());
-      if (difficulty) filtered = filtered.filter(q => String(q.difficulty).toLowerCase() === difficulty.toLowerCase());
-      if (topic) filtered = filtered.filter(q => String(q.topic).toLowerCase().includes(topic.toLowerCase()));
-      return res.json({ success: true, data: filtered, total: filtered.length });
+      return res.json({ success: true, data: [], total: 0 });
     }
 
     const { category, difficulty, topic } = req.query;

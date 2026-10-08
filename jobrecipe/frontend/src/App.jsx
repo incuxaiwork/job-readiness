@@ -97,8 +97,16 @@ function RouterBridge({ children }) {
   return children;
 }
 
-// ── Distraction-free Assessment page (no layout) ───────────────────────────
 function AssessmentRunner() {
+  const { activeAssessment, assessments, isAssessmentCompleted, role } = useApp();
+
+  if (role !== 'admin' && assessments && assessments.length > 0) {
+    const allDone = assessments.every(a => isAssessmentCompleted(a));
+    if (allDone && !activeAssessment) {
+      return <Navigate to="/results" replace />;
+    }
+  }
+
   return (
     <>
       <AssessmentPage />

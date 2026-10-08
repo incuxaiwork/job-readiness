@@ -341,9 +341,7 @@ export const CandidateDashboard = () => {
         </div>
 
         {(() => {
-          const displayList = (Array.isArray(assessments) && assessments.length > 0)
-            ? assessments
-            : INITIAL_ASSESSMENTS;
+          const displayList = Array.isArray(assessments) ? assessments : [];
           return displayList.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200/90 shadow-card p-8 text-center">
               <p className="text-xs text-slate-500 font-medium">No assessments currently published.</p>
@@ -467,22 +465,27 @@ export const CandidateDashboard = () => {
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
         candidate={currentUser}
-        result={latestResult || {
-          score: currentUser?.jobReadinessScore || 78,
-          accuracy: currentUser?.jobReadinessScore || 78,
-          correctCount: Math.round(((currentUser?.jobReadinessScore || 78) / 100) * 20),
-          incorrectCount: 20 - Math.round(((currentUser?.jobReadinessScore || 78) / 100) * 20),
-          unansweredCount: 0,
-          totalQuestions: 20,
-          timeTaken: '28 min',
-          completedAt: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-          assessmentName: 'Job Readiness Assessment',
+        result={{
+          ...latestResult,
+          score: currentUser?.jobReadinessScore || latestResult?.score || 0,
+          accuracy: currentUser?.jobReadinessScore || latestResult?.accuracy || 0,
           categoryScores: {
-            aptitude: currentUser?.aptitudeScore ?? 82,
-            reasoning: currentUser?.reasoningScore ?? 74,
-            technical: currentUser?.technicalScore ?? 78,
-            verbal: currentUser?.verbalScore ?? 78,
-            coding: currentUser?.codingScore ?? 78
+            aptitude: currentUser?.aptitudeScore ?? 0,
+            reasoning: currentUser?.reasoningScore ?? 0,
+            technical: currentUser?.technicalScore ?? 0,
+            verbal: currentUser?.verbalScore ?? 0,
+            coding: currentUser?.codingScore ?? 0
+          }
+        }}
+        studentData={{
+          ...currentUser,
+          overallScore: currentUser?.jobReadinessScore || 0,
+          categoryScores: {
+            aptitude: currentUser?.aptitudeScore ?? 0,
+            reasoning: currentUser?.reasoningScore ?? 0,
+            technical: currentUser?.technicalScore ?? 0,
+            verbal: currentUser?.verbalScore ?? 0,
+            coding: currentUser?.codingScore ?? 0
           }
         }}
         addToast={addToast}

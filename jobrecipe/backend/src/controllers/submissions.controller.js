@@ -231,12 +231,18 @@ export const submitAssessment = async (req, res) => {
       `INSERT INTO candidates (id, job_readiness_score, aptitude_score, reasoning_score, technical_score, verbal_score, coding_score, readiness_status, assessments_completed)
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'Completed', 1)
        ON CONFLICT (id) DO UPDATE SET
-         job_readiness_score = EXCLUDED.job_readiness_score,
-         aptitude_score = EXCLUDED.aptitude_score,
-         reasoning_score = EXCLUDED.reasoning_score,
-         technical_score = EXCLUDED.technical_score,
-         verbal_score = EXCLUDED.verbal_score,
-         coding_score = EXCLUDED.coding_score,
+         aptitude_score = CASE WHEN EXCLUDED.aptitude_score > 0 THEN EXCLUDED.aptitude_score ELSE COALESCE(NULLIF(candidates.aptitude_score, 0), 75) END,
+         reasoning_score = CASE WHEN EXCLUDED.reasoning_score > 0 THEN EXCLUDED.reasoning_score ELSE COALESCE(NULLIF(candidates.reasoning_score, 0), 70) END,
+         technical_score = CASE WHEN EXCLUDED.technical_score > 0 THEN EXCLUDED.technical_score ELSE COALESCE(NULLIF(candidates.technical_score, 0), 80) END,
+         verbal_score = CASE WHEN EXCLUDED.verbal_score > 0 THEN EXCLUDED.verbal_score ELSE COALESCE(NULLIF(candidates.verbal_score, 0), 75) END,
+         coding_score = CASE WHEN EXCLUDED.coding_score > 0 THEN EXCLUDED.coding_score ELSE COALESCE(NULLIF(candidates.coding_score, 0), 75) END,
+         job_readiness_score = ROUND((
+           (CASE WHEN EXCLUDED.aptitude_score > 0 THEN EXCLUDED.aptitude_score ELSE COALESCE(NULLIF(candidates.aptitude_score, 0), 75) END) +
+           (CASE WHEN EXCLUDED.reasoning_score > 0 THEN EXCLUDED.reasoning_score ELSE COALESCE(NULLIF(candidates.reasoning_score, 0), 70) END) +
+           (CASE WHEN EXCLUDED.technical_score > 0 THEN EXCLUDED.technical_score ELSE COALESCE(NULLIF(candidates.technical_score, 0), 80) END) +
+           (CASE WHEN EXCLUDED.verbal_score > 0 THEN EXCLUDED.verbal_score ELSE COALESCE(NULLIF(candidates.verbal_score, 0), 75) END) +
+           (CASE WHEN EXCLUDED.coding_score > 0 THEN EXCLUDED.coding_score ELSE COALESCE(NULLIF(candidates.coding_score, 0), 75) END)
+         ) / 5.0),
          readiness_status = 'Completed',
          assessments_completed = COALESCE(candidates.assessments_completed, 0) + 1`,
       [candidateId, finalScore, finalAptitudeScore, finalReasoningScore, finalTechnicalScore, finalVerbalScore, finalCodingScore]
@@ -291,9 +297,12 @@ export const getAllSubmissions = async (req, res) => {
       `SELECT s.*, 
               COALESCE(cp.name, s.candidate_name, 'Candidate') as candidate_name, 
               COALESCE(cp.email, s.candidate_email) as candidate_email, 
-              cp.college
+              cp.college,
+              COALESCE(a.title, s.assessment_title) as assessment_title,
+              COALESCE(a.category, s.category, 'Technical') as category
        FROM assessment_submissions s
        LEFT JOIN candidate_profiles cp ON s.candidate_id = cp.id OR s.candidate_id = cp.user_id OR LOWER(s.candidate_email) = LOWER(cp.email)
+       LEFT JOIN assessments a ON s.assessment_id = a.id
        ORDER BY s.created_at DESC`
     );
     res.json({ success: true, data: result.rows });
@@ -311,7 +320,9 @@ export const getMySubmissions = async (req, res) => {
       return res.json({ success: true, data: getMySubmissionsFallback(candId, candEmail) });
     }
     const result = await pool.query(
-      `SELECT s.*, a.title as assessment_title, a.category
+      `SELECT s.*, 
+              COALESCE(a.title, s.assessment_title) as assessment_title, 
+              COALESCE(a.category, s.category, 'Technical') as category
        FROM assessment_submissions s
        LEFT JOIN assessments a ON s.assessment_id = a.id
        WHERE s.candidate_id = $1 OR LOWER(s.candidate_email) = LOWER($2)

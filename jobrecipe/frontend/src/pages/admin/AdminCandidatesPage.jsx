@@ -38,7 +38,7 @@ import {
 } from 'lucide-react';
 
 export const AdminCandidatesPage = () => {
-  const { candidatesList, deleteCandidate, resetCandidateAttempt, addToast, navigateTo, assessments } = useApp();
+  const { candidatesList, deleteCandidate, resetCandidateAttempt, addToast, navigateTo, assessments, fetchCandidates } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCollege, setSelectedCollege] = useState('All');
@@ -60,7 +60,7 @@ export const AdminCandidatesPage = () => {
   const [candidateInterviewSession, setCandidateInterviewSession] = useState(null);
   const [loadingInterview, setLoadingInterview] = useState(false);
 
-  // Fetch all recorded interview sessions for admin visibility
+  // Fetch all recorded interview sessions & refresh candidate roster for admin visibility
   const fetchAllInterviewSessions = () => {
     fetch('/api/interview/admin/sessions')
       .then(res => res.json())
@@ -74,7 +74,10 @@ export const AdminCandidatesPage = () => {
 
   useEffect(() => {
     fetchAllInterviewSessions();
-  }, []);
+    if (fetchCandidates) {
+      fetchCandidates();
+    }
+  }, [fetchCandidates]);
 
   // Helper to match a candidate to their AI Mock Interview session
   const getCandidateInterview = (cand) => {
@@ -180,10 +183,14 @@ export const AdminCandidatesPage = () => {
         interviewId.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (searchQuery.toLowerCase() === 'interview' && !!interview);
 
-      const matchCollege = selectedCollege === 'All' || c.college === selectedCollege;
-      const matchYear = selectedYear === 'All' || String(c.graduationYear || c.graduation_year) === String(selectedYear);
-      const matchStatus = selectedStatus === 'All' || c.assessmentStatus === selectedStatus;
-      const matchReadiness = selectedReadiness === 'All' || c.readiness === selectedReadiness;
+      const candCollege = c.college || c.collegeName || '';
+      const candStatus = c.assessmentStatus || c.status || 'Active';
+      const candYear = String(c.graduationYear || c.graduation_year || '');
+
+      const matchCollege = selectedCollege === 'All' || candCollege.toLowerCase() === selectedCollege.toLowerCase();
+      const matchYear = selectedYear === 'All' || candYear === String(selectedYear);
+      const matchStatus = selectedStatus === 'All' || candStatus.toLowerCase() === selectedStatus.toLowerCase();
+      const matchReadiness = selectedReadiness === 'All' || c.readiness === selectedReadiness || !selectedReadiness;
 
       return matchSearch && matchCollege && matchYear && matchStatus && matchReadiness;
     });

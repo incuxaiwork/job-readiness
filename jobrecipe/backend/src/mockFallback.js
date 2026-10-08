@@ -721,6 +721,53 @@ export const getMySubmissionsFallback = (candId, candEmail) => {
 
 export const saveSubmissionFallback = (submission) => {
   fallbackSubmissions.unshift(submission);
+
+  const candId = submission.candidate_id || submission.candidateId;
+  const candEmail = (submission.candidate_email || submission.candidateEmail || '').trim().toLowerCase();
+
+  const catScores = submission.category_scores || submission.categoryScores || {};
+  const newApt = Number(catScores.aptitude || 0);
+  const newReason = Number(catScores.reasoning || 0);
+  const newTech = Number(catScores.technical || 0);
+  const newVerb = Number(catScores.verbal || catScores.english || 0);
+  const newCode = Number(catScores.coding || 0);
+
+  const updateCand = (c) => {
+    const apt = newApt > 0 ? newApt : (c.aptitude_score || c.aptitudeScore || 75);
+    const reason = newReason > 0 ? newReason : (c.reasoning_score || c.reasoningScore || 70);
+    const tech = newTech > 0 ? newTech : (c.technical_score || c.technicalScore || 80);
+    const verb = newVerb > 0 ? newVerb : (c.verbal_score || c.verbalScore || 75);
+    const code = newCode > 0 ? newCode : (c.coding_score || c.codingScore || 75);
+    const overall = Math.round((apt + reason + tech + verb + code) / 5);
+
+    return {
+      ...c,
+      job_readiness_score: overall,
+      jobReadinessScore: overall,
+      overallScore: overall,
+      aptitude_score: apt,
+      aptitudeScore: apt,
+      reasoning_score: reason,
+      reasoningScore: reason,
+      technical_score: tech,
+      technicalScore: tech,
+      verbal_score: verb,
+      verbalScore: verb,
+      coding_score: code,
+      codingScore: code,
+      assessments_completed: (c.assessments_completed || c.assessmentsCompleted || 0) + 1,
+      assessmentsCompleted: (c.assessments_completed || c.assessmentsCompleted || 0) + 1,
+      readiness_status: 'Completed',
+    };
+  };
+
+  for (let i = 0; i < fallbackCandidates.length; i++) {
+    const c = fallbackCandidates[i];
+    if ((candId && c.id === candId) || (candEmail && (c.email || '').toLowerCase() === candEmail)) {
+      fallbackCandidates[i] = updateCand(c);
+      break;
+    }
+  }
 };
 
 export const fallbackProctoringEvents = [];

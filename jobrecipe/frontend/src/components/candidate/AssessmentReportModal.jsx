@@ -171,36 +171,50 @@ export const AssessmentReportModal = ({
 
   const assessmentTitle = result?.assessmentName || result?.title || 'National Job Readiness Assessment';
 
-  // Core Assessment Metrics
-  const score = Math.round(Number(result?.score ?? studentData?.overallScore ?? 78));
+  // 4 Core Section Scores (+ Coding if available) merged from all available sources
+  const catScores = result?.categoryScores || studentData?.categoryScores || {};
+
+  const aptitudeScore = Number(
+    catScores.aptitude ?? catScores.Aptitude ?? studentData?.categoryScores?.aptitude ?? candidate?.aptitudeScore ?? candidate?.aptitude_score ?? 0
+  );
+  const reasoningScore = Number(
+    catScores.reasoning ?? catScores.LogicalReasoning ?? catScores.Reasoning ?? studentData?.categoryScores?.reasoning ?? candidate?.reasoningScore ?? candidate?.reasoning_score ?? 0
+  );
+  const technicalScore = Number(
+    catScores.technical ?? catScores.TechnicalKnowledge ?? catScores.Technical ?? studentData?.categoryScores?.technical ?? candidate?.technicalScore ?? candidate?.technical_score ?? 0
+  );
+  const verbalScore = Number(
+    catScores.verbal ?? catScores.english ?? catScores.Verbal ?? studentData?.categoryScores?.verbal ?? studentData?.categoryScores?.english ?? candidate?.verbalScore ?? candidate?.verbal_score ?? 0
+  );
+  const codingScore = Number(
+    catScores.coding ?? catScores.Coding ?? studentData?.categoryScores?.coding ?? candidate?.codingScore ?? candidate?.coding_score ?? 0
+  );
+
+  // Attempted Section Score Pillars (for composite calculation when overallScore not provided)
+  const attemptedPillars = [aptitudeScore, reasoningScore, technicalScore, verbalScore, codingScore].filter(s => s > 0);
+
+  // Core Assessment Metrics & Composite Readiness Score
+  const score = Math.round(
+    attemptedPillars.length > 0
+      ? (attemptedPillars.reduce((a, b) => a + b, 0) / attemptedPillars.length)
+      : Number(result?.score ?? studentData?.overallScore ?? candidate?.overallScore ?? candidate?.jobReadinessScore ?? 0)
+  );
+
   const accuracy = Math.round(Number(result?.accuracy ?? score));
   const totalQuestions = Number(result?.totalQuestions || 20);
   const correctCount = Number(result?.correctCount ?? Math.round((score / 100) * totalQuestions));
   const incorrectCount = Number(result?.incorrectCount ?? Math.max(0, totalQuestions - correctCount));
   const timeTaken = result?.timeTaken || '28 min';
 
-  // Academic Baseline Profile
-  const candTenth = Number(candidate?.tenthMarks ?? candidate?.tenth_marks ?? studentData?.tenthMarks ?? 82);
-  const candTwelfth = Number(candidate?.twelfthDiplomaMarks ?? candidate?.twelfth_diploma_marks ?? studentData?.twelfthDiplomaMarks ?? 85);
-  const candGrad = Number(candidate?.graduationPercentage ?? candidate?.graduation_percentage ?? studentData?.graduationPercentage ?? 78);
+  // Academic Baseline Profile from student's actual profile
+  const candTenth = Number(candidate?.tenthMarks ?? candidate?.tenth_marks ?? studentData?.tenthMarks ?? 0);
+  const candTwelfth = Number(candidate?.twelfthDiplomaMarks ?? candidate?.twelfth_diploma_marks ?? studentData?.twelfthDiplomaMarks ?? 0);
+  const candGrad = Number(candidate?.graduationPercentage ?? candidate?.graduation_percentage ?? studentData?.graduationPercentage ?? 0);
   const candBacklogs = Number(candidate?.backlogs ?? studentData?.backlogs ?? 0);
   const isAcademicallyEligible = candTenth >= 60 && candTwelfth >= 60 && candGrad >= 60 && candBacklogs === 0;
 
-  // 4 Core Section Scores (+ Coding if available)
-  const catScores = result?.categoryScores || studentData?.categoryScores || {};
-  const getValidScore = (val, fallback) => {
-    const n = Number(val);
-    return (!isNaN(n) && n > 0) ? Math.round(n) : fallback;
-  };
-
-  const aptitudeScore = getValidScore(catScores.aptitude ?? catScores.Aptitude ?? candidate?.aptitudeScore, 82);
-  const reasoningScore = getValidScore(catScores.reasoning ?? catScores.LogicalReasoning ?? catScores.Reasoning ?? candidate?.reasoningScore, 74);
-  const technicalScore = getValidScore(catScores.technical ?? catScores.TechnicalKnowledge ?? catScores.Technical ?? candidate?.technicalScore, score > 0 ? score : 78);
-  const verbalScore = getValidScore(catScores.verbal ?? catScores.english ?? catScores.Verbal ?? studentData?.categoryScores?.verbal ?? candidate?.verbalScore, 78);
-  const codingScore = getValidScore(catScores.coding ?? technicalScore, 75);
-
   // Cohort & Percentile Analytics
-  const percentile = Number(studentData?.percentile ?? Math.min(99, Math.max(25, Math.round(score * 0.95 + 10))));
+  const percentile = Number(studentData?.percentile ?? Math.min(99, Math.max(15, Math.round(score * 0.95 + 10))));
   const totalStudents = Number(studentData?.totalStudents ?? 280);
   const rank = Number(studentData?.rank ?? Math.max(1, Math.round(totalStudents * (1 - percentile / 100))));
 
@@ -223,7 +237,7 @@ export const AssessmentReportModal = ({
       benchmark: 65,
       classAverage: 62,
       topperScore: 96,
-      status: aptitudeScore >= 75 ? 'Mastered' : aptitudeScore >= 65 ? 'Competent' : 'Needs Focus',
+      status: aptitudeScore >= 75 ? 'Mastered' : aptitudeScore >= 60 ? 'Competent' : 'Needs Focus',
       color: '#3b82f6'
     },
     {
@@ -233,7 +247,7 @@ export const AssessmentReportModal = ({
       benchmark: 65,
       classAverage: 58,
       topperScore: 92,
-      status: reasoningScore >= 75 ? 'Mastered' : reasoningScore >= 65 ? 'Competent' : 'Needs Focus',
+      status: reasoningScore >= 75 ? 'Mastered' : reasoningScore >= 60 ? 'Competent' : 'Needs Focus',
       color: '#10b981'
     },
     {
@@ -243,7 +257,7 @@ export const AssessmentReportModal = ({
       benchmark: 70,
       classAverage: 55,
       topperScore: 96,
-      status: technicalScore >= 75 ? 'Mastered' : technicalScore >= 65 ? 'Competent' : 'Needs Focus',
+      status: technicalScore >= 75 ? 'Mastered' : technicalScore >= 60 ? 'Competent' : 'Needs Focus',
       color: '#f59e0b'
     },
     {
@@ -253,7 +267,7 @@ export const AssessmentReportModal = ({
       benchmark: 60,
       classAverage: 60,
       topperScore: 88,
-      status: verbalScore >= 75 ? 'Mastered' : verbalScore >= 65 ? 'Competent' : 'Needs Focus',
+      status: verbalScore >= 75 ? 'Mastered' : verbalScore >= 60 ? 'Competent' : 'Needs Focus',
       color: '#8b5cf6'
     },
     {
@@ -263,83 +277,89 @@ export const AssessmentReportModal = ({
       benchmark: 65,
       classAverage: 52,
       topperScore: 98,
-      status: codingScore >= 75 ? 'Mastered' : codingScore >= 65 ? 'Competent' : 'Needs Focus',
+      status: codingScore >= 75 ? 'Mastered' : codingScore >= 60 ? 'Competent' : 'Needs Focus',
       color: '#06b6d4'
     }
   ];
 
-  // Distinct Domain Sections (Grouped by Category so they are NEVER mixed)
+  // Distinct Domain Sections (Grouped by Category using actual student topic breakdowns)
   const domainSections = useMemo(() => {
-    const aptTopics = [
-      { topic: 'Number Systems & Divisibility', score: 5, maxScore: 5, percent: 100, status: 'Mastered' },
-      { topic: 'Percentages, Profit & Loss', score: 4, maxScore: 5, percent: 80, status: 'Mastered' },
-      { topic: 'Time, Speed & Work Rates', score: 4, maxScore: 5, percent: 80, status: 'Mastered' },
-      { topic: 'Probability & Combinatorics', score: 3, maxScore: 5, percent: 60, status: 'Competent' }
+    const rawBreakdown = Array.isArray(result?.topicBreakdown) ? result.topicBreakdown : (Array.isArray(studentData?.topicBreakdown) ? studentData.topicBreakdown : []);
+
+    const aptTopics = rawBreakdown.filter(t => String(t.category || '').toLowerCase().includes('apt') || String(t.topic || '').toLowerCase().includes('quant'));
+    const reasonTopics = rawBreakdown.filter(t => String(t.category || '').toLowerCase().includes('reason') || String(t.topic || '').toLowerCase().includes('logic'));
+    const techTopics = rawBreakdown.filter(t => String(t.category || '').toLowerCase().includes('tech') || String(t.category || '').toLowerCase().includes('code') || String(t.topic || '').toLowerCase().includes('array') || String(t.topic || '').toLowerCase().includes('sql') || String(t.topic || '').toLowerCase().includes('tree'));
+    const verbalTopics = rawBreakdown.filter(t => String(t.category || '').toLowerCase().includes('verb') || String(t.category || '').toLowerCase().includes('eng'));
+
+    const defaultAptTopics = [
+      { topic: 'Number Systems & Divisibility', score: Math.round((aptitudeScore / 100) * 5), maxScore: 5, percent: aptitudeScore, status: aptitudeScore >= 75 ? 'Mastered' : aptitudeScore >= 60 ? 'Competent' : 'Needs Focus' },
+      { topic: 'Percentages & Profit/Loss', score: Math.round((aptitudeScore / 100) * 5), maxScore: 5, percent: aptitudeScore, status: aptitudeScore >= 75 ? 'Mastered' : aptitudeScore >= 60 ? 'Competent' : 'Needs Focus' }
     ];
-    const reasonTopics = [
-      { topic: 'Coding-Decoding & Patterns', score: 5, maxScore: 5, percent: 100, status: 'Mastered' },
-      { topic: 'Syllogism & Deductive Logic', score: 4, maxScore: 5, percent: 80, status: 'Mastered' },
-      { topic: 'Blood Relations & Direction Sense', score: 4, maxScore: 5, percent: 80, status: 'Mastered' },
-      { topic: 'Complex Analytical Puzzles', score: 2, maxScore: 5, percent: 40, status: 'Needs Focus' }
+    const defaultReasonTopics = [
+      { topic: 'Coding-Decoding & Patterns', score: Math.round((reasoningScore / 100) * 5), maxScore: 5, percent: reasoningScore, status: reasoningScore >= 75 ? 'Mastered' : reasoningScore >= 60 ? 'Competent' : 'Needs Focus' },
+      { topic: 'Syllogism & Deductive Logic', score: Math.round((reasoningScore / 100) * 5), maxScore: 5, percent: reasoningScore, status: reasoningScore >= 75 ? 'Mastered' : reasoningScore >= 60 ? 'Competent' : 'Needs Focus' }
     ];
-    const techTopics = [
-      { topic: 'Data Structures (Arrays, Trees, Graphs)', score: 5, maxScore: 5, percent: 100, status: 'Mastered' },
-      { topic: 'Algorithms (Sorting, Binary Search, DP)', score: 4, maxScore: 5, percent: 80, status: 'Mastered' },
-      { topic: 'SQL & Relational Database Design', score: 4, maxScore: 5, percent: 80, status: 'Mastered' },
-      { topic: 'OOP Principles & OS Core Concepts', score: 3, maxScore: 5, percent: 60, status: 'Competent' }
+    const defaultTechTopics = [
+      { topic: 'Data Structures & OOP Principles', score: Math.round((technicalScore / 100) * 5), maxScore: 5, percent: technicalScore, status: technicalScore >= 75 ? 'Mastered' : technicalScore >= 60 ? 'Competent' : 'Needs Focus' },
+      { topic: 'Algorithms & Database Queries', score: Math.round((technicalScore / 100) * 5), maxScore: 5, percent: technicalScore, status: technicalScore >= 75 ? 'Mastered' : technicalScore >= 60 ? 'Competent' : 'Needs Focus' }
     ];
-    const verbalTopics = [
-      { topic: 'Reading Comprehension & Critical Analysis', score: 4, maxScore: 5, percent: 80, status: 'Mastered' },
-      { topic: 'Sentence Correction & Grammar Rules', score: 4, maxScore: 5, percent: 80, status: 'Mastered' },
-      { topic: 'Contextual Vocabulary & Idioms', score: 3, maxScore: 5, percent: 60, status: 'Competent' },
-      { topic: 'Para Jumbles & Cohesion Flow', score: 2, maxScore: 5, percent: 40, status: 'Needs Focus' }
+    const defaultVerbalTopics = [
+      { topic: 'Reading Comprehension & Grammar', score: Math.round((verbalScore / 100) * 5), maxScore: 5, percent: verbalScore, status: verbalScore >= 75 ? 'Mastered' : verbalScore >= 60 ? 'Competent' : 'Needs Focus' },
+      { topic: 'Contextual Vocabulary & Idioms', score: Math.round((verbalScore / 100) * 5), maxScore: 5, percent: verbalScore, status: verbalScore >= 75 ? 'Mastered' : verbalScore >= 60 ? 'Competent' : 'Needs Focus' }
     ];
 
-    const calcAvg = (topics, fallback) => {
-      if (fallback && fallback > 0) return fallback;
-      if (!topics || topics.length === 0) return 75;
-      return Math.round(topics.reduce((acc, t) => acc + t.percent, 0) / topics.length);
-    };
+    const mapTopicObj = (t) => ({
+      topic: t.topic || t.name || 'Core Concept',
+      score: Number(t.obtainedMarks ?? t.correctCount ?? Math.round(((t.score ?? 0) / 100) * 5)),
+      maxScore: Number(t.totalMarks ?? t.totalQuestions ?? 5),
+      percent: Number(t.score ?? t.pct ?? 0),
+      status: (t.score ?? 0) >= 75 ? 'Mastered' : (t.score ?? 0) >= 60 ? 'Competent' : 'Needs Focus'
+    });
+
+    const finalApt = aptTopics.length > 0 ? aptTopics.map(mapTopicObj) : defaultAptTopics;
+    const finalReason = reasonTopics.length > 0 ? reasonTopics.map(mapTopicObj) : defaultReasonTopics;
+    const finalTech = techTopics.length > 0 ? techTopics.map(mapTopicObj) : defaultTechTopics;
+    const finalVerbal = verbalTopics.length > 0 ? verbalTopics.map(mapTopicObj) : defaultVerbalTopics;
 
     return [
       {
         id: 'aptitude',
         title: 'Section 4.1: Quantitative Aptitude',
         icon: Target,
-        domainScore: calcAvg(aptTopics, aptitudeScore),
+        domainScore: aptitudeScore,
         color: 'border-blue-200 bg-blue-50/20',
         badgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
-        topics: aptTopics
+        topics: finalApt
       },
       {
         id: 'reasoning',
         title: 'Section 4.2: Logical Reasoning',
         icon: BrainCircuit,
-        domainScore: calcAvg(reasonTopics, reasoningScore),
+        domainScore: reasoningScore,
         color: 'border-emerald-200 bg-emerald-50/20',
         badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-        topics: reasonTopics
+        topics: finalReason
       },
       {
         id: 'technical',
         title: 'Section 4.3: Technical Knowledge & CS Core',
         icon: Code2,
-        domainScore: calcAvg(techTopics, technicalScore),
+        domainScore: technicalScore,
         color: 'border-amber-200 bg-amber-50/20',
         badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
-        topics: techTopics
+        topics: finalTech
       },
       {
         id: 'verbal',
         title: 'Section 4.4: Verbal Ability & Communication',
         icon: BookOpen,
-        domainScore: calcAvg(verbalTopics, verbalScore),
+        domainScore: verbalScore,
         color: 'border-purple-200 bg-purple-50/20',
         badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
-        topics: verbalTopics
+        topics: finalVerbal
       }
     ];
-  }, [aptitudeScore, reasoningScore, technicalScore, verbalScore]);
+  }, [result, studentData, aptitudeScore, reasoningScore, technicalScore, verbalScore]);
 
   // Flattened for strengths and weaknesses
   const allTopics = useMemo(() => domainSections.flatMap(d => d.topics), [domainSections]);
