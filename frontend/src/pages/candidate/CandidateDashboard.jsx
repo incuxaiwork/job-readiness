@@ -203,7 +203,7 @@ export const CandidateDashboard = () => {
           </div>
 
           <div className="py-2">
-            <ScoreRing score={currentUser?.jobReadinessScore || 78} maxScore={100} size={180} />
+            <ScoreRing score={Number(currentUser?.jobReadinessScore ?? currentUser?.job_readiness_score ?? 0)} maxScore={100} size={180} />
           </div>
 
           {/* Subscore Breakdown */}

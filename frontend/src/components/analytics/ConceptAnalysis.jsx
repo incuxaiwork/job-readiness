@@ -61,7 +61,7 @@ export default function ConceptAnalysis({ student }) {
       </div>
 
       {/* Verified Concept & Topic Mastery Breakdown */}
-      {dbTopics.length > 0 && (
+      {dbTopics.length > 0 ? (
         <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-6 sm:p-8 space-y-5">
           <div className="flex items-center justify-between">
             <div>
@@ -117,6 +117,14 @@ export default function ConceptAnalysis({ student }) {
               );
             })}
           </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-6 sm:p-8 text-center space-y-3">
+          <BookOpen className="w-8 h-8 text-slate-300 mx-auto" />
+          <h3 className="text-base font-bold text-slate-800">No Assessment Concepts Assessed Yet</h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            Take assessments to generate verified topic-level concept mastery analysis across Technical, Aptitude, Reasoning, Verbal, and Coding pillars.
+          </p>
         </div>
       )}
     </section>
