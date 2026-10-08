@@ -99,26 +99,17 @@ export const AssessmentPage = () => {
   const isSubmittedRef = useRef(false);
   const timerRef = useRef(null);
 
-  // Single Attempt Policy: Prevent candidate from taking an already completed assessment
+  // Ensure active assessment is ready
   useEffect(() => {
     if (role === 'admin') return;
 
-    if (activeAssessment && isAssessmentCompleted && isAssessmentCompleted(activeAssessment)) {
-      addToast('Single-Attempt Policy Active: You have already completed this assessment. Retakes are not allowed.', 'warning');
-      navigateTo('candidate-analytics');
-      return;
-    }
-
     if (!activeAssessment && assessments && assessments.length > 0) {
-      const firstAvailable = assessments.find(a => !isAssessmentCompleted(a));
+      const firstAvailable = assessments.find(a => !isAssessmentCompleted(a)) || assessments[0];
       if (firstAvailable) {
         startAssessment(firstAvailable.id);
-      } else {
-        addToast('All assessments completed! Single-attempt policy is active.', 'info');
-        navigateTo('candidate-analytics');
       }
     }
-  }, [activeAssessment, assessments, startAssessment, isAssessmentCompleted, role]);
+  }, [activeAssessment, assessments, startAssessment, role]);
 
   // Ensure questions for the active assessment are fully loaded from the database API
   useEffect(() => {
@@ -131,11 +122,6 @@ export const AssessmentPage = () => {
         setLoadingQuestions(true);
         try {
           const res = await api.assessments.getQuestions(targetId);
-          if (!res.ok && (res.status === 403 || res.data?.alreadyCompleted)) {
-            addToast(res.error || 'Single-Attempt Policy Active: You have already completed this assessment. Retakes are not allowed.', 'warning');
-            navigateTo('candidate-analytics');
-            return;
-          }
           const list = Array.isArray(res?.data?.data)
             ? res.data.data
             : (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []));

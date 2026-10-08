@@ -12,7 +12,8 @@ import {
   ClipboardList,
   Target,
   BarChart2,
-  Zap
+  Zap,
+  Lock
 } from 'lucide-react';
 
 const PRESET_ROLES = [
@@ -33,7 +34,7 @@ Projects:
 • Computer Vision & Image Recognition: Implemented CNN architectures with PyTorch for automated defect detection in real-time camera streams.`;
 
 export const ResumeATSSection = () => {
-  const { navigateTo } = useApp();
+  const { navigateTo, isInterviewUnlocked, role, addToast } = useApp();
 
   const [targetRole, setTargetRole] = useState(() => {
     return localStorage.getItem('rsj_selected_role') || 'Software Engineer';
@@ -137,6 +138,11 @@ export const ResumeATSSection = () => {
   };
 
   const handleLaunchInterview = () => {
+    if (!isInterviewUnlocked && role !== 'admin') {
+      addToast('Please complete all 4 assessments (Coding, Aptitude, Reasoning, Technical) to unlock your AI Mock Interview session.', 'warning');
+      navigateTo('assessments');
+      return;
+    }
     const currentAnalysis = analysisResult || parseResumeText(rawResumeText, targetRole);
     const questionsToUse = generateResumeQuestions(currentAnalysis, targetRole);
 
@@ -319,10 +325,23 @@ export const ResumeATSSection = () => {
           <button
             type="button"
             onClick={handleLaunchInterview}
-            className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold text-sm sm:text-base shadow-lg shadow-cyan-600/30 transition-all hover:scale-[1.01] cursor-pointer"
+            className={`w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl font-bold text-sm sm:text-base shadow-lg transition-all cursor-pointer ${
+              !isInterviewUnlocked && role !== 'admin'
+                ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30'
+                : 'bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white shadow-cyan-600/30 hover:scale-[1.01]'
+            }`}
           >
-            <span>Start AI Mock Interview for {targetRole}</span>
-            <ArrowRight className="w-4 h-4" />
+            {!isInterviewUnlocked && role !== 'admin' ? (
+              <>
+                <Lock className="w-4 h-4 text-amber-200" />
+                <span>Complete 4 Assessments to Unlock AI Mock Interview</span>
+              </>
+            ) : (
+              <>
+                <span>Start AI Mock Interview for {targetRole}</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
         </div>
 

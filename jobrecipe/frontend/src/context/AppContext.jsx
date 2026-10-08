@@ -267,28 +267,19 @@ export const AppProvider = ({ children }) => {
     if (!param) return false;
     const isObj = typeof param === 'object' && param !== null;
     const targetId = (isObj ? String(param.id || '') : String(param)).trim().toLowerCase();
-    const targetCat = isObj && param.category ? String(param.category).trim().toLowerCase() : '';
     const targetTitle = (isObj && param.title ? String(param.title) : String(param)).trim().toLowerCase();
+    const targetCat = (isObj && param.category ? String(param.category) : '').trim().toLowerCase();
 
-    // 1. Direct status check on object
-    if (isObj && (param.status === 'Completed' || (typeof param.progress === 'number' && param.progress >= 100))) {
+    // 1. Direct status check on object if explicitly marked completed with score
+    if (isObj && param.status === 'Completed' && (param.score !== undefined || param.lastScore !== undefined)) {
       return true;
     }
 
-    // 2. Check assessments array state
-    const foundInAsms = assessments?.find(a => 
-      (targetId && String(a.id || '').trim().toLowerCase() === targetId) ||
-      (targetTitle && String(a.title || '').trim().toLowerCase() === targetTitle)
-    );
-    if (foundInAsms && (foundInAsms.status === 'Completed' || (typeof foundInAsms.progress === 'number' && foundInAsms.progress >= 100))) {
-      return true;
-    }
-
-    // 3. Check candidateSubmissions
+    // 2. Check candidateSubmissions specifically by ID, exact Title, or Category
     return (candidateSubmissions || []).some(
       s => {
         const subAsmId = String(s.assessment_id || s.assessmentId || '').trim().toLowerCase();
-        if (targetId && subAsmId === targetId) return true;
+        if (targetId && subAsmId && subAsmId === targetId) return true;
         const subTitle = String(s.assessment_title || s.assessmentName || '').trim().toLowerCase();
         if (targetTitle && subTitle && subTitle === targetTitle) return true;
         const subCat = String(s.category || '').trim().toLowerCase();
@@ -300,8 +291,29 @@ export const AppProvider = ({ children }) => {
 
   const areAllAssessmentsCompleted = () => {
     if (role === 'admin') return true;
-    if (!assessments || assessments.length === 0) return false;
-    return assessments.every(asm => isAssessmentCompleted(asm));
+    const activeList = (Array.isArray(assessments) && assessments.length >= 4)
+      ? assessments
+      : INITIAL_ASSESSMENTS;
+    if (!activeList || activeList.length === 0) return false;
+
+    // Check if all assessments in activeList are completed
+    const allListDone = activeList.every(asm => isAssessmentCompleted(asm));
+    if (allListDone) return true;
+
+    // Also check if all 4 core categories have been completed
+    const requiredCategories = ['coding', 'aptitude', 'reasoning', 'technical'];
+    const completedCategories = new Set();
+    activeList.forEach(asm => {
+      if (isAssessmentCompleted(asm) && asm.category) {
+        completedCategories.add(String(asm.category).trim().toLowerCase());
+      }
+    });
+    (candidateSubmissions || []).forEach(sub => {
+      if (sub.category && (sub.status === 'Completed' || sub.score !== undefined)) {
+        completedCategories.add(String(sub.category).trim().toLowerCase());
+      }
+    });
+    return requiredCategories.every(cat => completedCategories.has(cat));
   };
 
   const isInterviewUnlocked = role === 'admin' || areAllAssessmentsCompleted();
@@ -807,26 +819,17 @@ export const AppProvider = ({ children }) => {
 
   // Start / Submit Assessment
   const startAssessment = async (assessmentId) => {
-    const asm = assessments.find(a => a.id === assessmentId) || assessments[0];
+    const asm = assessments.find(a => a.id === assessmentId) ||
+                INITIAL_ASSESSMENTS.find(a => a.id === assessmentId) ||
+                assessments[0] ||
+                INITIAL_ASSESSMENTS[0];
     if (!asm) return;
-
-    // Single Attempt Policy: Block retakes if candidate already completed this assessment
-    if (role !== 'admin' && isAssessmentCompleted(asm)) {
-      addToast('Single-Attempt Policy Active: You have already completed this assessment. Retakes are not allowed.', 'warning');
-      navigateTo('candidate-analytics');
-      return;
-    }
 
     let finalUniqueQuestions = [];
 
     // 1. Fetch official questions from PostgreSQL backend API
     try {
       const qRes = await api.assessments.getQuestions(asm.id);
-      if (!qRes.ok && (qRes.status === 403 || qRes.data?.alreadyCompleted)) {
-        addToast(qRes.error || 'You have already completed this assessment. Retakes are not allowed.', 'warning');
-        navigateTo('candidate-analytics');
-        return;
-      }
       const list = Array.isArray(qRes?.data?.data)
         ? qRes.data.data
         : (Array.isArray(qRes?.data) ? qRes.data : (Array.isArray(qRes) ? qRes : []));

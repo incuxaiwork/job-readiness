@@ -27,17 +27,11 @@ export const AssessmentsListPage = () => {
   const [isDeviceModalOpen, setIsDeviceModalOpen] = useState(false);
 
   const handleStartAttempt = async (asm) => {
-    const isCompleted = isAssessmentCompleted?.(asm) || (candidateSubmissions || []).some(
-      s => String(s.assessment_id || s.assessmentId || '').trim().toLowerCase() === String(asm.id).trim().toLowerCase() ||
-           (asm.title && String(s.assessment_title || s.assessmentName || '').trim().toLowerCase() === String(asm.title).trim().toLowerCase())
-    ) || asm.status === 'Completed';
-
-    if (isCompleted) {
-      addToast('Single-Attempt Policy Active: You have already completed this assessment. Retakes are not allowed.', 'info');
-      navigateTo('candidate-analytics');
-      return;
+    try {
+      await startAssessment(asm.id);
+    } catch (e) {
+      console.warn('startAssessment error:', e);
     }
-    await startAssessment(asm.id);
     navigateTo('take-assessment');
   };
 

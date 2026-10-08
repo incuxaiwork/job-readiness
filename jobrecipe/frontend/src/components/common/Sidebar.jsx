@@ -46,10 +46,11 @@ export const Sidebar = ({ isOpen, onClose }) => {
   const navItems = role === 'admin' ? adminNavItems : candidateNavItems;
 
   const handleNavClick = (id) => {
-    if (id === 'ai-mock-interview' && !isInterviewUnlocked) {
-      if (typeof addToast === 'function') {
-        addToast('Complete all assessments and tests first to unlock your AI Mock Interview.', 'warning');
-      }
+    if (id === 'ai-mock-interview' && !isInterviewUnlocked && role !== 'admin') {
+      addToast('Please complete all 4 assessments (Coding, Aptitude, Reasoning, Technical) to unlock your AI Mock Interview session.', 'warning');
+      navigateTo('assessments');
+      if (onClose) onClose();
+      return;
     }
     navigateTo(id);
     if (onClose) onClose();

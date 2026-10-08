@@ -195,27 +195,30 @@ export const Header = ({ onToggleSidebar }) => {
               <button
                 onClick={() => {
                   if (!isInterviewUnlocked) {
-                    addToast('Complete all assessments and tests first to unlock your AI Mock Interview.', 'warning');
+                    addToast('Please complete all 4 assessments (Coding, Aptitude, Reasoning, Technical) to unlock your AI Mock Interview session.', 'warning');
+                    navigateTo('assessments');
+                    return;
                   }
                   navigateTo('ai-mock-interview');
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs transition-all border ${
                   isInterviewUnlocked
                     ? 'bg-slate-900 hover:bg-slate-800 text-white border-slate-700/60'
-                    : 'bg-slate-900 text-slate-300 hover:text-white border-amber-500/50'
+                    : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-200'
                 }`}
-                title={isInterviewUnlocked ? 'AI Mock Interview' : 'Locked: Complete all assessments and tests to unlock'}
+                title={isInterviewUnlocked ? 'AI Mock Interview' : 'Complete 4 assessments to unlock'}
               >
                 {isInterviewUnlocked ? (
-                  <Mic className="w-3.5 h-3.5 text-cyan-400" />
+                  <>
+                    <Mic className="w-3.5 h-3.5 text-cyan-400" />
+                    <span className="hidden sm:inline">AI Mock Interview</span>
+                  </>
                 ) : (
-                  <Lock className="w-3.5 h-3.5 text-amber-400" />
-                )}
-                <span className="hidden sm:inline">AI Mock Interview</span>
-                {!isInterviewUnlocked && (
-                  <span className="px-1.5 py-0.5 text-[9px] bg-amber-500/20 text-amber-300 rounded font-bold border border-amber-500/30">
-                    Locked
-                  </span>
+                  <>
+                    <Lock className="w-3.5 h-3.5 text-amber-600" />
+                    <span className="hidden sm:inline">AI Interview</span>
+                    <span className="text-[10px] bg-amber-200/80 text-amber-800 px-1.5 py-0.5 rounded font-black">Locked</span>
+                  </>
                 )}
               </button>
             )}
@@ -333,20 +336,26 @@ export const Header = ({ onToggleSidebar }) => {
                             <button
                               onClick={() => {
                                 if (!isInterviewUnlocked) {
-                                  addToast('Complete all assessments and tests first to unlock your AI Mock Interview.', 'warning');
+                                  addToast('Please complete all 4 assessments (Coding, Aptitude, Reasoning, Technical) to unlock your AI Mock Interview session.', 'warning');
+                                  navigateTo('assessments');
+                                } else {
+                                  navigateTo('ai-mock-interview');
                                 }
-                                navigateTo('ai-mock-interview');
                                 setProfileOpen(false);
                               }}
                               className="w-full text-left px-4 py-2 font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between"
                             >
                               <div className="flex items-center gap-2.5">
-                                <Mic className="w-4 h-4 text-cyan-600" />
+                                {isInterviewUnlocked ? (
+                                  <Mic className="w-4 h-4 text-cyan-600" />
+                                ) : (
+                                  <Lock className="w-4 h-4 text-amber-600" />
+                                )}
                                 <span>AI Mock Interview</span>
                               </div>
                               {!isInterviewUnlocked && (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold border border-amber-300 flex items-center gap-1">
-                                  <Lock className="w-2.5 h-2.5" /> Locked
+                                <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded border border-amber-300">
+                                  Locked
                                 </span>
                               )}
                             </button>
