@@ -208,36 +208,44 @@ export default function CandidateAnalyticsPage() {
     }
 
     const getScoreForSection = (keys, defaultCatName) => {
-      // 1. If viewing an active assessment that contains topics matching this section
-      if (activeSubmission && activeTopics.length > 0) {
-        const matchingTopics = activeTopics.filter(item => {
-          const cat = String(item.category || '').toLowerCase().trim();
-          const top = String(item.topic || item.name || '').toLowerCase().trim();
-          return keys.some(k => cat.includes(k) || top.includes(k));
-        });
-
-        if (matchingTopics.length > 0) {
-          const total = matchingTopics.reduce((sum, item) => sum + Number(item.totalMarks ?? item.total_marks ?? 1), 0);
-          const obtained = matchingTopics.reduce((sum, item) => sum + Number(item.obtainedMarks ?? item.obtained_marks ?? item.score ?? 0), 0);
-          const pct = total > 0 ? Math.round((obtained / total) * 100) : 0;
-          return {
-            obtained,
-            total,
-            pct,
-            title: `${defaultCatName} Section`,
-            isSubmitted: true,
-            inCurrentTest: true
-          };
-        }
-      }
-
-      // 2. If the activeSubmission itself IS this category
+      // When a specific assessment (activeSubmission) is active:
+      // All section scores MUST strictly come from this assessment!
       if (activeSubmission) {
+        // 1. Check matching topics in active submission's topic breakdown
+        if (activeTopics.length > 0) {
+          const matchingTopics = activeTopics.filter(item => {
+            const cat = String(item.category || '').toLowerCase().trim();
+            const top = String(item.topic || item.name || '').toLowerCase().trim();
+            return keys.some(k => cat.includes(k) || top.includes(k));
+          });
+
+          if (matchingTopics.length > 0) {
+            const total = matchingTopics.reduce((sum, item) => sum + Number(item.totalMarks ?? item.total_marks ?? 1), 0);
+            let obtained = matchingTopics.reduce((sum, item) => sum + Number(item.obtainedMarks ?? item.obtained_marks ?? item.score ?? 0), 0);
+            if (Number(activeSubmission.obtained_marks ?? activeSubmission.obtainedMarks ?? 0) === 0) {
+              obtained = 0;
+            }
+            const pct = total > 0 ? Math.round((obtained / total) * 100) : 0;
+            return {
+              obtained,
+              total,
+              pct,
+              title: `${defaultCatName} Section`,
+              isSubmitted: true,
+              inCurrentTest: true
+            };
+          }
+        }
+
+        // 2. Check if the activeSubmission itself IS this category
         const activeCat = String(activeSubmission.category || '').toLowerCase().trim();
         const activeTitle = String(activeSubmission.assessment_title || activeSubmission.assessmentName || '').toLowerCase().trim();
         if (keys.some(k => activeCat.includes(k) || activeTitle.includes(k))) {
           const total = Number(activeSubmission.total_marks ?? activeSubmission.totalMarks ?? (activeSubmission.total_questions || 5));
-          const obtained = Number(activeSubmission.obtained_marks ?? activeSubmission.obtainedMarks ?? 0);
+          let obtained = Number(activeSubmission.obtained_marks ?? activeSubmission.obtainedMarks ?? 0);
+          if (Number(activeSubmission.obtained_marks ?? activeSubmission.obtainedMarks ?? 0) === 0) {
+            obtained = 0;
+          }
           const pct = total > 0 ? Math.round((obtained / total) * 100) : Number(activeSubmission.score ?? 0);
           return {
             obtained,
@@ -248,9 +256,45 @@ export default function CandidateAnalyticsPage() {
             inCurrentTest: true
           };
         }
+
+        // 3. Check activeSubmission.category_scores
+        let catScores = activeSubmission.category_scores || activeSubmission.categoryScores;
+        if (typeof catScores === 'string') {
+          try { catScores = JSON.parse(catScores); } catch (e) { catScores = null; }
+        }
+        if (catScores && typeof catScores === 'object') {
+          for (const k of keys) {
+            const val = catScores[k] ?? catScores[`${k}Score`] ?? catScores[`${k}_score`];
+            if (typeof val === 'number') {
+              const total = 5;
+              let obtained = Math.round((val / 100) * total);
+              if (Number(activeSubmission.obtained_marks ?? activeSubmission.obtainedMarks ?? 0) === 0) {
+                obtained = 0;
+              }
+              return {
+                obtained,
+                total,
+                pct: val,
+                title: `${defaultCatName} Section`,
+                isSubmitted: true,
+                inCurrentTest: true
+              };
+            }
+          }
+        }
+
+        // Section was not tested in this assessment — do NOT leak scores from other exams!
+        return {
+          obtained: 0,
+          total: 0,
+          pct: 0,
+          title: `${defaultCatName} Section`,
+          isSubmitted: false,
+          inCurrentTest: false
+        };
       }
 
-      // 3. Fallback: Search across distinct candidate submissions (skip mix/full tests)
+      // 4. Cumulative mode (activeSubmission is null): search across distinct completed assessments
       const match = distinctSubs.find(s => {
         const cat = String(s.category || '').toLowerCase().trim();
         const title = String(s.assessment_title || s.assessmentName || s.title || '').toLowerCase().trim();
@@ -268,11 +312,11 @@ export default function CandidateAnalyticsPage() {
           pct,
           title: match.assessment_title || match.assessmentName || match.title || `${defaultCatName} Assessment`,
           isSubmitted: true,
-          inCurrentTest: !activeSubmission
+          inCurrentTest: false
         };
       }
 
-      // 4. Check assessments array state for completed status
+      // 5. Check assessments array state for completed status
       const asmMatch = asms.find(a => {
         const cat = String(a.category || '').toLowerCase().trim();
         const title = String(a.title || '').toLowerCase().trim();
