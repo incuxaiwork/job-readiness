@@ -138,6 +138,9 @@ export const AssessmentPage = () => {
     if (activeAssessment && isAssessmentCompleted && isAssessmentCompleted(activeAssessment)) {
       if (!hasRedirectedRef.current) {
         hasRedirectedRef.current = true;
+        try {
+          localStorage.setItem('rsj_selected_analytics_asm_id', activeAssessment?.id || '');
+        } catch (e) { }
         addToast('Single-Attempt Policy Active: You have already completed this assessment. Retakes are not allowed.', 'warning');
         navigateTo('candidate-analytics');
       }
@@ -585,6 +588,11 @@ export const AssessmentPage = () => {
       console.warn('Auto-submit error:', err);
     } finally {
       setIsSubmitting(false);
+      try {
+        if (activeAssessment?.id) {
+          localStorage.setItem('rsj_selected_analytics_asm_id', activeAssessment.id);
+        }
+      } catch (e) { }
       navigateTo('candidate-analytics');
     }
   };
@@ -629,6 +637,9 @@ export const AssessmentPage = () => {
         localStorage.setItem('rsj_interview_unlocked_by_test', 'true');
         if (activeAssessment?.title) {
           localStorage.setItem('rsj_last_completed_assessment', activeAssessment.title);
+        }
+        if (activeAssessment?.id) {
+          localStorage.setItem('rsj_selected_analytics_asm_id', activeAssessment.id);
         }
       } catch (e) { }
       exitExamFullscreenAndStopMedia();

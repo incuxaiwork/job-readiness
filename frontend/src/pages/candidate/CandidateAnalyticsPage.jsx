@@ -31,6 +31,22 @@ export default function CandidateAnalyticsPage() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
 
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState(() => {
+    return localStorage.getItem('rsj_selected_analytics_asm_id') || '';
+  });
+
+  // Check URL query parameters for ?asm=...
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const asmParam = params.get('asm');
+    if (asmParam) {
+      setSelectedAssessmentId(asmParam);
+      try {
+        localStorage.setItem('rsj_selected_analytics_asm_id', asmParam);
+      } catch (e) { }
+    }
+  }, []);
+
   // Directly synchronize candidate submissions with PostgreSQL on mount
   useEffect(() => {
     let mounted = true;
@@ -56,7 +72,7 @@ export default function CandidateAnalyticsPage() {
     return () => { mounted = false; };
   }, []);
 
-  // 1. Get distinct latest submission per assessment from candidateSubmissions
+  // 1. Get distinct latest submission per assessment from candidateSubmissions (sorted by created_at DESC)
   const distinctSubs = React.useMemo(() => {
     const subs = Array.isArray(candidateSubmissions) ? candidateSubmissions : [];
     const map = new Map();
@@ -72,13 +88,44 @@ export default function CandidateAnalyticsPage() {
         if (sTime > exTime) map.set(key, s);
       }
     });
-    return Array.from(map.values());
+    return Array.from(map.values()).sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
   }, [candidateSubmissions]);
+
+  // Active submission: selected assessment attempt or default to distinctSubs[0] (latest submitted test)
+  const activeSubmission = React.useMemo(() => {
+    if (!distinctSubs || distinctSubs.length === 0) return null;
+    if (selectedAssessmentId === 'ALL_CUMULATIVE') return null;
+
+    if (selectedAssessmentId) {
+      const match = distinctSubs.find(s =>
+        String(s.assessment_id || s.assessmentId || '').toLowerCase() === String(selectedAssessmentId).toLowerCase() ||
+        String(s.id || '').toLowerCase() === String(selectedAssessmentId).toLowerCase() ||
+        String(s.assessment_title || s.assessmentName || '').toLowerCase().trim() === String(selectedAssessmentId).toLowerCase().trim()
+      );
+      if (match) return match;
+    }
+
+    return distinctSubs[0];
+  }, [distinctSubs, selectedAssessmentId]);
+
+  // Cumulative metrics across all distinct completed assessments
+  const cumulativeMetrics = React.useMemo(() => {
+    if (!distinctSubs.length) return { obtained: 0, total: 0, score: 0, correct: 0, incorrect: 0, unanswered: 0, totalQuestions: 0, accuracy: 0 };
+    const obtained = distinctSubs.reduce((sum, s) => sum + Number(s.obtained_marks ?? s.obtainedMarks ?? 0), 0);
+    const total = distinctSubs.reduce((sum, s) => sum + Number(s.total_marks ?? s.totalMarks ?? 0), 0);
+    const score = total > 0 ? Math.round((obtained / total) * 100) : 0;
+    const correct = distinctSubs.reduce((sum, s) => sum + Number(s.correct_count ?? s.correctCount ?? 0), 0);
+    const incorrect = distinctSubs.reduce((sum, s) => sum + Number(s.incorrect_count ?? s.incorrectCount ?? 0), 0);
+    const unanswered = distinctSubs.reduce((sum, s) => sum + Number(s.unanswered_count ?? s.unansweredCount ?? 0), 0);
+    const totalQuestions = distinctSubs.reduce((sum, s) => sum + Number(s.total_questions ?? s.totalQuestions ?? 0), 0) || (correct + incorrect + unanswered) || total;
+    const accuracy = (correct + incorrect) > 0 ? Math.round((correct / (correct + incorrect)) * 100) : score;
+    return { obtained, total, score, correct, incorrect, unanswered, totalQuestions, accuracy };
+  }, [distinctSubs]);
 
   useEffect(() => {
     // Launch celebratory confetti only if score >= 60 and candidate has real verified submissions
     try {
-      const s = latestResult?.score ?? (distinctSubs.length > 0 ? (currentUser?.jobReadinessScore ?? 0) : 0);
+      const s = displayResultMetrics?.score ?? latestResult?.score ?? 0;
       if (s >= 60 && (distinctSubs.length > 0 || latestResult)) {
         confetti({
           particleCount: 80,
@@ -87,7 +134,7 @@ export default function CandidateAnalyticsPage() {
         });
       }
     } catch (e) { }
-  }, [latestResult, currentUser, distinctSubs.length]);
+  }, [latestResult, distinctSubs.length]);
 
   useEffect(() => {
     // Check if candidate navigated directly after submitting an AI Mock Interview
@@ -104,11 +151,13 @@ export default function CandidateAnalyticsPage() {
     }
   }, []);
 
-  // 2. Extract all real topics tested directly from database submissions
+  // 2. Extract real topics tested directly from active submission or database submissions
   const databaseTopics = React.useMemo(() => {
     const list = [];
     const seen = new Set();
-    distinctSubs.forEach(s => {
+    const sourceSubs = activeSubmission ? [activeSubmission] : distinctSubs;
+
+    sourceSubs.forEach(s => {
       let tb = s.topic_breakdown || s.topicBreakdown;
       if (typeof tb === 'string') {
         try { tb = JSON.parse(tb); } catch (e) { tb = []; }
@@ -143,17 +192,69 @@ export default function CandidateAnalyticsPage() {
       }
     });
     return list;
-  }, [distinctSubs]);
+  }, [activeSubmission, distinctSubs]);
 
-  // 3. Aggregate Section Scores across distinct submitted candidate assessments
+  // 3. Aggregate Section Scores (from active submission topics or module-specific submissions)
   const sectionScores = React.useMemo(() => {
     const asms = Array.isArray(assessments) ? assessments : [];
 
+    let activeTopics = [];
+    if (activeSubmission) {
+      let tb = activeSubmission.topic_breakdown || activeSubmission.topicBreakdown;
+      if (typeof tb === 'string') {
+        try { tb = JSON.parse(tb); } catch (e) { tb = []; }
+      }
+      if (Array.isArray(tb)) activeTopics = tb;
+    }
+
     const getScoreForSection = (keys, defaultCatName) => {
-      // 1. First check distinct candidateSubmissions
+      // 1. If viewing an active assessment that contains topics matching this section
+      if (activeSubmission && activeTopics.length > 0) {
+        const matchingTopics = activeTopics.filter(item => {
+          const cat = String(item.category || '').toLowerCase().trim();
+          const top = String(item.topic || item.name || '').toLowerCase().trim();
+          return keys.some(k => cat.includes(k) || top.includes(k));
+        });
+
+        if (matchingTopics.length > 0) {
+          const total = matchingTopics.reduce((sum, item) => sum + Number(item.totalMarks ?? item.total_marks ?? 1), 0);
+          const obtained = matchingTopics.reduce((sum, item) => sum + Number(item.obtainedMarks ?? item.obtained_marks ?? item.score ?? 0), 0);
+          const pct = total > 0 ? Math.round((obtained / total) * 100) : 0;
+          return {
+            obtained,
+            total,
+            pct,
+            title: `${defaultCatName} Section`,
+            isSubmitted: true,
+            inCurrentTest: true
+          };
+        }
+      }
+
+      // 2. If the activeSubmission itself IS this category
+      if (activeSubmission) {
+        const activeCat = String(activeSubmission.category || '').toLowerCase().trim();
+        const activeTitle = String(activeSubmission.assessment_title || activeSubmission.assessmentName || '').toLowerCase().trim();
+        if (keys.some(k => activeCat.includes(k) || activeTitle.includes(k))) {
+          const total = Number(activeSubmission.total_marks ?? activeSubmission.totalMarks ?? (activeSubmission.total_questions || 5));
+          const obtained = Number(activeSubmission.obtained_marks ?? activeSubmission.obtainedMarks ?? 0);
+          const pct = total > 0 ? Math.round((obtained / total) * 100) : Number(activeSubmission.score ?? 0);
+          return {
+            obtained,
+            total,
+            pct,
+            title: activeSubmission.assessment_title || `${defaultCatName} Assessment`,
+            isSubmitted: true,
+            inCurrentTest: true
+          };
+        }
+      }
+
+      // 3. Fallback: Search across distinct candidate submissions (skip mix/full tests)
       const match = distinctSubs.find(s => {
         const cat = String(s.category || '').toLowerCase().trim();
         const title = String(s.assessment_title || s.assessmentName || s.title || '').toLowerCase().trim();
+        if (cat.includes('mix') || title.includes('mix') || title.includes('full')) return false;
         return keys.some(k => cat.includes(k) || title.includes(k));
       });
 
@@ -167,14 +268,15 @@ export default function CandidateAnalyticsPage() {
           pct,
           title: match.assessment_title || match.assessmentName || match.title || `${defaultCatName} Assessment`,
           isSubmitted: true,
-          submission: match
+          inCurrentTest: !activeSubmission
         };
       }
 
-      // 2. Check assessments array state for completed status
+      // 4. Check assessments array state for completed status
       const asmMatch = asms.find(a => {
         const cat = String(a.category || '').toLowerCase().trim();
         const title = String(a.title || '').toLowerCase().trim();
+        if (cat.includes('mix') || title.includes('mix') || title.includes('full')) return false;
         return (a.status === 'Completed' || a.progress >= 100) && keys.some(k => cat.includes(k) || title.includes(k));
       });
 
@@ -182,18 +284,18 @@ export default function CandidateAnalyticsPage() {
         const pct = Number(asmMatch.lastScore ?? asmMatch.score ?? 0);
         const total = Number(asmMatch.total_marks ?? asmMatch.totalMarks ?? (asmMatch.totalQuestions || 5));
         const obtained = Math.round((pct / 100) * total);
-        return { obtained, total, pct, title: asmMatch.title || `${defaultCatName} Assessment`, isSubmitted: true };
+        return { obtained, total, pct, title: asmMatch.title || `${defaultCatName} Assessment`, isSubmitted: true, inCurrentTest: false };
       }
 
-      // 3. Check fallback from candidate profile
+      // 5. Check fallback from candidate profile
       for (const k of keys) {
         const scoreVal = currentUser?.[`${k}Score`] ?? currentUser?.[`${k}_score`];
         if (typeof scoreVal === 'number' && scoreVal > 0) {
-          return { obtained: Math.round((scoreVal / 100) * 5), total: 5, pct: scoreVal, title: `${defaultCatName} Assessment`, isSubmitted: true };
+          return { obtained: Math.round((scoreVal / 100) * 5), total: 5, pct: scoreVal, title: `${defaultCatName} Assessment`, isSubmitted: true, inCurrentTest: false };
         }
       }
 
-      return { obtained: 0, total: 0, pct: 0, title: `${defaultCatName} Assessment`, isSubmitted: false };
+      return { obtained: 0, total: 0, pct: 0, title: `${defaultCatName} Assessment`, isSubmitted: false, inCurrentTest: false };
     };
 
     return {
@@ -203,52 +305,14 @@ export default function CandidateAnalyticsPage() {
       coding: getScoreForSection(['code', 'prog'], 'Coding'),
       verbal: getScoreForSection(['verb', 'eng'], 'Verbal')
     };
-  }, [distinctSubs, assessments, currentUser]);
+  }, [distinctSubs, assessments, currentUser, activeSubmission]);
 
   // 4. Compute accurate display metrics (total score, accuracy, questions)
   const displayResultMetrics = React.useMemo(() => {
     // Filter by specific module if selected
     if (selectedModuleFilter !== 'ALL') {
-      const keys = selectedModuleFilter === 'Technical' ? ['tech']
-        : selectedModuleFilter === 'Aptitude' ? ['apt', 'quant']
-        : selectedModuleFilter === 'Reasoning' ? ['reason', 'logic']
-        : selectedModuleFilter === 'Coding' ? ['code', 'prog']
-        : ['verb', 'eng'];
-
       const secKey = selectedModuleFilter.toLowerCase();
       const secScore = sectionScores[secKey] || sectionScores.technical;
-
-      const selectedSub = distinctSubs.find(s => {
-        const cat = String(s.category || '').toLowerCase().trim();
-        const title = String(s.assessment_title || s.assessmentName || s.title || '').toLowerCase().trim();
-        return keys.some(k => cat.includes(k) || title.includes(k));
-      });
-
-      if (selectedSub) {
-        const total = Number(selectedSub.total_marks ?? selectedSub.totalMarks ?? (selectedSub.total_questions || 5));
-        const obtained = Number(selectedSub.obtained_marks ?? selectedSub.obtainedMarks ?? secScore.obtained);
-        const score = total > 0 ? Math.round((obtained / total) * 100) : Number(selectedSub.score ?? secScore.pct);
-        const corr = Number(selectedSub.correct_count ?? selectedSub.correctCount ?? 0);
-        const incorr = Number(selectedSub.incorrect_count ?? selectedSub.incorrectCount ?? 0);
-        const unans = Number(selectedSub.unanswered_count ?? selectedSub.unansweredCount ?? 0);
-        const totQ = Number(selectedSub.total_questions ?? selectedSub.totalQuestions ?? ((corr + incorr + unans) || 5));
-        const acc = (corr + incorr) > 0 ? Math.round((corr / (corr + incorr)) * 100) : score;
-
-        return {
-          title: selectedSub.assessment_title || selectedSub.assessmentName || `${selectedModuleFilter} Assessment`,
-          score,
-          obtainedMarks: obtained,
-          totalMarks: total,
-          accuracy: acc,
-          correctCount: corr,
-          incorrectCount: incorr,
-          unansweredCount: unans,
-          totalQuestions: totQ,
-          timeTaken: selectedSub.time_taken || selectedSub.timeTaken || '10 min',
-          isFiltered: true,
-          isSubmitted: true
-        };
-      }
 
       return {
         title: `${selectedModuleFilter} Assessment`,
@@ -257,37 +321,54 @@ export default function CandidateAnalyticsPage() {
         totalMarks: secScore.total,
         accuracy: secScore.isSubmitted ? secScore.pct : 0,
         correctCount: secScore.isSubmitted ? secScore.obtained : 0,
-        incorrectCount: 0,
+        incorrectCount: Math.max(0, secScore.total - secScore.obtained),
         unansweredCount: 0,
         totalQuestions: secScore.total || 0,
-        timeTaken: '0 min',
+        timeTaken: '10 min',
         isFiltered: true,
         isSubmitted: secScore.isSubmitted
       };
     }
 
-    // Default 'ALL': Aggregate across all distinct completed assessments in database
-    if (distinctSubs.length > 0) {
-      const totalObtained = distinctSubs.reduce((sum, s) => sum + Number(s.obtained_marks ?? s.obtainedMarks ?? 0), 0);
-      const totalPossible = distinctSubs.reduce((sum, s) => sum + Number(s.total_marks ?? s.totalMarks ?? 0), 0);
-      const compositeScore = totalPossible > 0 ? Math.round((totalObtained / totalPossible) * 100) : 0;
-
-      const totalCorrect = distinctSubs.reduce((sum, s) => sum + Number(s.correct_count ?? s.correctCount ?? 0), 0);
-      const totalIncorrect = distinctSubs.reduce((sum, s) => sum + Number(s.incorrect_count ?? s.incorrectCount ?? 0), 0);
-      const totalUnanswered = distinctSubs.reduce((sum, s) => sum + Number(s.unanswered_count ?? s.unansweredCount ?? 0), 0);
-      const totalQuestions = distinctSubs.reduce((sum, s) => sum + Number(s.total_questions ?? s.totalQuestions ?? 0), 0) || (totalCorrect + totalIncorrect + totalUnanswered) || totalPossible;
-      const avgAccuracy = (totalCorrect + totalIncorrect) > 0 ? Math.round((totalCorrect / (totalCorrect + totalIncorrect)) * 100) : compositeScore;
+    // Single active assessment view
+    if (activeSubmission) {
+      const total = Number(activeSubmission.total_marks ?? activeSubmission.totalMarks ?? 20);
+      const obtained = Number(activeSubmission.obtained_marks ?? activeSubmission.obtainedMarks ?? 0);
+      const score = total > 0 ? Math.round((obtained / total) * 100) : Number(activeSubmission.score ?? 0);
+      const corr = Number(activeSubmission.correct_count ?? activeSubmission.correctCount ?? 0);
+      const incorr = Number(activeSubmission.incorrect_count ?? activeSubmission.incorrectCount ?? 0);
+      const unans = Number(activeSubmission.unanswered_count ?? activeSubmission.unansweredCount ?? 0);
+      const totQ = Number(activeSubmission.total_questions ?? activeSubmission.totalQuestions ?? ((corr + incorr + unans) || total));
+      const acc = (corr + incorr) > 0 ? Math.round((corr / (corr + incorr)) * 100) : score;
 
       return {
+        title: activeSubmission.assessment_title || activeSubmission.assessmentName || 'Assessment',
+        score,
+        obtainedMarks: obtained,
+        totalMarks: total,
+        accuracy: acc,
+        correctCount: corr,
+        incorrectCount: incorr,
+        unansweredCount: unans,
+        totalQuestions: totQ,
+        timeTaken: activeSubmission.time_taken || activeSubmission.timeTaken || '30 min',
+        isFiltered: false,
+        isSubmitted: true
+      };
+    }
+
+    // Cumulative aggregate view across all distinct completed assessments
+    if (distinctSubs.length > 0) {
+      return {
         title: 'Job Readiness Overall Assessment',
-        score: compositeScore,
-        obtainedMarks: totalObtained,
-        totalMarks: totalPossible,
-        accuracy: avgAccuracy,
-        correctCount: totalCorrect,
-        incorrectCount: totalIncorrect,
-        unansweredCount: totalUnanswered,
-        totalQuestions,
+        score: cumulativeMetrics.score,
+        obtainedMarks: cumulativeMetrics.obtained,
+        totalMarks: cumulativeMetrics.total,
+        accuracy: cumulativeMetrics.accuracy,
+        correctCount: cumulativeMetrics.correct,
+        incorrectCount: cumulativeMetrics.incorrect,
+        unansweredCount: cumulativeMetrics.unanswered,
+        totalQuestions: cumulativeMetrics.totalQuestions,
         timeTaken: `${distinctSubs.length * 10} min`,
         isFiltered: false,
         isSubmitted: true
@@ -309,7 +390,7 @@ export default function CandidateAnalyticsPage() {
       isFiltered: false,
       isSubmitted: overallScore > 0
     };
-  }, [distinctSubs, sectionScores, selectedModuleFilter, currentUser]);
+  }, [activeSubmission, distinctSubs, cumulativeMetrics, sectionScores, selectedModuleFilter, currentUser]);
 
   // Build dynamic candidate analytics profile from real assessment submissions
   const studentData = React.useMemo(() => {
@@ -499,15 +580,52 @@ export default function CandidateAnalyticsPage() {
           <section ref={sectionRefs.results} className="space-y-6">
             {/* Assessment Header Card */}
             <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-bold">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>
-                    {distinctSubs.length > 0
-                      ? `${distinctSubs.length} Assessment Modules Submitted & Verified`
-                      : 'Assessment Completed & Verified'}
-                  </span>
+              <div className="space-y-2.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-bold">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>
+                      {activeSubmission
+                        ? 'Verified Assessment Result'
+                        : `${distinctSubs.length} Assessment Modules Submitted & Verified`}
+                    </span>
+                  </div>
+
+                  {/* Assessment Switcher Dropdown */}
+                  {distinctSubs.length > 1 && (
+                    <div className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/70 border border-slate-200/90 rounded-xl px-2.5 py-1 text-xs transition-colors">
+                      <Layers className="w-3.5 h-3.5 text-brand-600 shrink-0" />
+                      <span className="font-semibold text-slate-500">Test:</span>
+                      <select
+                        value={selectedAssessmentId || (activeSubmission ? (activeSubmission.assessment_id || activeSubmission.id) : 'ALL_CUMULATIVE')}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSelectedAssessmentId(val);
+                          try {
+                            localStorage.setItem('rsj_selected_analytics_asm_id', val);
+                          } catch (err) { }
+                        }}
+                        className="bg-transparent font-bold text-slate-800 text-xs border-none outline-none cursor-pointer pr-1"
+                      >
+                        {distinctSubs.map(s => {
+                          const idVal = s.assessment_id || s.id;
+                          const sObt = Number(s.obtained_marks ?? s.obtainedMarks ?? 0);
+                          const sTot = Number(s.total_marks ?? s.totalMarks ?? 0);
+                          const sPct = sTot > 0 ? Math.round((sObt / sTot) * 100) : Number(s.score ?? 0);
+                          return (
+                            <option key={idVal} value={idVal}>
+                              {s.assessment_title || 'Assessment'} ({sObt}/{sTot} Marks • {sPct}%)
+                            </option>
+                          );
+                        })}
+                        <option value="ALL_CUMULATIVE">
+                          📊 All Modules Cumulative ({cumulativeMetrics.obtained}/{cumulativeMetrics.total} Marks • {cumulativeMetrics.score}%)
+                        </option>
+                      </select>
+                    </div>
+                  )}
                 </div>
+
                 <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
                   {displayResultMetrics.title} Results
                 </h2>
@@ -523,7 +641,7 @@ export default function CandidateAnalyticsPage() {
                       : 'text-slate-600 hover:text-slate-900'
                       }`}
                   >
-                    All Modules Summary
+                    {activeSubmission ? 'Assessment Summary' : 'All Modules Summary'}
                   </button>
                   {['Technical', 'Aptitude', 'Reasoning', 'Coding', 'Verbal'].map(cat => (
                     <button
@@ -629,7 +747,9 @@ export default function CandidateAnalyticsPage() {
                 </div>
 
                 <div className="md:col-span-8 space-y-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Section Score Breakdown (All Submitted Assessments)</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Section Score Breakdown ({activeSubmission ? (activeSubmission.assessment_title || 'Current Assessment') : 'All Submitted Assessments'})
+                  </h4>
 
                   {/* Technical CS Fundamentals */}
                   <div className={`p-3 rounded-xl border space-y-1 transition-all ${selectedModuleFilter === 'Technical' ? 'bg-amber-50/80 border-amber-300 ring-2 ring-amber-400/30' : 'bg-slate-50 border-slate-100'}`}>
