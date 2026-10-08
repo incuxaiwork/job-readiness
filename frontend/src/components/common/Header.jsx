@@ -144,25 +144,19 @@ export const Header = ({ onToggleSidebar }) => {
               onClick={() => navigateTo('hero')}
               className="flex items-center gap-2.5 cursor-pointer group select-none font-sans"
             >
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-105 ${
-                role === 'admin' 
-                  ? 'bg-gradient-to-tr from-slate-900 to-slate-800 shadow-slate-900/20' 
-                  : 'bg-gradient-to-tr from-brand-600 to-brand-500 shadow-brand-500/20'
-              }`}>
-                {role === 'admin' ? <Shield className="w-5 h-5 text-brand-400" /> : <BrainCircuit className="w-5 h-5" />}
-              </div>
+
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
                   <span className="font-bold text-lg text-slate-900 tracking-tight leading-none">
                     ReadySet<span className="text-brand-600">Job</span>
                   </span>
-                  <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded tracking-wider uppercase border ${
+                  {/* <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded tracking-wider uppercase border ${
                     role === 'admin'
                       ? 'bg-slate-900 text-brand-300 border-slate-700'
                       : 'bg-brand-50 text-brand-700 border border-brand-200'
                   }`}>
                     {role === 'admin' ? 'Admin Portal' : 'Student Portal'}
-                  </span>
+                  </span> */}
                 </div>
                 <span className="text-[10px] text-slate-500 font-medium hidden sm:block">
                   {role === 'admin' ? 'Recruiter & University Management' : 'AI-Powered Assessment & Readiness'}

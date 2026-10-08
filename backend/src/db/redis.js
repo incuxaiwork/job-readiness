@@ -1,12 +1,13 @@
 import { createClient } from 'redis';
 import dotenv from 'dotenv';
 dotenv.config();
+import { redisUrl } from '../config/urls.js';
 
-const REDIS_URL = process.env.REDIS_URL;
+const REDIS_URL = redisUrl();
 
 if (!REDIS_URL) {
   console.warn(
-    '⚠️ [Redis] REDIS_URL environment variable is not set. ' +
+    '⚠️ [Redis] REDIS_URL / REDIS_PUBLIC_URL environment variable is not set. ' +
     'Execution result caching and distributed rate-limiting will be disabled. ' +
     'Set REDIS_URL in your .env file to enable these features.'
   );

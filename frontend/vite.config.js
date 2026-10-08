@@ -22,18 +22,6 @@ export default defineConfig({
       '/health': {
         target: 'http://localhost:5000',
         changeOrigin: true,
-      },
-      '/session': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
-      '/tts': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
-      '/static': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
       }
     }
   }

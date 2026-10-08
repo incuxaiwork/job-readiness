@@ -10,16 +10,10 @@ import {
   Clock,
   CheckCircle2,
   TrendingUp,
-  AlertTriangle,
   Play,
-  RotateCcw,
-  Eye,
-  BookOpen,
+
   Award,
   ChevronRight,
-  BrainCircuit,
-  Target,
-  FileText,
   ClipboardCheck,
   BarChart2,
   Download

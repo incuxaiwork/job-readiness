@@ -176,6 +176,8 @@ export const SignupPage = () => {
     if (field === 'password') {
       if (!value) errorMsg = 'Password is required';
       else if (value.length < 8) errorMsg = 'Password must be at least 8 characters long';
+      else if (!/\d/.test(value)) errorMsg = 'Password must contain at least one number';
+      else if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(value)) errorMsg = 'Password must contain at least one special character (e.g. !@#$%)';
     }
     if (field === 'confirmPassword') {
       if (value !== formData.password) errorMsg = 'Passwords do not match';
@@ -188,7 +190,23 @@ export const SignupPage = () => {
     const { name, value, type, checked } = e.target;
     const val = type === 'checkbox' ? checked : value;
     setFormData(prev => ({ ...prev, [name]: val }));
-    validateField(name, val);
+    // Skip real-time validation for email and phoneNo - validate only on step submit
+    if (name !== 'email' && name !== 'phoneNo') {
+      validateField(name, val);
+    }
+  };
+
+  // Prevent non-numeric input in number fields (digits, one decimal point, control keys)
+  const handleNumericInput = (e) => {
+    const { name, value } = e.target;
+    const char = value.slice(-1);
+    if (value && !/^[0-9]*\.?[0-9]*$/.test(value)) {
+      // Revert to last valid value
+      e.target.value = value.slice(0, -1);
+      return;
+    }
+    setFormData(prev => ({ ...prev, [name]: e.target.value }));
+    validateField(name, e.target.value);
   };
 
   // Validate Step 1 before advancing
@@ -212,7 +230,7 @@ export const SignupPage = () => {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
-      if (addToast) addToast('Please fill all mandatory personal & college details.', 'error');
+      // if (addToast) addToast('Please fill all mandatory personal & college details.', 'error');
       return;
     }
 
@@ -261,6 +279,10 @@ export const SignupPage = () => {
     const newErrors = {};
     if (!formData.password || formData.password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters long';
+    } else if (!/\d/.test(formData.password)) {
+      newErrors.password = 'Password must contain at least one number';
+    } else if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password)) {
+      newErrors.password = 'Password must contain at least one special character (e.g. !@#$%)';
     }
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
@@ -352,12 +374,6 @@ export const SignupPage = () => {
 
         {/* Top Header Logo */}
         <div className="text-center mb-6">
-          <div
-            onClick={() => navigateTo('hero')}
-            className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-500 text-white shadow-xl shadow-brand-500/20 mb-3 ring-4 ring-slate-100 cursor-pointer group transition-all"
-          >
-            <BrainCircuit className="w-8 h-8 group-hover:scale-105 transition-transform" />
-          </div>
           <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight sm:text-4xl">
             Candidate <span className="text-brand-600">Registration</span>
           </h2>
@@ -457,9 +473,6 @@ export const SignupPage = () => {
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">Please provide your verified profile and institution details.</p>
                 </div>
-                <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200">
-                  Step 1 of 3
-                </span>
               </div>
 
               {/* Row 1: Full Name & Email Address */}
@@ -523,7 +536,7 @@ export const SignupPage = () => {
                   </label>
                   <div className="relative flex items-center">
                     <span className="absolute left-3.5 text-xs font-bold text-slate-600 select-none flex items-center gap-1">
-                      🇮🇳 +91
+                      +91
                     </span>
                     <input
                       type="tel"
@@ -622,22 +635,23 @@ export const SignupPage = () => {
 
               {/* Row 4: Country, State & City */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* 7. Country */}
+                {/* 7. Country (Fixed to India) */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                     7. Country <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
                     <Globe className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
+                    <select
                       name="country"
                       value={formData.country}
-                      onChange={handleChange}
-                      placeholder="Enter Country"
-                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 text-sm text-slate-900 rounded-xl outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20 transition-all"
-                    />
+                      disabled
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 text-sm text-slate-900 rounded-xl outline-none cursor-not-allowed"
+                    >
+                      <option value="India">India</option>
+                    </select>
                   </div>
+                  <p className="mt-1 text-[11px] text-slate-400">Fixed to India for this platform</p>
                 </div>
 
                 {/* 8. State */}
@@ -713,9 +727,6 @@ export const SignupPage = () => {
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">Please provide your school, pre-university, and degree grades.</p>
                 </div>
-                <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200">
-                  Step 2 of 3
-                </span>
               </div>
 
               {/* Class 10th Row */}
@@ -755,7 +766,7 @@ export const SignupPage = () => {
                         min="0"
                         max="100"
                         value={formData.tenthMarks}
-                        onChange={handleChange}
+                        onChange={handleNumericInput}
                         placeholder="e.g. 88.5"
                         className={`w-full pl-3.5 pr-8 py-2.5 bg-white border text-sm text-slate-900 placeholder-slate-400 rounded-xl outline-none font-mono transition-all ${
                           errors.tenthMarks ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-slate-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20'
@@ -805,7 +816,7 @@ export const SignupPage = () => {
                         min="0"
                         max="100"
                         value={formData.twelfthDiplomaMarks}
-                        onChange={handleChange}
+                        onChange={handleNumericInput}
                         placeholder="e.g. 85.0"
                         className={`w-full pl-3.5 pr-8 py-2.5 bg-white border text-sm text-slate-900 placeholder-slate-400 rounded-xl outline-none font-mono transition-all ${
                           errors.twelfthDiplomaMarks ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-slate-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20'
@@ -872,7 +883,7 @@ export const SignupPage = () => {
                       max="100"
                       name="cgpa"
                       value={formData.cgpa}
-                      onChange={handleChange}
+                      onChange={handleNumericInput}
                       placeholder="e.g. 8.4 or 84"
                       className={`w-full px-3.5 py-2.5 bg-white border text-sm text-slate-900 placeholder-slate-400 rounded-xl outline-none font-mono transition-all ${
                         errors.cgpa ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-slate-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20'
@@ -891,7 +902,7 @@ export const SignupPage = () => {
                       min="0"
                       name="backlogs"
                       value={formData.backlogs}
-                      onChange={handleChange}
+                      onChange={handleNumericInput}
                       placeholder="0"
                       className={`w-full px-3.5 py-2.5 bg-white border text-sm text-slate-900 placeholder-slate-400 rounded-xl outline-none font-mono transition-all ${
                         errors.backlogs ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-slate-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20'
@@ -945,9 +956,6 @@ export const SignupPage = () => {
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">Set a secure password for your student dashboard.</p>
                 </div>
-                <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200">
-                  Step 3 of 3
-                </span>
               </div>
 
               {/* Quick Profile Summary Badge Card */}
@@ -1068,7 +1076,20 @@ export const SignupPage = () => {
                   className="mt-0.5 w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
                 />
                 <label htmlFor="agreeTerms" className="text-xs text-slate-600 leading-relaxed cursor-pointer">
-                  I confirm that all entered academic and personal credentials are true. I agree to the <span className="text-brand-600 hover:underline font-semibold">Terms of Service</span> and <span className="text-brand-600 hover:underline font-semibold">Privacy Policy</span>.
+                  I confirm that all entered academic and personal credentials are true. I agree to the
+                  <span
+                    className="text-brand-600 hover:underline font-semibold cursor-pointer"
+                    onClick={(e) => { e.stopPropagation(); window.open('/terms', '_blank'); }}
+                  >
+                    Terms of Service
+                  </span>
+                  and
+                  <span
+                    className="text-brand-600 hover:underline font-semibold cursor-pointer"
+                    onClick={(e) => { e.stopPropagation(); window.open('/privacy', '_blank'); }}
+                  >
+                    Privacy Policy
+                  </span>.
                 </label>
               </div>
               {errors.agreeTerms && <p className="text-xs text-rose-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.agreeTerms}</p>}
@@ -1119,10 +1140,6 @@ export const SignupPage = () => {
                 Sign In
               </button>
             </p>
-            <div className="flex items-center gap-2 text-slate-400 text-[11px]">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>Secure SSL 256-Bit Candidate Enrollment</span>
-            </div>
           </div>
 
         </div>

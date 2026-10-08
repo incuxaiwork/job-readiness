@@ -1,11 +1,12 @@
 import { EventEmitter } from 'events';
 import crypto from 'crypto';
 import { Queue, Worker, QueueEvents } from 'bullmq';
-import { isRedisAvailable } from '../db/redis.js';
+import { isRedisAvailable, redisClient } from '../db/redis.js';
+import { redisUrl } from '../config/urls.js';
 import { processSubmission } from '../workers/submissionWorker.js';
 
 const QUEUE_NAME = 'code-submissions';
-const REDIS_URL = process.env.REDIS_URL || 'redis://default:qeTZunBQpbbGqpqXmnFZoKLNzzqnNCdo@redis.railway.internal:6379';
+const REDIS_URL = redisUrl();
 
 // ─── In-Memory Fallback Queue (Active in dev / when Redis is offline) ─────────
 class InMemorySubmissionQueue extends EventEmitter {
@@ -98,21 +99,12 @@ let useBull = false;
 // Attempt BullMQ initialization if Redis is enabled
 const initBullMQ = () => {
   try {
-    let connectionUrl = REDIS_URL;
-    // Parse Redis connection details
-    const parsed = new URL(connectionUrl);
-    const connectionOpts = {
-      host: parsed.hostname,
-      port: parseInt(parsed.port || '6379', 10),
-      username: parsed.username || undefined,
-      password: parsed.password || undefined,
-      maxRetriesPerRequest: null,
-      connectTimeout: 4000,
-      enableOfflineQueue: false
-    };
+    if (!redisClient.isOpen) {
+      throw new Error('Redis client not connected');
+    }
 
     bullQueue = new Queue(QUEUE_NAME, {
-      connection: connectionOpts,
+      connection: redisClient,
       defaultJobOptions: {
         removeOnComplete: { age: 3600, count: 1000 },
         removeOnFail: { age: 7200, count: 1000 }
@@ -134,7 +126,7 @@ const initBullMQ = () => {
         return await processSubmission(job.data, updateProgress);
       },
       {
-        connection: connectionOpts,
+        connection: redisClient,
         concurrency
       }
     );
@@ -143,7 +135,7 @@ const initBullMQ = () => {
       if (err.code !== 'ENOTFOUND') console.warn(`[BullMQ Worker] Notice: ${err.message}`);
     });
 
-    bullEvents = new QueueEvents(QUEUE_NAME, { connection: connectionOpts });
+    bullEvents = new QueueEvents(QUEUE_NAME, { connection: redisClient });
     bullEvents.on('error', () => {});
 
     useBull = true;

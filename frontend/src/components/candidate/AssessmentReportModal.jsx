@@ -678,21 +678,12 @@ export const AssessmentReportModal = ({
                 <div className="space-y-2 shrink-0">
                   <div className="flex items-center justify-between pb-3 border-b-2 border-slate-100">
                     <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-500 text-white flex items-center justify-center shadow-md">
-                        <BrainCircuit className="w-6 h-6" />
-                      </div>
                       <div>
                         <div className="flex items-center gap-2">
                           <h1 className="text-xl font-black text-slate-900 tracking-tight leading-none">
                             ReadySet<span className="text-brand-600">Job</span>
                           </h1>
-                          <span className="px-2 py-0.5 rounded bg-brand-50 text-brand-700 text-[9px] font-black uppercase tracking-wider border border-brand-200">
-                            OFFICIAL SCORECARD
-                          </span>
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mt-1">
-                          National AI Job Readiness Assessment & Certification
-                        </span>
                       </div>
                     </div>
 

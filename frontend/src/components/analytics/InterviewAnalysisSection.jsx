@@ -6,7 +6,7 @@ import {
   Activity,
   Award,
   TrendingUp,
-  BrainCircuit,
+  // BrainCircuit,
   CheckCircle2,
   AlertTriangle,
   ChevronDown,
@@ -110,9 +110,6 @@ export default function InterviewAnalysisSection({ sessionId: initialSessionId }
   if (loading) {
     return (
       <section id="interview-analysis" className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-8 text-center space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center mx-auto animate-spin">
-          <BrainCircuit className="w-6 h-6" />
-        </div>
         <p className="text-sm font-semibold text-slate-600">Retrieving real-time interview analysis from PostgreSQL database...</p>
       </section>
     );
@@ -279,10 +276,7 @@ export default function InterviewAnalysisSection({ sessionId: initialSessionId }
 
         {/* Technical Score */}
         <div className="p-5 bg-white rounded-2xl border border-slate-200/90 shadow-card flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
-            <BrainCircuit className="w-5 h-5" />
-          </div>
-          <div>
+                    <div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Technical</span>
             <span className="text-xl font-black text-slate-900">{tech}%</span>
             <span className="text-[10px] font-semibold text-slate-500 block">Depth & Concepts</span>

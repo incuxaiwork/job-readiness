@@ -64,9 +64,6 @@ export const LoginPage = () => {
           onClick={() => navigateTo('hero')}
           className="flex items-center justify-center gap-3 cursor-pointer group mb-6"
         >
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/25">
-            <BrainCircuit className="w-6 h-6" />
-          </div>
           <span className="text-2xl font-black text-slate-900 tracking-tight">
             ReadySet<span className="text-brand-600">Job</span>
           </span>

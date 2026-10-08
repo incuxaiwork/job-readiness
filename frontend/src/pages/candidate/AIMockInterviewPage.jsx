@@ -1866,7 +1866,7 @@ export const AIMockInterviewPage = () => {
           <div className="bg-white rounded-2xl border border-slate-200/90 shadow-card px-5 py-3.5 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-600 to-brand-600 flex items-center justify-center text-white shadow-xs">
-                <BrainCircuit className="w-4 h-4" />
+                {/* <BrainCircuit className="w-4 h-4" /> */}
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black tracking-wide text-slate-900 font-sans uppercase">ReadySetJob AI Interview Studio</span>
@@ -2242,7 +2242,7 @@ export const AIMockInterviewPage = () => {
         <div className="relative z-10 w-full max-w-5xl mx-auto flex items-center justify-between pb-4 mb-4 border-b border-slate-200/90">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-600 to-brand-600 flex items-center justify-center text-white shadow-xs">
-              <BrainCircuit className="w-4 h-4" />
+              {/* <BrainCircuit className="w-4 h-4" /> */}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-black tracking-wide text-slate-900 font-sans uppercase">ReadySetJob AI Interview Studio</span>
@@ -2476,7 +2476,7 @@ export const AIMockInterviewPage = () => {
         <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs px-4 py-2 shrink-0 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-600 to-brand-600 flex items-center justify-center text-white shadow-xs">
-              <BrainCircuit className="w-3.5 h-3.5" />
+              {/* <BrainCircuit className="w-3.5 h-3.5" /> */}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-black tracking-wide text-slate-900 font-sans uppercase">ReadySetJob AI Interview Studio</span>

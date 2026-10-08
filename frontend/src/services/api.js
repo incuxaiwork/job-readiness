@@ -11,9 +11,9 @@ const resolveBase = () => {
 
 const BASE = resolveBase();
 
-// -- Token storage (in-memory only — survives page lifecycle, not tab re-open) --
-// NOTE: memory storage is XSS-safe (no JS access from other scripts).
-// The refresh token lives in an HttpOnly cookie and is sent automatically.
+// -- Token storage: primary copy in memory, mirrored to localStorage so a
+//    page reload / re-open restores the session. The refresh token lives in
+//    an HttpOnly cookie and is sent automatically.
 let _memoryToken = localStorage.getItem("rsj_token"); // seed from localStorage on load
 
 const getToken      = () => _memoryToken;

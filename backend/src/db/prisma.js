@@ -2,8 +2,12 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import dotenv from 'dotenv';
 dotenv.config();
+import { databaseUrl } from '../config/urls.js';
 
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:dKicnZwveKVdMTVUAJfnhJCCcilefJsN@hayabusa.proxy.rlwy.net:50081/railway';
+const connectionString = databaseUrl();
+if (!connectionString) {
+  console.warn('⚠️ [Prisma] No DATABASE_URL / DATABASE_PUBLIC_URL set.');
+}
 const adapter = new PrismaPg({ connectionString });
 
 // Global Prisma Client singleton

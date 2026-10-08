@@ -2,11 +2,12 @@ import pkg from 'pg';
 const { Pool } = pkg;
 import dotenv from 'dotenv';
 dotenv.config();
+import { databaseUrl } from '../config/urls.js';
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = databaseUrl();
 
 if (!connectionString) {
-  console.warn('⚠️ DATABASE_URL is not set. Running in local fallback mode without PostgreSQL.');
+  console.warn('⚠️ DATABASE_URL/DATABASE_PUBLIC_URL is not set. Running in local fallback mode without PostgreSQL.');
 }
 
 const isProduction = process.env.NODE_ENV === 'production';

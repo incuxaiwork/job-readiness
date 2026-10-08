@@ -53,10 +53,7 @@ export const AssessmentsListPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-50 text-brand-700 border border-brand-200 rounded-full text-xs font-bold mb-2">
-            <ClipboardCheck className="w-3.5 h-3.5" />
-            <span>Job Readiness Assessment Suite</span>
-          </div>
+
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             Assessments & Mock Tests
           </h1>

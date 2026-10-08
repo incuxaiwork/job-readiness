@@ -717,7 +717,7 @@ export const AssessmentPage = () => {
             {/* Title & Assessment Info */}
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-brand-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                <BrainCircuit className="w-4 h-4" />
+                {/* <BrainCircuit className="w-4 h-4" /> */}
               </div>
               <div>
                 <h1 className="text-sm sm:text-base font-bold text-slate-900 leading-tight">
@@ -1115,7 +1115,7 @@ export const AssessmentPage = () => {
       >
         <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
           <div className="p-4 bg-brand-50 border border-brand-200 rounded-2xl flex items-start gap-3">
-            <BrainCircuit className="w-5 h-5 text-brand-600 flex-shrink-0 mt-0.5" />
+            {/* <BrainCircuit className="w-5 h-5 text-brand-600 flex-shrink-0 mt-0.5" /> */}
             <div>
               <h4 className="font-bold text-brand-900 text-sm">Exam Environment Rules</h4>
               <p className="text-slate-600 mt-1">

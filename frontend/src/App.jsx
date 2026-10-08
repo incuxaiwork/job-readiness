@@ -13,6 +13,8 @@ import { AssessmentsListPage } from './pages/candidate/AssessmentsListPage';
 import { AssessmentPage } from './pages/candidate/AssessmentPage';
 import { AIMockInterviewPage } from './pages/candidate/AIMockInterviewPage';
 import CandidateAnalyticsPage from './pages/candidate/CandidateAnalyticsPage';
+import { TermsPage } from './pages/TermsPage';
+import { PrivacyPage } from './pages/PrivacyPage';
 
 // Admin Pages
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
@@ -149,6 +151,8 @@ export default function App() {
         <Route path="/" element={<><JobReadinessHero /><ToastContainer /></>} />
         <Route path="/login" element={<><LoginPage /><ToastContainer /></>} />
         <Route path="/signup" element={<><SignupPage /><ToastContainer /></>} />
+        <Route path="/terms" element={<><TermsPage /><ToastContainer /></>} />
+        <Route path="/privacy" element={<><PrivacyPage /><ToastContainer /></>} />
         <Route path="/admin" element={<><AdminLoginPage /><ToastContainer /></>} />
         <Route path="/admin-login" element={<Navigate to="/admin" replace />} />
 

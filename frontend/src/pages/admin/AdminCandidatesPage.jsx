@@ -648,7 +648,7 @@ export const AdminCandidatesPage = () => {
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-2">
                 <div className="flex items-center gap-2">
-                  <BrainCircuit className="w-4 h-4 text-brand-600" />
+                  {/* <BrainCircuit className="w-4 h-4 text-brand-600" /> */}
                   <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
                     AI Mock Interview Performance & Telemetry
                   </h4>
@@ -699,7 +699,7 @@ export const AdminCandidatesPage = () => {
                     {/* 2. Technical */}
                     <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
                       <div className="flex items-center justify-between mb-1">
-                        <BrainCircuit className="w-3.5 h-3.5 text-brand-600" />
+                        {/* <BrainCircuit className="w-3.5 h-3.5 text-brand-600" /> */}
                         <span className="text-[9px] font-bold text-slate-400 uppercase">Technical</span>
                       </div>
                       <div className="text-xl font-black text-slate-900 font-mono">
