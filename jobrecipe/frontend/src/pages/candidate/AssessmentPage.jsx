@@ -661,7 +661,7 @@ export const AssessmentPage = () => {
     isAssessmentCompleted?.(activeAssessment) ||
     (candidateSubmissions || []).some(
       s => String(s.assessment_id || s.assessmentId || '').trim().toLowerCase() === String(activeAssessment.id).trim().toLowerCase() ||
-           (activeAssessment.title && String(s.assessment_title || s.assessmentName || '').trim().toLowerCase() === String(activeAssessment.title).trim().toLowerCase())
+        (activeAssessment.title && String(s.assessment_title || s.assessmentName || '').trim().toLowerCase() === String(activeAssessment.title).trim().toLowerCase())
     ) || activeAssessment?.status === 'Completed'
   );
 
@@ -1028,7 +1028,7 @@ export const AssessmentPage = () => {
                   ) : (
                     <>
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>Submit & View AI Analysis</span>
+                      <span>Submit & next section</span>
                     </>
                   )}
                 </button>

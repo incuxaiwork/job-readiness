@@ -222,9 +222,9 @@ export default function InterviewAnalysisSection({ sessionId: initialSessionId }
   const answeredQuestions = questions.filter(q => q.overallScore > 0);
   const hasSpoken = answeredQuestions.length > 0;
 
-  // Strict 0% overall when user didn't speak or answer!
+  // Strict 0% overall when user didn't speak or answer, otherwise use real database overallScore
   const overall = hasSpoken
-    ? Math.round(questions.reduce((acc, q) => acc + (q.overallScore || 0), 0) / questions.length)
+    ? Math.round(Number(analysis.overallScore ?? session?.overallScore ?? (questions.reduce((acc, q) => acc + (q.overallScore || 0), 0) / questions.length)))
     : 0;
 
   const comm = hasSpoken

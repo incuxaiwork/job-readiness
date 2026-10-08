@@ -259,7 +259,6 @@ export const AppProvider = ({ children }) => {
     if (!param) return false;
     const isObj = typeof param === 'object' && param !== null;
     const targetId = (isObj ? String(param.id || '') : String(param)).trim().toLowerCase();
-    const targetCat = isObj && param.category ? String(param.category).trim().toLowerCase() : '';
     const targetTitle = (isObj && param.title ? String(param.title) : String(param)).trim().toLowerCase();
 
     // 1. Direct status check on object
@@ -280,11 +279,9 @@ export const AppProvider = ({ children }) => {
     return (candidateSubmissions || []).some(
       s => {
         const subAsmId = String(s.assessment_id || s.assessmentId || '').trim().toLowerCase();
-        if (targetId && subAsmId === targetId) return true;
+        if (targetId && subAsmId && subAsmId === targetId) return true;
         const subTitle = String(s.assessment_title || s.assessmentName || '').trim().toLowerCase();
         if (targetTitle && subTitle && subTitle === targetTitle) return true;
-        const subCat = String(s.category || '').trim().toLowerCase();
-        if (targetCat && subCat && subCat === targetCat) return true;
         return false;
       }
     );
@@ -339,8 +336,9 @@ export const AppProvider = ({ children }) => {
       try {
         const res = await api.auth.me();
         if (res.ok && res.data) {
-          if (res.data.role === 'candidate' && res.data.candidate) {
-            setCurrentUser(res.data.candidate);
+          const candidateObj = res.data.candidate || (res.data.role === 'candidate' ? res.data.user : null);
+          if (res.data.role === 'candidate' && candidateObj) {
+            setCurrentUser(candidateObj);
             setRole('candidate');
             // Synchronize candidate submissions from DB
             try {
@@ -349,7 +347,20 @@ export const AppProvider = ({ children }) => {
                 ? subRes.data.data
                 : (Array.isArray(subRes?.data) ? subRes.data : []);
               if (subRes.ok && Array.isArray(subList)) {
-                setCandidateSubmissions(subList);
+                setCandidateSubmissions(prev => {
+                  const mergedMap = new Map();
+                  (prev || []).forEach(s => {
+                    const k = (s.id || s.assessment_id || s.assessmentId || '').toString().toLowerCase();
+                    if (k) mergedMap.set(k, s);
+                  });
+                  subList.forEach(s => {
+                    const k = (s.id || s.assessment_id || s.assessmentId || '').toString().toLowerCase();
+                    if (k) mergedMap.set(k, s);
+                  });
+                  const mergedList = Array.from(mergedMap.values());
+                  try { localStorage.setItem('rsj_candidate_submissions', JSON.stringify(mergedList)); } catch(e){}
+                  return mergedList;
+                });
                 if (subList.length > 0) {
                   const latest = subList[0];
                   const mappedResult = {
@@ -373,8 +384,8 @@ export const AppProvider = ({ children }) => {
             } catch (subErr) {
               console.warn('Could not sync latest candidate submission:', subErr.message);
             }
-          } else if (res.data.role === 'admin' && res.data.user) {
-            setAdminUser(res.data.user);
+          } else if (res.data.role === 'admin' && (res.data.user || res.data.admin)) {
+            setAdminUser(res.data.user || res.data.admin);
             setRole('admin');
           }
         } else {
@@ -402,8 +413,21 @@ export const AppProvider = ({ children }) => {
           const subList = Array.isArray(subRes?.data?.data)
             ? subRes.data.data
             : (Array.isArray(subRes?.data) ? subRes.data : []);
-          if (isMounted && subRes.ok && Array.isArray(subList)) {
-            setCandidateSubmissions(subList);
+          if (isMounted && subRes.ok && Array.isArray(subList) && subList.length > 0) {
+            setCandidateSubmissions(prev => {
+              const mergedMap = new Map();
+              (prev || []).forEach(s => {
+                const k = (s.id || s.assessment_id || s.assessmentId || '').toString().toLowerCase();
+                if (k) mergedMap.set(k, s);
+              });
+              subList.forEach(s => {
+                const k = (s.id || s.assessment_id || s.assessmentId || '').toString().toLowerCase();
+                if (k) mergedMap.set(k, s);
+              });
+              const mergedList = Array.from(mergedMap.values());
+              try { localStorage.setItem('rsj_candidate_submissions', JSON.stringify(mergedList)); } catch(e){}
+              return mergedList;
+            });
           }
         } catch (e) {}
       }

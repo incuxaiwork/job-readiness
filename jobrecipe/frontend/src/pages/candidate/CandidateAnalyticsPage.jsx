@@ -1,10 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import ScoreOverview from '../../components/analytics/ScoreOverview';
 import ConceptAnalysis from '../../components/analytics/ConceptAnalysis';
-import CompanyEligibility from '../../components/analytics/CompanyEligibility';
-import ImprovementRoadmap from '../../components/analytics/ImprovementRoadmap';
 import InterviewAnalysisSection from '../../components/analytics/InterviewAnalysisSection';
+import CompanyEligibilitySection from '../../components/analytics/CompanyEligibilitySection';
 import { ScoreRing } from '../../components/common/ScoreRing';
 import confetti from 'canvas-confetti';
 import { mockStudent } from '../../data/analyticsData';
@@ -28,7 +26,7 @@ import {
 
 export default function CandidateAnalyticsPage() {
   const { currentUser, latestResult, candidateSubmissions, assessments, startAssessment, addToast } = useApp();
-  const [activeSection, setActiveSection] = useState((latestResult || (candidateSubmissions && candidateSubmissions.length > 0)) ? 'results' : 'overview');
+  const [activeSection, setActiveSection] = useState('results');
   const [selectedModuleFilter, setSelectedModuleFilter] = useState('ALL');
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
@@ -61,24 +59,90 @@ export default function CandidateAnalyticsPage() {
     }
   }, []);
 
-  // Aggregate Section Scores across ALL submitted candidate assessments
-  const sectionScores = React.useMemo(() => {
+  // 1. Get distinct latest submission per assessment from candidateSubmissions
+  const distinctSubs = React.useMemo(() => {
     const subs = Array.isArray(candidateSubmissions) ? candidateSubmissions : [];
+    const map = new Map();
+    subs.forEach(s => {
+      const key = (s.assessment_id || s.assessmentId || s.assessment_title || s.assessmentName || '').toString().toLowerCase().trim();
+      if (!key) return;
+      if (!map.has(key)) {
+        map.set(key, s);
+      } else {
+        const existing = map.get(key);
+        const exTime = new Date(existing.created_at || 0).getTime();
+        const sTime = new Date(s.created_at || 0).getTime();
+        if (sTime > exTime) map.set(key, s);
+      }
+    });
+    return Array.from(map.values());
+  }, [candidateSubmissions]);
+
+  // 2. Extract all real topics tested directly from database submissions
+  const databaseTopics = React.useMemo(() => {
+    const list = [];
+    const seen = new Set();
+    distinctSubs.forEach(s => {
+      let tb = s.topic_breakdown || s.topicBreakdown;
+      if (typeof tb === 'string') {
+        try { tb = JSON.parse(tb); } catch (e) { tb = []; }
+      }
+      if (Array.isArray(tb) && tb.length > 0) {
+        tb.forEach(item => {
+          const name = (item.topic || item.name || 'General').trim();
+          const cat = item.category || s.category || s.assessment_title || 'Technical';
+          const obt = Number(item.obtainedMarks ?? item.obtained_marks ?? item.score ?? 0);
+          const tot = Number(item.totalMarks ?? item.total_marks ?? 1);
+          const pct = tot > 0 ? Math.round((obt / tot) * 100) : Number(item.score ?? 0);
+          const uniqueKey = `${cat}-${name}`.toLowerCase();
+          if (!seen.has(uniqueKey)) {
+            seen.add(uniqueKey);
+            list.push({
+              name,
+              topic: name,
+              category: cat,
+              score: obt,
+              obtainedMarks: obt,
+              totalMarks: tot,
+              maxScore: tot,
+              percent: pct,
+              status: item.status || (pct >= 80 ? 'Mastered' : pct >= 50 ? 'Average' : 'Weak'),
+              correctCount: Number(item.correctCount ?? (pct >= 60 ? 1 : 0)),
+              incorrectCount: Number(item.incorrectCount ?? (pct < 60 ? 1 : 0)),
+              unansweredCount: Number(item.unansweredCount ?? 0),
+              totalQuestions: Number(item.totalQuestions ?? 1)
+            });
+          }
+        });
+      }
+    });
+    return list;
+  }, [distinctSubs]);
+
+  // 3. Aggregate Section Scores across distinct submitted candidate assessments
+  const sectionScores = React.useMemo(() => {
     const asms = Array.isArray(assessments) ? assessments : [];
 
-    const getScoreForSection = (keys, asmCategoryName) => {
-      // 1. First check candidateSubmissions
-      const match = subs.find(s => {
+    const getScoreForSection = (keys, defaultCatName) => {
+      // 1. First check distinct candidateSubmissions
+      const match = distinctSubs.find(s => {
         const cat = String(s.category || '').toLowerCase().trim();
         const title = String(s.assessment_title || s.assessmentName || s.title || '').toLowerCase().trim();
         return keys.some(k => cat.includes(k) || title.includes(k));
       });
 
       if (match) {
-        const obtained = Number(match.obtained_marks ?? match.obtainedMarks ?? (typeof match.score === 'number' ? Math.round((match.score / 100) * 40) : 0));
         const total = Number(match.total_marks ?? match.totalMarks ?? 40);
-        const pct = typeof match.score === 'number' ? match.score : (total > 0 ? Math.round((obtained / total) * 100) : 0);
-        return { obtained, total, pct, title: match.assessment_title || match.assessmentName || match.title || '', isSubmitted: true };
+        const obtained = Number(match.obtained_marks ?? match.obtainedMarks ?? (typeof match.score === 'number' ? Math.round((match.score / 100) * total) : 0));
+        const pct = total > 0 ? Math.round((obtained / total) * 100) : (typeof match.score === 'number' ? match.score : 0);
+        return {
+          obtained,
+          total,
+          pct,
+          title: match.assessment_title || match.assessmentName || match.title || `${defaultCatName} Assessment`,
+          isSubmitted: true,
+          submission: match
+        };
       }
 
       // 2. Check assessments array state for completed status
@@ -89,31 +153,21 @@ export default function CandidateAnalyticsPage() {
       });
 
       if (asmMatch) {
-        const pct = Number(asmMatch.lastScore ?? asmMatch.score ?? 100);
+        const pct = Number(asmMatch.lastScore ?? asmMatch.score ?? 0);
         const total = Number(asmMatch.total_marks ?? asmMatch.totalMarks ?? 40);
         const obtained = Math.round((pct / 100) * total);
-        return { obtained, total, pct, title: asmMatch.title || '', isSubmitted: true };
+        return { obtained, total, pct, title: asmMatch.title || `${defaultCatName} Assessment`, isSubmitted: true };
       }
 
-      // 3. Check latestResult
-      const latestCat = String(latestResult?.category || '').toLowerCase();
-      const latestTitle = String(latestResult?.assessmentName || '').toLowerCase();
-      if (keys.some(k => latestCat.includes(k) || latestTitle.includes(k))) {
-        const obtained = Number(latestResult.obtainedMarks ?? Math.round((latestResult.score / 100) * 40));
-        const total = Number(latestResult.totalMarks ?? 40);
-        const pct = latestResult.score ?? 0;
-        return { obtained, total, pct, title: latestResult.assessmentName || '', isSubmitted: true };
-      }
-
-      // 4. Fallback to currentUser specific score
+      // 3. Check fallback from candidate profile
       for (const k of keys) {
         const scoreVal = currentUser?.[`${k}Score`];
         if (typeof scoreVal === 'number' && scoreVal > 0) {
-          return { obtained: Math.round((scoreVal / 100) * 40), total: 40, pct: scoreVal, title: '', isSubmitted: false };
+          return { obtained: Math.round((scoreVal / 100) * 40), total: 40, pct: scoreVal, title: `${defaultCatName} Assessment`, isSubmitted: false };
         }
       }
 
-      return { obtained: 0, total: 40, pct: 0, title: '', isSubmitted: false };
+      return { obtained: 0, total: 40, pct: 0, title: `${defaultCatName} Assessment`, isSubmitted: false };
     };
 
     return {
@@ -123,11 +177,10 @@ export default function CandidateAnalyticsPage() {
       coding: getScoreForSection(['code', 'prog'], 'Coding'),
       verbal: getScoreForSection(['verb', 'eng'], 'Verbal')
     };
-  }, [candidateSubmissions, assessments, latestResult, currentUser]);
+  }, [distinctSubs, assessments, currentUser]);
 
+  // 4. Compute accurate display metrics (total score, accuracy, questions)
   const displayResultMetrics = React.useMemo(() => {
-    const subs = Array.isArray(candidateSubmissions) ? candidateSubmissions : [];
-
     // Filter by specific module if selected
     if (selectedModuleFilter !== 'ALL') {
       const keys = selectedModuleFilter === 'Technical' ? ['tech']
@@ -136,64 +189,65 @@ export default function CandidateAnalyticsPage() {
         : selectedModuleFilter === 'Coding' ? ['code', 'prog']
         : ['verb', 'eng'];
 
-      const selectedSub = subs.find(s => {
+      const secKey = selectedModuleFilter.toLowerCase();
+      const secScore = sectionScores[secKey] || sectionScores.technical;
+
+      const selectedSub = distinctSubs.find(s => {
         const cat = String(s.category || '').toLowerCase().trim();
         const title = String(s.assessment_title || s.assessmentName || s.title || '').toLowerCase().trim();
         return keys.some(k => cat.includes(k) || title.includes(k));
-      }) || (
-        keys.some(k => String(latestResult?.category || '').toLowerCase().includes(k) || String(latestResult?.assessmentName || '').toLowerCase().includes(k))
-          ? latestResult
-          : null
-      );
+      });
 
       if (selectedSub) {
-        const score = Number(selectedSub.score ?? 0);
-        const obtained = Number(selectedSub.obtained_marks ?? selectedSub.obtainedMarks ?? Math.round((score / 100) * 40));
-        const total = Number(selectedSub.total_marks ?? selectedSub.totalMarks ?? 40);
+        const total = Number(selectedSub.total_marks ?? selectedSub.totalMarks ?? secScore.total);
+        const obtained = Number(selectedSub.obtained_marks ?? selectedSub.obtainedMarks ?? secScore.obtained);
+        const score = total > 0 ? Math.round((obtained / total) * 100) : Number(selectedSub.score ?? secScore.pct);
+        const corr = Number(selectedSub.correct_count ?? selectedSub.correctCount ?? 0);
+        const incorr = Number(selectedSub.incorrect_count ?? selectedSub.incorrectCount ?? 0);
+        const unans = Number(selectedSub.unanswered_count ?? selectedSub.unansweredCount ?? 0);
+        const totQ = Number(selectedSub.total_questions ?? selectedSub.totalQuestions ?? ((corr + incorr + unans) || 5));
+        const acc = (corr + incorr) > 0 ? Math.round((corr / (corr + incorr)) * 100) : score;
+
         return {
-          title: selectedSub.assessment_title || selectedSub.assessmentName || selectedSub.title || `${selectedModuleFilter} Assessment`,
-          score: score,
+          title: selectedSub.assessment_title || selectedSub.assessmentName || `${selectedModuleFilter} Assessment`,
+          score,
           obtainedMarks: obtained,
           totalMarks: total,
-          accuracy: Number(selectedSub.accuracy ?? score),
-          correctCount: Number(selectedSub.correct_count ?? selectedSub.correctCount ?? Math.round((score / 100) * (selectedModuleFilter === 'Coding' ? 4 : 10))),
-          incorrectCount: Number(selectedSub.incorrect_count ?? selectedSub.incorrectCount ?? 0),
-          unansweredCount: Number(selectedSub.unanswered_count ?? selectedSub.unansweredCount ?? 0),
-          totalQuestions: Number(selectedSub.total_questions ?? selectedSub.totalQuestions ?? (selectedModuleFilter === 'Coding' ? 4 : 10)),
+          accuracy: acc,
+          correctCount: corr,
+          incorrectCount: incorr,
+          unansweredCount: unans,
+          totalQuestions: totQ,
           timeTaken: selectedSub.time_taken || selectedSub.timeTaken || '10 min',
           isFiltered: true
         };
       }
 
-      // If no sub found for filtered module, fallback to sectionScores entry
-      const secKey = selectedModuleFilter.toLowerCase();
-      const sec = sectionScores[secKey] || sectionScores.technical;
       return {
         title: `${selectedModuleFilter} Assessment`,
-        score: sec.pct,
-        obtainedMarks: sec.obtained,
-        totalMarks: sec.total,
-        accuracy: sec.pct,
-        correctCount: Math.round((sec.pct / 100) * (selectedModuleFilter === 'Coding' ? 4 : 10)),
-        incorrectCount: (selectedModuleFilter === 'Coding' ? 4 : 10) - Math.round((sec.pct / 100) * (selectedModuleFilter === 'Coding' ? 4 : 10)),
+        score: secScore.pct,
+        obtainedMarks: secScore.obtained,
+        totalMarks: secScore.total,
+        accuracy: secScore.pct,
+        correctCount: Math.round((secScore.pct / 100) * 10),
+        incorrectCount: 10 - Math.round((secScore.pct / 100) * 10),
         unansweredCount: 0,
-        totalQuestions: selectedModuleFilter === 'Coding' ? 4 : 10,
+        totalQuestions: 10,
         timeTaken: '10 min',
         isFiltered: true
       };
     }
 
-    // Default 'ALL': Aggregate across all completed assessments
-    const completedSections = Object.values(sectionScores).filter(s => s.obtained > 0 || s.isSubmitted);
-    if (completedSections.length > 0 || subs.length > 0) {
-      const totalObtained = completedSections.reduce((sum, s) => sum + s.obtained, 0);
-      const totalPossible = completedSections.reduce((sum, s) => sum + s.total, 0);
+    // Default 'ALL': Aggregate across all distinct completed assessments in database
+    if (distinctSubs.length > 0) {
+      const totalObtained = distinctSubs.reduce((sum, s) => sum + Number(s.obtained_marks ?? s.obtainedMarks ?? 0), 0);
+      const totalPossible = distinctSubs.reduce((sum, s) => sum + Number(s.total_marks ?? s.totalMarks ?? 0), 0);
       const compositeScore = totalPossible > 0 ? Math.round((totalObtained / totalPossible) * 100) : 0;
 
-      const totalCorrect = subs.reduce((sum, s) => sum + Number(s.correct_count ?? s.correctCount ?? 0), 0) || completedSections.reduce((sum, s) => sum + Math.round((s.pct / 100) * (s.total / 4)), 0);
-      const totalQuestions = subs.reduce((sum, s) => sum + Number(s.total_questions ?? s.totalQuestions ?? 10), 0) || (completedSections.length * 10);
-      const totalIncorrect = subs.reduce((sum, s) => sum + Number(s.incorrect_count ?? s.incorrectCount ?? 0), 0);
-      const totalUnanswered = subs.reduce((sum, s) => sum + Number(s.unanswered_count ?? s.unansweredCount ?? 0), 0);
+      const totalCorrect = distinctSubs.reduce((sum, s) => sum + Number(s.correct_count ?? s.correctCount ?? 0), 0);
+      const totalIncorrect = distinctSubs.reduce((sum, s) => sum + Number(s.incorrect_count ?? s.incorrectCount ?? 0), 0);
+      const totalUnanswered = distinctSubs.reduce((sum, s) => sum + Number(s.unanswered_count ?? s.unansweredCount ?? 0), 0);
+      const totalQuestions = distinctSubs.reduce((sum, s) => sum + Number(s.total_questions ?? s.totalQuestions ?? 0), 0) || (totalCorrect + totalIncorrect + totalUnanswered) || 20;
       const avgAccuracy = (totalCorrect + totalIncorrect) > 0 ? Math.round((totalCorrect / (totalCorrect + totalIncorrect)) * 100) : compositeScore;
 
       return {
@@ -203,32 +257,16 @@ export default function CandidateAnalyticsPage() {
         totalMarks: totalPossible,
         accuracy: avgAccuracy,
         correctCount: totalCorrect,
-        totalQuestions: totalQuestions,
         incorrectCount: totalIncorrect,
         unansweredCount: totalUnanswered,
-        timeTaken: `${Math.max(1, subs.length || completedSections.length) * 10} min`,
-        isFiltered: false
-      };
-    }
-
-    if (latestResult) {
-      return {
-        title: latestResult.assessmentName || 'Technical Assessment',
-        score: latestResult.score ?? 0,
-        obtainedMarks: latestResult.obtainedMarks ?? 0,
-        totalMarks: latestResult.totalMarks ?? 40,
-        accuracy: latestResult.accuracy ?? 0,
-        correctCount: latestResult.correctCount ?? 0,
-        totalQuestions: latestResult.totalQuestions ?? 10,
-        incorrectCount: latestResult.incorrectCount ?? 0,
-        unansweredCount: latestResult.unansweredCount ?? 0,
-        timeTaken: latestResult.timeTaken || '28 min',
+        totalQuestions,
+        timeTaken: `${distinctSubs.length * 10} min`,
         isFiltered: false
       };
     }
 
     return {
-      title: 'Assessment',
+      title: 'Job Readiness Overall Assessment',
       score: currentUser?.jobReadinessScore ?? 0,
       obtainedMarks: 0,
       totalMarks: 40,
@@ -240,9 +278,9 @@ export default function CandidateAnalyticsPage() {
       timeTaken: '0 min',
       isFiltered: false
     };
-  }, [candidateSubmissions, latestResult, currentUser, selectedModuleFilter, sectionScores]);
+  }, [distinctSubs, sectionScores, selectedModuleFilter, currentUser]);
 
-  // Build dynamic candidate analytics profile from their real assessment submissions
+  // Build dynamic candidate analytics profile from real assessment submissions
   const studentData = React.useMemo(() => {
     const defaultData = { ...mockStudent };
     const name = currentUser?.name || currentUser?.fullName || mockStudent.name;
@@ -254,49 +292,69 @@ export default function CandidateAnalyticsPage() {
     const graduationPercentage = Number(currentUser?.graduationPercentage ?? currentUser?.graduation_percentage ?? 0);
     const backlogs = Number(currentUser?.backlogs ?? 0);
 
-    const aptScore = sectionScores.aptitude.isSubmitted ? sectionScores.aptitude.pct : Number(currentUser?.aptitudeScore || 0);
-    const reasonScore = sectionScores.reasoning.isSubmitted ? sectionScores.reasoning.pct : Number(currentUser?.reasoningScore || 0);
-    const techScore = sectionScores.technical.isSubmitted ? sectionScores.technical.pct : Number(currentUser?.technicalScore || 0);
-    const verbScore = sectionScores.verbal.isSubmitted ? sectionScores.verbal.pct : Number(currentUser?.verbalScore || 0);
-    const codeScore = sectionScores.coding.isSubmitted ? sectionScores.coding.pct : Number(currentUser?.codingScore || 0);
+    const aptScore = sectionScores.aptitude.pct;
+    const reasonScore = sectionScores.reasoning.pct;
+    const techScore = sectionScores.technical.pct;
+    const verbScore = sectionScores.verbal.pct;
+    const codeScore = sectionScores.coding.pct;
 
-    const attemptedPillars = [
-      sectionScores.aptitude.isSubmitted ? aptScore : null,
-      sectionScores.reasoning.isSubmitted ? reasonScore : null,
-      sectionScores.technical.isSubmitted ? techScore : null,
-      sectionScores.coding.isSubmitted ? codeScore : null,
-      sectionScores.verbal.isSubmitted ? verbScore : null,
-    ].filter(v => v !== null);
+    const calculatedOverall = displayResultMetrics.score;
 
-    const calculatedOverall = displayResultMetrics.score || (
-      attemptedPillars.length > 0
-        ? Math.round(attemptedPillars.reduce((a, b) => a + b, 0) / attemptedPillars.length)
-        : Number(currentUser?.jobReadinessScore || 0)
-    );
-
-    // Determine actual score from displayResultMetrics
-    const score = calculatedOverall;
-    const percentile = Math.min(99, Math.max(15, Math.round(score * 0.95 + 10)));
-    const totalStudents = 280;
-    const rank = Math.max(1, Math.round(totalStudents * (1 - percentile / 100)));
+    const normalizeCatKey = (c) => {
+      const str = String(c || '').toLowerCase();
+      if (str.includes('apt') || str.includes('quant')) return 'aptitude';
+      if (str.includes('reason') || str.includes('logic')) return 'reasoning';
+      if (str.includes('tech')) return 'technical';
+      if (str.includes('verb') || str.includes('eng')) return 'verbal';
+      if (str.includes('code') || str.includes('prog')) return 'coding';
+      return 'technical';
+    };
 
     const categories = {
-      aptitude: { score: Math.round((aptScore / 100) * 25), maxScore: 25, topics: [] },
-      reasoning: { score: Math.round((reasonScore / 100) * 25), maxScore: 25, topics: [] },
-      technical: { score: Math.round((techScore / 100) * 25), maxScore: 25, topics: [] },
-      english: { score: Math.round((verbScore / 100) * 25), maxScore: 25, topics: [] },
-      verbal: { score: Math.round((verbScore / 100) * 25), maxScore: 25, topics: [] },
-      coding: { score: Math.round((codeScore / 100) * 25), maxScore: 25, topics: [] },
+      aptitude: {
+        score: sectionScores.aptitude.obtained,
+        maxScore: sectionScores.aptitude.total,
+        pct: aptScore,
+        topics: databaseTopics.filter(t => normalizeCatKey(t.category) === 'aptitude')
+      },
+      reasoning: {
+        score: sectionScores.reasoning.obtained,
+        maxScore: sectionScores.reasoning.total,
+        pct: reasonScore,
+        topics: databaseTopics.filter(t => normalizeCatKey(t.category) === 'reasoning')
+      },
+      technical: {
+        score: sectionScores.technical.obtained,
+        maxScore: sectionScores.technical.total,
+        pct: techScore,
+        topics: databaseTopics.filter(t => normalizeCatKey(t.category) === 'technical')
+      },
+      verbal: {
+        score: sectionScores.verbal.obtained,
+        maxScore: sectionScores.verbal.total,
+        pct: verbScore,
+        topics: databaseTopics.filter(t => normalizeCatKey(t.category) === 'verbal')
+      },
+      english: {
+        score: sectionScores.verbal.obtained,
+        maxScore: sectionScores.verbal.total,
+        pct: verbScore,
+        topics: databaseTopics.filter(t => normalizeCatKey(t.category) === 'verbal')
+      },
+      coding: {
+        score: sectionScores.coding.obtained,
+        maxScore: sectionScores.coding.total,
+        pct: codeScore,
+        topics: databaseTopics.filter(t => normalizeCatKey(t.category) === 'coding')
+      },
     };
 
     const currentAttempt = {
-      id: latestResult?.assessmentId || 'ATT-LATEST',
+      id: latestResult?.assessmentId || 'ATT-DB-VERIFIED',
       date: latestResult?.completedAt || new Date().toISOString().split('T')[0],
       totalScore: calculatedOverall,
       categories,
     };
-
-    const prevAttempts = defaultData.examAttempts.slice(0, -1);
 
     return {
       ...defaultData,
@@ -316,19 +374,16 @@ export default function CandidateAnalyticsPage() {
         english: verbScore,
         coding: codeScore,
       },
-      percentile,
-      rank,
-      examAttempts: [...prevAttempts, currentAttempt],
+      databaseTopics,
+      examAttempts: [currentAttempt],
     };
-  }, [currentUser, latestResult, sectionScores, displayResultMetrics]);
+  }, [currentUser, sectionScores, displayResultMetrics, databaseTopics, latestResult]);
 
   const sectionRefs = {
     results: useRef(null),
-    overview: useRef(null),
     concepts: useRef(null),
     interview: useRef(null),
-    companies: useRef(null),
-    roadmap: useRef(null),
+    eligibility: useRef(null),
   };
 
   const handleNavigate = (section) => {
@@ -338,11 +393,9 @@ export default function CandidateAnalyticsPage() {
 
   const tabs = [
     ...(latestResult ? [{ id: 'results', label: 'Test Results & Summary' }] : []),
-    { id: 'overview', label: 'Score Overview' },
     { id: 'concepts', label: 'Concept Analysis' },
     { id: 'interview', label: 'Interview Analysis' },
-    { id: 'companies', label: 'Company Eligibility' },
-    { id: 'roadmap', label: 'Improvement Roadmap' },
+    { id: 'eligibility', label: 'Company Eligibility' },
   ];
 
   const getStatusBadge = (s) => {
@@ -417,7 +470,7 @@ export default function CandidateAnalyticsPage() {
                   >
                     All Modules Summary
                   </button>
-                  {['Technical', 'Aptitude', 'Reasoning', 'Coding'].map(cat => (
+                  {['Technical', 'Aptitude', 'Reasoning', 'Coding', 'Verbal'].map(cat => (
                     <button
                       key={cat}
                       onClick={() => setSelectedModuleFilter(cat)}
@@ -441,8 +494,8 @@ export default function CandidateAnalyticsPage() {
               </div>
             </div>
 
-            {/* Quick Metrics (5 Cards) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Quick Metrics (4 Cards) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Total Score & Marks */}
               <div className="p-5 bg-white rounded-2xl border border-slate-200/90 shadow-card flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center flex-shrink-0">
@@ -495,18 +548,6 @@ export default function CandidateAnalyticsPage() {
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Incorrect</span>
                   <span className="text-2xl font-black text-rose-600">{displayResultMetrics.incorrectCount} Qs</span>
                   <span className="block text-[11px] text-slate-400 font-medium">{displayResultMetrics.unansweredCount || 0} unanswered</span>
-                </div>
-              </div>
-
-              {/* Time Taken */}
-              <div className="p-5 bg-white rounded-2xl border border-slate-200/90 shadow-card flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center flex-shrink-0">
-                  <Clock className="w-6 h-6" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Time Taken</span>
-                  <span className="text-2xl font-black text-slate-900">{displayResultMetrics.timeTaken}</span>
-                  <span className="block text-[11px] text-slate-400 font-medium">Exam duration</span>
                 </div>
               </div>
             </div>
@@ -589,8 +630,8 @@ export default function CandidateAnalyticsPage() {
                   </div>
 
                   {/* Verbal */}
-                  {sectionScores.verbal.obtained > 0 && (
-                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                  {(sectionScores.verbal.isSubmitted || sectionScores.verbal.total > 0 || selectedModuleFilter === 'Verbal') && (
+                    <div className={`p-3 rounded-xl border space-y-1 transition-all ${selectedModuleFilter === 'Verbal' ? 'bg-purple-50/80 border-purple-300 ring-2 ring-purple-400/30' : 'bg-slate-50 border-slate-100'}`}>
                       <div className="flex items-center justify-between text-xs font-bold">
                         <span className="text-slate-800">Verbal & Communication</span>
                         <span className="text-purple-600 font-bold">
@@ -610,12 +651,6 @@ export default function CandidateAnalyticsPage() {
           </section>
         )}
 
-        <section ref={sectionRefs.overview}>
-          <ScoreOverview student={studentData} />
-        </section>
-
-        <hr className="border-slate-200/80" />
-
         <section ref={sectionRefs.concepts}>
           <ConceptAnalysis student={studentData} />
         </section>
@@ -628,14 +663,13 @@ export default function CandidateAnalyticsPage() {
 
         <hr className="border-slate-200/80" />
 
-        <section ref={sectionRefs.companies}>
-          <CompanyEligibility student={studentData} />
-        </section>
-
-        <hr className="border-slate-200/80" />
-
-        <section ref={sectionRefs.roadmap}>
-          <ImprovementRoadmap student={studentData} />
+        <section ref={sectionRefs.eligibility}>
+          <CompanyEligibilitySection
+            currentUser={currentUser}
+            sectionScores={sectionScores}
+            displayResultMetrics={displayResultMetrics}
+            studentData={studentData}
+          />
         </section>
       </div>
 
@@ -650,18 +684,20 @@ export default function CandidateAnalyticsPage() {
         candidate={currentUser}
         result={{
           ...latestResult,
-          score: displayResultMetrics.score || studentData.overallScore,
-          totalMarks: displayResultMetrics.totalMarks || 100,
-          obtainedMarks: displayResultMetrics.obtainedMarks || studentData.overallScore,
-          accuracy: displayResultMetrics.accuracy || studentData.overallScore,
-          correctCount: displayResultMetrics.correctCount || 0,
-          incorrectCount: displayResultMetrics.incorrectCount || 0,
-          unansweredCount: displayResultMetrics.unansweredCount || 0,
-          totalQuestions: displayResultMetrics.totalQuestions || 20,
+          score: displayResultMetrics.score ?? studentData.overallScore,
+          totalMarks: displayResultMetrics.totalMarks,
+          obtainedMarks: displayResultMetrics.obtainedMarks,
+          accuracy: displayResultMetrics.accuracy ?? studentData.overallScore,
+          correctCount: displayResultMetrics.correctCount ?? 0,
+          incorrectCount: displayResultMetrics.incorrectCount ?? 0,
+          unansweredCount: displayResultMetrics.unansweredCount ?? 0,
+          totalQuestions: displayResultMetrics.totalQuestions ?? 20,
           timeTaken: displayResultMetrics.timeTaken || '28 min',
           completedAt: latestResult?.completedAt || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
           assessmentName: displayResultMetrics.title || 'Comprehensive Job Readiness Assessment',
           categoryScores: studentData.categoryScores,
+          sectionScores: sectionScores,
+          distinctSubs: distinctSubs,
           topicBreakdown: latestResult?.topicBreakdown || studentData.topicBreakdown || []
         }}
         studentData={studentData}
