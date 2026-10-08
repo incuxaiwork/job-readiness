@@ -411,7 +411,7 @@ export const CandidateDashboard = () => {
                           title="Single-Attempt Policy Active: View your final score & analysis"
                         >
                           <BarChart2 className="w-3.5 h-3.5" />
-                          <span>Completed {obtainedMarks != null ? `(${obtainedMarks}/${totalMarks} Marks • ${displayScore}%)` : `(${displayScore}%)`} • View Result</span>
+                          <span>View Result & Analysis</span>
                         </button>
                         <div
                           className="py-2 px-2.5 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-semibold flex items-center gap-1 border border-emerald-200 cursor-not-allowed select-none"

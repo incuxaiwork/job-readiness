@@ -647,7 +647,8 @@ export const getMe = async (req, res) => {
     }
 
     const userRes = await pool.query("SELECT id, name, email, role FROM users WHERE id=$1", [req.user.id]);
-    res.json({ success: true, user: userRes.rows[0], role: userRes.rows[0]?.role });
+    const uObj = userRes.rows[0];
+    res.json({ success: true, user: uObj, candidate: uObj, role: uObj?.role });
   } catch (err) {
     const cand = findUserByEmail(req.user?.email) || findCandidateById(req.user?.id);
     if (cand) {

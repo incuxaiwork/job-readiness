@@ -172,7 +172,7 @@ export const AssessmentsListPage = () => {
                       title="Single-Attempt Policy Active: View your final score & analysis"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                      <span>Completed {obtainedMarks != null ? `(${obtainedMarks}/${totalMarks} Marks • ${displayScore}%)` : `(${displayScore}%)`} • View Analysis</span>
+                      <span>View Analysis</span>
                     </button>
                   ) : isInProgress ? (
                     <button

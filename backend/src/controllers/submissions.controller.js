@@ -299,7 +299,7 @@ export const getAllSubmissions = async (req, res) => {
               COALESCE(cp.email, s.candidate_email) as candidate_email, 
               cp.college,
               COALESCE(a.title, s.assessment_title) as assessment_title,
-              COALESCE(a.category, s.category, 'Technical') as category
+              COALESCE(a.category, 'Technical') as category
        FROM assessment_submissions s
        LEFT JOIN candidate_profiles cp ON s.candidate_id = cp.id OR s.candidate_id = cp.user_id OR LOWER(s.candidate_email) = LOWER(cp.email)
        LEFT JOIN assessments a ON s.assessment_id = a.id
@@ -322,7 +322,7 @@ export const getMySubmissions = async (req, res) => {
     const result = await pool.query(
       `SELECT s.*, 
               COALESCE(a.title, s.assessment_title) as assessment_title, 
-              COALESCE(a.category, s.category, 'Technical') as category
+              COALESCE(a.category, 'Technical') as category
        FROM assessment_submissions s
        LEFT JOIN assessments a ON s.assessment_id = a.id
        WHERE s.candidate_id = $1 OR LOWER(s.candidate_email) = LOWER($2)
