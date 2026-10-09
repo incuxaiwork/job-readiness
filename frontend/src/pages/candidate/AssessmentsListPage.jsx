@@ -27,17 +27,11 @@ export const AssessmentsListPage = () => {
   const [isDeviceModalOpen, setIsDeviceModalOpen] = useState(false);
 
   const handleStartAttempt = async (asm) => {
-    const isCompleted = isAssessmentCompleted?.(asm) || (candidateSubmissions || []).some(
-      s => String(s.assessment_id || s.assessmentId || '').trim().toLowerCase() === String(asm.id).trim().toLowerCase() ||
-           (asm.title && String(s.assessment_title || s.assessmentName || '').trim().toLowerCase() === String(asm.title).trim().toLowerCase())
-    ) || asm.status === 'Completed';
-
-    if (isCompleted) {
-      addToast('Single-Attempt Policy Active: You have already completed this assessment. Retakes are not allowed.', 'info');
-      navigateTo('candidate-analytics');
-      return;
+    try {
+      await startAssessment(asm.id);
+    } catch (e) {
+      console.warn('startAssessment error:', e);
     }
-    await startAssessment(asm.id);
     navigateTo('take-assessment');
   };
 
@@ -58,7 +52,7 @@ export const AssessmentsListPage = () => {
             Assessments & Mock Tests
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            One proctored exam covering Verbal, Aptitude, Reasoning and Technical — each section individually timed and attempted in order.
+            Complete your proctored assessment covering Verbal, Aptitude, Reasoning and Technical to generate your verified Job Readiness Report and unlock your personalized AI Mock Interview.
           </p>
         </div>
 

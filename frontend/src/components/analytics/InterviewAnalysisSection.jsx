@@ -181,33 +181,53 @@ export default function InterviewAnalysisSection({ sessionId: initialSessionId }
   const rawQuestions = analysis.questionBreakdown || (session?.questions || []).map((q) => {
     const ans = q.answers?.[0];
     const transcriptText = (ans?.transcript || '').trim();
-    const hasAnswer = transcriptText.length > 10 && !transcriptText.toLowerCase().includes('candidate provided verbal answer') && !transcriptText.toLowerCase().includes('no response');
+    const isUnanswered =
+      !transcriptText ||
+      transcriptText.length <= 10 ||
+      transcriptText.toLowerCase().includes('candidate provided verbal answer') ||
+      transcriptText.toLowerCase().includes('no verbal or typed answer') ||
+      transcriptText.toLowerCase().includes('no response') ||
+      transcriptText.toLowerCase().includes('skipped') ||
+      transcriptText.toLowerCase().includes('remained silent') ||
+      Number(ans?.overallScore || 0) === 0;
+
+    const hasAnswer = !isUnanswered;
 
     return {
       questionNumber: q.questionNumber,
       category: q.category,
       questionText: q.questionText,
       transcript: hasAnswer ? transcriptText : '',
+      isSkipped: isUnanswered,
       overallScore: hasAnswer ? Number(ans?.overallScore || 0) : 0,
       technicalScore: hasAnswer ? Number(ans?.technicalScore || 0) : 0,
       communicationScore: hasAnswer ? Number(ans?.communicationScore || 0) : 0,
       confidenceScore: hasAnswer ? Number(ans?.confidenceScore || 0) : 0,
       eyeContactScore: hasAnswer ? Number(ans?.eyeContactScore || 0) : 0,
       dominantEmotion: hasAnswer ? (ans?.dominantEmotion || 'Neutral') : 'Neutral',
-      aiFeedback: hasAnswer ? (ans?.aiFeedback || 'Answer recorded.') : 'Candidate did not provide a verbal or typed response to this question. Score: 0/100.'
+      aiFeedback: hasAnswer ? (ans?.aiFeedback || 'Answer recorded.') : 'Candidate skipped this question. No analysis generated.'
     };
   });
 
   const questions = rawQuestions.map((q) => {
     const transcriptText = (q.transcript || '').trim();
-    const hasAnswer = transcriptText.length > 10 &&
-      !transcriptText.toLowerCase().includes('candidate provided verbal answer') &&
-      !transcriptText.toLowerCase().includes('no response') &&
-      !transcriptText.toLowerCase().includes('remained silent');
+    const isUnanswered =
+      Boolean(q.isSkipped) ||
+      !transcriptText ||
+      transcriptText.length <= 10 ||
+      transcriptText.toLowerCase().includes('candidate provided verbal answer') ||
+      transcriptText.toLowerCase().includes('no verbal or typed answer') ||
+      transcriptText.toLowerCase().includes('no response') ||
+      transcriptText.toLowerCase().includes('skipped') ||
+      transcriptText.toLowerCase().includes('remained silent') ||
+      Number(q.overallScore || 0) === 0;
+
+    const hasAnswer = !isUnanswered;
 
     return {
       ...q,
       transcript: hasAnswer ? transcriptText : '',
+      isSkipped: isUnanswered,
       overallScore: hasAnswer ? Number(q.overallScore || 0) : 0,
       technicalScore: hasAnswer ? Number(q.technicalScore || 0) : 0,
       communicationScore: hasAnswer ? Number(q.communicationScore || 0) : 0,
@@ -332,70 +352,75 @@ export default function InterviewAnalysisSection({ sessionId: initialSessionId }
         </div>
       </div>
 
-      {/* ============================================================== */}
-      {/* 🚀 PICTURE 1 PLACED PROMINENTLY IN INTERVIEW ANALYSIS (USER'S EXPLICIT REQUIREMENT) */}
-      {/* ============================================================== */}
-      <div className="rounded-3xl bg-[#0b101e] border border-slate-800 shadow-2xl p-6 sm:p-8 text-white relative overflow-hidden backdrop-blur-md">
-        <div className="absolute top-0 right-1/4 w-80 h-80 rounded-full bg-cyan-500/5 blur-3xl pointer-events-none" />
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+      {/* Resume Skills Match Box */}
+      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-6 sm:p-8 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="w-4 h-4 text-cyan-400" />
-              <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono">Target Role Skill Recommendations</span>
-            </div>
-            <h3 className="text-xl font-bold text-white tracking-tight">Skills to Cover for {targetRole}</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">Skills for {targetRole}</h3>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">Resume skillset alignment evaluated against role requirements.</p>
           </div>
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950 border border-slate-800 text-xs font-mono">
-            <span className="text-slate-400">ATS Match Benchmark:</span>
-            <span className="text-emerald-400 font-bold">{skillGaps.atsScore}%</span>
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono self-start sm:self-auto">
+            <span className="text-slate-500 font-semibold">ATS Match Benchmark:</span>
+            <span className="text-emerald-600 font-black">{skillGaps.atsScore}%</span>
           </div>
         </div>
 
         {/* Skills Present in Your Resume */}
-        {skillGaps.matchedCore.length > 0 && (
-          <div className="p-5 rounded-2xl bg-emerald-950/30 border border-emerald-800/40 mb-4 shadow-inner">
-            <div className="flex items-center gap-2 mb-3 text-xs font-bold text-emerald-400">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        {skillGaps.matchedCore.length > 0 ? (
+          <div className="p-5 rounded-2xl bg-emerald-50/50 border border-emerald-200/80">
+            <div className="flex items-center gap-2 mb-3 text-xs font-bold text-emerald-800 font-sans">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
               <span>Skills Present in Your Resume ({skillGaps.matchedCore.length})</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {skillGaps.matchedCore.map((skill, i) => (
-                <span key={i} className="px-3 py-1 rounded-xl bg-emerald-950/60 border border-emerald-700/60 text-xs font-mono text-emerald-300 font-semibold shadow-2xs">
+                <span
+                  key={i}
+                  className="px-3.5 py-1.5 rounded-xl bg-white border border-emerald-200 text-xs font-semibold text-emerald-800 shadow-2xs font-sans"
+                >
                   ✓ {skill}
                 </span>
               ))}
             </div>
           </div>
+        ) : (
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 font-medium font-sans">
+            No specific core resume skills detected for this role.
+          </div>
         )}
 
-        {/* Recommended Skills to Cover */}
-        <div className="p-6 rounded-2xl bg-slate-950/80 border border-amber-800/50 shadow-inner">
-          <div className="flex items-center gap-2 mb-3.5 text-xs font-bold text-amber-400">
-            <Target className="w-4 h-4" />
-            <span>Recommended Skills to Cover for {targetRole} ({skillGaps.skillsToCover.length})</span>
+        {/* Missed Skills to Learn According to Resume / Skills to Cover */}
+        {skillGaps.skillsToCover && skillGaps.skillsToCover.length > 0 && (
+          <div className="p-5 rounded-2xl bg-amber-50/50 border border-amber-200/80">
+            <div className="flex items-center gap-2 mb-3 text-xs font-bold text-amber-800 font-sans">
+              <Target className="w-4 h-4 text-amber-600" />
+              <span>Missed Skills to Learn (According to Resume): ({skillGaps.skillsToCover.length})</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {skillGaps.skillsToCover.map((skill, i) => (
+                <span
+                  key={i}
+                  className="px-3.5 py-1.5 rounded-xl bg-white border border-amber-200 text-xs font-semibold text-amber-800 shadow-2xs font-sans"
+                >
+                  + {skill}
+                </span>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2.5">
-            {skillGaps.skillsToCover.map((skill, i) => (
-              <span key={i} className="px-3.5 py-1.5 rounded-xl bg-amber-950/50 border border-amber-700/60 text-xs font-mono text-amber-300 font-semibold shadow-2xs">
-                + {skill}
-              </span>
-            ))}
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Question-wise Breakdown Accordion (Picture 4) */}
+      {/* Question-wise Breakdown Accordion */}
       <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-6 sm:p-8 space-y-6">
         <div>
-          <h3 className="text-lg font-bold text-slate-900">Question-by-Question Deep Dive</h3>
-          <p className="text-xs text-slate-500 mt-0.5">Recorded answers, transcript analysis, and behavioral telemetry per stage.</p>
+          <h3 className="text-lg font-bold text-slate-900 font-sans">Question-by-Question Deep Dive</h3>
+          <p className="text-xs text-slate-500 mt-0.5 font-sans">Recorded answers, transcript analysis, and behavioral telemetry per stage.</p>
         </div>
 
         <div className="space-y-3">
           {questions.map((q, idx) => {
             const isExpanded = expandedQuestion === idx;
-            const hasAnswer = (q.transcript || '').trim().length > 10;
+            const isSkipped = q.isSkipped || (q.transcript || '').trim().length <= 10 || q.overallScore === 0;
 
             return (
               <div
@@ -404,24 +429,28 @@ export default function InterviewAnalysisSection({ sessionId: initialSessionId }
               >
                 <button
                   onClick={() => setExpandedQuestion(isExpanded ? -1 : idx)}
-                  className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 transition-colors gap-4"
+                  className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 transition-colors gap-4 cursor-pointer"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
                       Q{q.questionNumber || idx + 1}
                     </span>
                     <div className="min-w-0">
-                      <span className="text-[10px] font-bold text-cyan-600 uppercase tracking-wider block">{q.category || 'TECHNICAL'}</span>
-                      <p className="text-xs sm:text-sm font-semibold text-slate-800 truncate">{q.questionText}</p>
+                      <span className="text-[10px] font-bold text-cyan-600 uppercase tracking-wider block font-sans">{q.category || 'TECHNICAL'}</span>
+                      <p className="text-xs sm:text-sm font-semibold text-slate-800 truncate font-sans">{q.questionText}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-4 flex-shrink-0">
-                    <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded-lg ${
-                      q.overallScore > 0 ? 'bg-cyan-50 text-cyan-700 border border-cyan-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
-                    }`}>
-                      Score: {q.overallScore}%
-                    </span>
+                    {isSkipped ? (
+                      <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200">
+                        Answer Skipped
+                      </span>
+                    ) : (
+                      <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-cyan-50 text-cyan-700 border border-cyan-200">
+                        Score: {q.overallScore}%
+                      </span>
+                    )}
                     {isExpanded ? (
                       <ChevronUp className="w-4 h-4 text-slate-400" />
                     ) : (
@@ -432,38 +461,53 @@ export default function InterviewAnalysisSection({ sessionId: initialSessionId }
 
                 {isExpanded && (
                   <div className="p-5 bg-slate-50/70 border-t border-slate-200 space-y-4">
-                    {/* Transcript Box */}
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Answer Transcript</span>
-                      <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs font-mono text-slate-700 leading-relaxed italic">
-                        {hasAnswer ? `"${q.transcript}"` : <span className="text-rose-600 font-semibold not-italic">No verbal or typed answer was recorded for this question (Score: 0%).</span>}
+                    {isSkipped ? (
+                      <div className="p-4 rounded-xl bg-white border border-slate-200 text-center space-y-1">
+                        <p className="text-xs font-bold text-slate-700 font-sans">
+                          Answer Skipped
+                        </p>
+                        <p className="text-xs text-slate-500 font-sans">
+                          Candidate did not provide an answer for this question. No analysis generated.
+                        </p>
                       </div>
-                    </div>
+                    ) : (
+                      <>
+                        {/* Transcript Box */}
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-sans">Answer Transcript</span>
+                          <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs font-mono text-slate-700 leading-relaxed italic">
+                            "{q.transcript}"
+                          </div>
+                        </div>
 
-                    {/* Metric Pills */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div className="p-3 bg-white rounded-xl border border-slate-200 text-center">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Technical Score</span>
-                        <span className={`text-sm font-extrabold ${q.technicalScore > 0 ? 'text-slate-900' : 'text-rose-600'}`}>{q.technicalScore}%</span>
-                      </div>
-                      <div className="p-3 bg-white rounded-xl border border-slate-200 text-center">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Communication</span>
-                        <span className={`text-sm font-extrabold ${q.communicationScore > 0 ? 'text-slate-900' : 'text-rose-600'}`}>{q.communicationScore}%</span>
-                      </div>
-                      <div className="p-3 bg-white rounded-xl border border-slate-200 text-center">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Eye Contact</span>
-                        <span className="text-sm font-extrabold text-slate-900">{q.eyeContactScore}%</span>
-                      </div>
-                      <div className="p-3 bg-white rounded-xl border border-slate-200 text-center">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Confidence</span>
-                        <span className="text-sm font-extrabold text-slate-900">{q.confidenceScore}%</span>
-                      </div>
-                    </div>
+                        {/* Metric Pills */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <div className="p-3 bg-white rounded-xl border border-slate-200 text-center">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase block font-sans">Technical Score</span>
+                            <span className="text-sm font-extrabold text-slate-900 font-sans">{q.technicalScore}%</span>
+                          </div>
+                          <div className="p-3 bg-white rounded-xl border border-slate-200 text-center">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase block font-sans">Communication</span>
+                            <span className="text-sm font-extrabold text-slate-900 font-sans">{q.communicationScore}%</span>
+                          </div>
+                          <div className="p-3 bg-white rounded-xl border border-slate-200 text-center">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase block font-sans">Eye Contact</span>
+                            <span className="text-sm font-extrabold text-slate-900 font-sans">{q.eyeContactScore}%</span>
+                          </div>
+                          <div className="p-3 bg-white rounded-xl border border-slate-200 text-center">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase block font-sans">Confidence</span>
+                            <span className="text-sm font-extrabold text-slate-900 font-sans">{q.confidenceScore}%</span>
+                          </div>
+                        </div>
 
-                    {/* AI Feedback note */}
-                    <div className="p-3 rounded-xl bg-cyan-50/60 border border-cyan-200 text-xs text-cyan-900">
-                      <strong>AI Evaluation: </strong> {q.aiFeedback}
-                    </div>
+                        {/* AI Feedback note */}
+                        {q.aiFeedback && (
+                          <div className="p-3 rounded-xl bg-cyan-50/60 border border-cyan-200 text-xs text-cyan-900 font-sans">
+                            <strong>AI Evaluation: </strong> {q.aiFeedback}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
               </div>

@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 import { databaseUrl } from '../config/urls.js';
 
-const connectionString = databaseUrl();
+const connectionString = (typeof databaseUrl === 'function' ? databaseUrl() : null) || process.env.DATABASE_URL || process.env.DATABASE_PUBLIC_URL;
 if (!connectionString) {
   console.warn('⚠️ [Prisma] No DATABASE_URL / DATABASE_PUBLIC_URL set.');
 }

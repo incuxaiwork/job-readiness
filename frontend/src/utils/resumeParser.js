@@ -159,10 +159,29 @@ export const analyzeRoleSkillGaps = (candidateSkills = [], targetRole = 'Softwar
  * Parse raw resume text and extract candidate info, detected skills, projects, and ATS score.
  */
 export const parseResumeText = (rawText, targetRole = 'Software Engineer') => {
-  const text = rawText || '';
+  const text = (rawText || '').trim();
+  if (!text) {
+    return {
+      candidateName: 'Candidate',
+      atsScore: 0,
+      skills: [],
+      featuredProject: '',
+      targetRole,
+      skillGaps: {
+        matchedCore: [],
+        missingCore: [],
+        skillsToCover: [],
+        recommendedAdvanced: [],
+        atsScore: 0,
+        matchPercentage: 0
+      },
+      wordCount: 0
+    };
+  }
+
   const roleDefaults = getRoleDefaults(targetRole);
 
-  // 1. Extract Detected Skills from text
+  // 1. Extract Detected Skills present on the resume text
   const detectedSkills = [];
   KNOWN_SKILLS.forEach((skill) => {
     const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -173,15 +192,6 @@ export const parseResumeText = (rawText, targetRole = 'Software Engineer') => {
       }
     }
   });
-
-  // Supplement with role-aligned skills if detected count is minimal
-  if (detectedSkills.length === 0) {
-    detectedSkills.push(...roleDefaults.skills);
-  } else if (detectedSkills.length < 3) {
-    roleDefaults.skills.forEach(s => {
-      if (!detectedSkills.includes(s)) detectedSkills.push(s);
-    });
-  }
 
   // 2. Extract Candidate Name (First non-empty line or default)
   const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
@@ -295,4 +305,35 @@ export const generateResumeQuestions = (resumeData = {}, targetRole = 'Software 
       questionText: 'How did you overcome those challenges, and what approach did you take to solve the situation?'
     }
   ];
+};
+
+/**
+ * Extract plain text from PDF ArrayBuffer via client-side pdfjs-dist.
+ */
+export const extractTextFromPdf = async (arrayBuffer) => {
+  try {
+    const pdfjsLib = await import('pdfjs-dist/build/pdf.js');
+    if (pdfjsLib.GlobalWorkerOptions && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+    }
+    const loadingTask = pdfjsLib.getDocument({
+      data: new Uint8Array(arrayBuffer),
+      useSystemFonts: true,
+      disableFontFace: true
+    });
+    const pdf = await loadingTask.promise;
+    let fullText = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map((item) => item.str).join(' ');
+      fullText += pageText + '\n';
+    }
+    if (fullText.trim().length > 10) {
+      return fullText;
+    }
+  } catch (err) {
+    console.warn('PDF extraction notice:', err);
+  }
+  return '';
 };

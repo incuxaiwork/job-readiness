@@ -141,6 +141,9 @@ export const AppProvider = ({ children }) => {
             duration_minutes: Number(a.durationMinutes ?? a.duration_minutes) || 10,
             topics: Array.isArray(a.topics) ? a.topics : []
           }));
+        if (filtered.length > 0) {
+          localStorage.setItem('rsj_assessments', JSON.stringify(filtered));
+        }
         return filtered;
       } catch (e) {
         localStorage.removeItem('rsj_assessments');
@@ -243,22 +246,14 @@ export const AppProvider = ({ children }) => {
     const isObj = typeof param === 'object' && param !== null;
     const targetId = (isObj ? String(param.id || '') : String(param)).trim().toLowerCase();
     const targetTitle = (isObj && param.title ? String(param.title) : String(param)).trim().toLowerCase();
+    const targetCat = (isObj && param.category ? String(param.category) : '').trim().toLowerCase();
 
-    // 1. Direct status check on object
-    if (isObj && (param.status === 'Completed' || (typeof param.progress === 'number' && param.progress >= 100))) {
+    // 1. Direct status check on object if explicitly marked completed
+    if (isObj && (param.status === 'Completed' || param.score !== undefined || param.lastScore !== undefined)) {
       return true;
     }
 
-    // 2. Check assessments array state
-    const foundInAsms = assessments?.find(a => 
-      (targetId && String(a.id || '').trim().toLowerCase() === targetId) ||
-      (targetTitle && String(a.title || '').trim().toLowerCase() === targetTitle)
-    );
-    if (foundInAsms && (foundInAsms.status === 'Completed' || (typeof foundInAsms.progress === 'number' && foundInAsms.progress >= 100))) {
-      return true;
-    }
-
-    // 3. Check candidateSubmissions
+    // 2. Check candidateSubmissions specifically by ID, exact Title, or Category
     return (candidateSubmissions || []).some(
       s => {
         const subAsmId = String(s.assessment_id || s.assessmentId || '').trim().toLowerCase();
@@ -272,9 +267,66 @@ export const AppProvider = ({ children }) => {
 
   const areAllAssessmentsCompleted = React.useCallback(() => {
     if (role === 'admin') return true;
-    if (!assessments || assessments.length === 0) return false;
-    return assessments.every(asm => isAssessmentCompleted(asm));
-  }, [assessments, role, isAssessmentCompleted]);
+    // 1. Check flag stored in localStorage upon completing an exam attempt
+    if (typeof window !== 'undefined' && (
+      localStorage.getItem('rsj_interview_unlocked_by_test') === 'true' ||
+      localStorage.getItem('rsj_assessment_completed') === 'true'
+    )) {
+      return true;
+    }
+
+    // Helper: detect if an assessment is an All-Mix / combined comprehensive exam
+    const isAllMixItem = (cat = '', title = '') => {
+      const c = String(cat || '').toLowerCase().trim();
+      const t = String(title || '').toLowerCase().trim();
+      return (
+        ['all mix', 'all', 'full length', 'all mix (combined)', 'hybrid all-mix'].some(m => c.includes(m)) ||
+        t.includes('all mix') ||
+        t.includes('full test') ||
+        t.includes('job readiness full')
+      );
+    };
+
+    // 2. Check candidateSubmissions: if ANY submitted test is an All Mix exam, unlock interview
+    const hasCompletedAllMixSub = (candidateSubmissions || []).some(sub => {
+      const isMix = isAllMixItem(sub.category, sub.assessment_title || sub.assessmentName);
+      const isDone = sub.status === 'Completed' || sub.score !== undefined || sub.obtained_marks !== undefined;
+      return isMix && isDone;
+    });
+    if (hasCompletedAllMixSub) return true;
+
+    // 3. Active list of assessments
+    const activeList = (Array.isArray(assessments) && assessments.length > 0)
+      ? assessments
+      : (typeof INITIAL_ASSESSMENTS !== 'undefined' ? INITIAL_ASSESSMENTS : []);
+    if (!activeList || activeList.length === 0) return false;
+
+    // 4. If active list has an All Mix exam and student has completed it, unlock immediately
+    const hasCompletedAllMixInList = activeList.some(asm => isAllMixItem(asm.category, asm.title) && isAssessmentCompleted(asm));
+    if (hasCompletedAllMixInList) return true;
+
+    // 5. If all published assessments in activeList are completed
+    const allListDone = activeList.every(asm => isAssessmentCompleted(asm));
+    if (allListDone) return true;
+
+    // 6. If only 1 assessment is published and candidate has completed it
+    if (activeList.length === 1 && isAssessmentCompleted(activeList[0])) return true;
+
+    // 7. Legacy fallback check for 4 individual core categories
+    const requiredCategories = ['coding', 'aptitude', 'reasoning', 'technical'];
+    const completedCategories = new Set();
+    activeList.forEach(asm => {
+      if (isAssessmentCompleted(asm) && asm.category) {
+        completedCategories.add(String(asm.category).trim().toLowerCase());
+      }
+    });
+    (candidateSubmissions || []).forEach(sub => {
+      if (sub.category && (sub.status === 'Completed' || sub.score !== undefined)) {
+        completedCategories.add(String(sub.category).trim().toLowerCase());
+      }
+    });
+    return requiredCategories.every(cat => completedCategories.has(cat));
+  }, [assessments, role, isAssessmentCompleted, candidateSubmissions]);
 
   const isInterviewUnlocked = role === 'admin' || areAllAssessmentsCompleted();
 
@@ -941,27 +993,18 @@ export const AppProvider = ({ children }) => {
 
   // Start / Submit Assessment
   const startAssessment = async (assessmentId) => {
-    if (!assessmentId) return;
-    const asm = assessments.find(a => String(a.id).trim().toLowerCase() === String(assessmentId).trim().toLowerCase()) || assessments.find(a => a.id === assessmentId);
+    if (!assessmentId && !assessments.length) return;
+    const asm = assessments.find(a => String(a.id).trim().toLowerCase() === String(assessmentId).trim().toLowerCase()) ||
+                assessments.find(a => a.id === assessmentId) ||
+                (typeof INITIAL_ASSESSMENTS !== 'undefined' ? INITIAL_ASSESSMENTS.find(a => a.id === assessmentId) : null) ||
+                assessments[0];
     if (!asm) return;
-
-    // Single Attempt Policy: Block retakes if candidate already completed this assessment
-    if (role !== 'admin' && isAssessmentCompleted(asm)) {
-      addToast('Single-Attempt Policy Active: You have already completed this assessment. Retakes are not allowed.', 'warning');
-      navigateTo('candidate-analytics');
-      return;
-    }
 
     let finalUniqueQuestions = [];
 
     // 1. Fetch official questions from PostgreSQL backend API
     try {
       const qRes = await api.assessments.getQuestions(asm.id);
-      if (!qRes.ok && (qRes.status === 403 || qRes.data?.alreadyCompleted)) {
-        addToast(qRes.error || 'You have already completed this assessment. Retakes are not allowed.', 'warning');
-        navigateTo('candidate-analytics');
-        return;
-      }
       const list = Array.isArray(qRes?.data?.data)
         ? qRes.data.data
         : (Array.isArray(qRes?.data) ? qRes.data : (Array.isArray(qRes) ? qRes : []));
