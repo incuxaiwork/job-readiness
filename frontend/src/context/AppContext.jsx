@@ -1,0 +1,2011 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { api } from '../services/api';
+import {
+  INITIAL_CANDIDATE,
+  INITIAL_ASSESSMENTS,
+  INITIAL_QUESTION_BANK,
+  INITIAL_CANDIDATES_LIST,
+  INITIAL_ADMIN_KPIS,
+  INITIAL_RECOMMENDATIONS
+} from '../data/mockData';
+import { isCodingQuestion } from '../utils/questionUtils';
+
+const AppContext = createContext();
+
+export const AppProvider = ({ children }) => {
+  // react-router navigate ref — injected by RouterBridge in App.jsx
+  const routerNavigateRef = React.useRef(null);
+  const setRouterNavigate = (fn) => { routerNavigateRef.current = fn; };
+  // Authentication & Role: 'candidate' | 'admin' | 'guest'
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('rsj_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const [adminUser, setAdminUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('rsj_admin_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const [role, setRole] = useState(() => {
+    try {
+      const savedRole = localStorage.getItem('rsj_role');
+      const user = localStorage.getItem('rsj_user');
+      const admin = localStorage.getItem('rsj_admin_user');
+      if (admin) return 'admin';
+      if (user) return 'candidate';
+      return savedRole || 'guest';
+    } catch (e) {
+      return 'guest';
+    }
+  });
+
+  // Persist & restore view state across page reloads based on authentication role & URL paths (/login, /admin, /)
+  const [currentView, setCurrentView] = useState(() => {
+    const savedView = localStorage.getItem('rsj_current_view');
+    const user = localStorage.getItem('rsj_user');
+    const admin = localStorage.getItem('rsj_admin_user');
+    const savedRole = localStorage.getItem('rsj_role');
+    const activeRole = admin ? 'admin' : (user ? 'candidate' : (savedRole || 'guest'));
+    const path = typeof window !== 'undefined' ? window.location.pathname : '/';
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const viewParam = searchParams ? searchParams.get('view') : null;
+
+    if (viewParam === 'ai-mock-interview' || viewParam === 'interview' || path === '/interview' || path === '/ai-mock-interview') {
+      return 'ai-mock-interview';
+    }
+
+    // Root URL or Landing Path always loads JobReadinessHero landing page
+    if (path === '/' || path === '/hero' || path === '/landing') {
+      if (savedView === 'ai-mock-interview') return 'ai-mock-interview';
+      return 'hero';
+    }
+    if (activeRole === 'admin') {
+      if (savedView && savedView.startsWith('admin-')) {
+        return savedView;
+      }
+      return 'admin-candidates';
+    }
+
+    // 2. Authenticated Candidate Session
+    if (activeRole === 'candidate') {
+      if (savedView === 'results') return 'candidate-analytics';
+      if (savedView && ['assessments', 'take-assessment', 'candidate-analytics', 'dashboard', 'ai-mock-interview'].includes(savedView)) {
+        return savedView;
+      }
+      return 'dashboard';
+    }
+
+    // 3. Guest / Unauthenticated Session
+    if (path === '/login') return 'login';
+    if (path === '/admin' || path === '/admin-login') return 'admin';
+    if (path === '/signup') return 'signup';
+    if (savedView && ['login', 'admin', 'signup', 'hero', 'ai-mock-interview'].includes(savedView)) {
+      return savedView;
+    }
+    return 'hero';
+  });
+
+  // Sync browser back/forward buttons with URL paths
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path === '/' || path === '/hero' || path === '/landing') setCurrentView('hero');
+      else if (path === '/interview' || path === '/ai-mock-interview') setCurrentView('ai-mock-interview');
+      else if (path === '/login') setCurrentView('login');
+      else if (path === '/admin' || path === '/admin-login') setCurrentView('admin');
+      else if (path === '/signup') setCurrentView('signup');
+      else if (path === '/dashboard') setCurrentView('dashboard');
+      else if (path === '/assessments') setCurrentView('assessments');
+      else if (path === '/candidate-analytics' || path === '/results') setCurrentView('candidate-analytics');
+      else if (path === '/admin/interviews') setCurrentView('admin-interviews');
+    else if (path.startsWith('/admin-')) setCurrentView(path.substring(1));
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // State entities - Purge legacy mock assessment IDs from cached localStorage
+  const DUMMY_ASM_IDS = [
+    'asm-all-2026',
+    'asm-res-1', 'asm-full-1', 'asm-001', 'asm-002', 'asm-003', 'asm-004'
+  ];
+
+  const [assessments, setAssessments] = useState(() => {
+    const saved = localStorage.getItem('rsj_assessments');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const seen = new Set();
+        const filtered = (Array.isArray(parsed) ? parsed : [])
+          .filter(a => {
+            if (!a?.id || DUMMY_ASM_IDS.includes(a.id) || a.id.startsWith('asm-demo-')) return false;
+            const key = (a.title || a.id).trim().toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          })
+          .map(a => ({
+            ...a,
+            totalQuestions: Number(a.totalQuestions ?? a.total_questions) || (a.category === 'Coding' ? 4 : 10),
+            total_questions: Number(a.totalQuestions ?? a.total_questions) || (a.category === 'Coding' ? 4 : 10),
+            durationMinutes: Number(a.durationMinutes ?? a.duration_minutes) || 10,
+            duration_minutes: Number(a.durationMinutes ?? a.duration_minutes) || 10,
+            topics: Array.isArray(a.topics) ? a.topics : []
+          }));
+        if (filtered.length > 0) {
+          localStorage.setItem('rsj_assessments', JSON.stringify(filtered));
+        }
+        return filtered;
+      } catch (e) {
+        localStorage.removeItem('rsj_assessments');
+      }
+    }
+    return [];
+  });
+
+  const DUMMY_Q_IDS = ['q-101', 'q-102', 'q-103', 'q-104', 'q-105', 'q-106', 'q-107', 'q-108', 'q-109', 'q-110'];
+
+  const [questionBank, setQuestionBank] = useState(() => {
+    const saved = localStorage.getItem('rsj_question_bank');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const filtered = (Array.isArray(parsed) ? parsed : []).filter(q => q?.id && !DUMMY_Q_IDS.includes(q.id));
+        return filtered;
+      } catch (e) {
+        localStorage.removeItem('rsj_question_bank');
+      }
+    }
+    return [];
+  });
+
+  const DUMMY_CAND_IDS = ['cand-101', 'cand-102', 'cand-103', 'cand-104', 'cand-105', 'cand-001', 'cand-002'];
+
+  const [candidatesList, setCandidatesList] = useState(() => {
+    const saved = localStorage.getItem('rsj_candidates_list');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const list = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.data) ? parsed.data : []);
+        const filtered = list.filter(c => !DUMMY_CAND_IDS.includes(c?.id));
+        localStorage.setItem('rsj_candidates_list', JSON.stringify(filtered));
+        return filtered;
+      } catch (e) {
+        localStorage.removeItem('rsj_candidates_list');
+      }
+    }
+    return [];
+  });
+
+  const [recommendations, setRecommendations] = useState(INITIAL_RECOMMENDATIONS);
+
+  // Active Assessment Session & Media Hardware
+  const [activeAssessment, setActiveAssessment] = useState(null);
+  const [mediaStream, setMediaStream] = useState(null);
+  const [assessmentAnswers, setAssessmentAnswers] = useState({});
+  const [markedForReview, setMarkedForReview] = useState([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [timeRemainingSeconds, setTimeRemainingSeconds] = useState(18 * 60 + 42);
+
+  const stopMediaStream = () => {
+    setMediaStream(prev => {
+      if (prev) {
+        prev.getTracks().forEach(track => track.stop());
+      }
+      return null;
+    });
+  };
+  const [latestResult, setLatestResult] = useState(() => {
+    try {
+      const saved = localStorage.getItem('rsj_latest_result');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Only return if it's a real verified submission, not legacy hardcoded mock
+        if (parsed && parsed.assessmentName !== 'Technical Assessment' || parsed?.assessmentId) {
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return null;
+  });
+
+  // Global Toast Notifications
+  const [toasts, setToasts] = useState([]);
+
+  const addToast = React.useCallback((message, type = 'success') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 4000);
+  }, []);
+
+  const removeToast = React.useCallback((id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  const [candidateSubmissions, setCandidateSubmissions] = useState(() => {
+    try {
+      const saved = localStorage.getItem('rsj_candidate_submissions');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
+  });
+
+  const isAssessmentCompleted = React.useCallback((param) => {
+    if (!param) return false;
+    const isObj = typeof param === 'object' && param !== null;
+    const targetId = (isObj ? String(param.id || '') : String(param)).trim().toLowerCase();
+    const targetTitle = (isObj && param.title ? String(param.title) : String(param)).trim().toLowerCase();
+    const targetCat = (isObj && param.category ? String(param.category) : '').trim().toLowerCase();
+
+    // 1. Direct status check on object if explicitly marked completed
+    if (isObj && (param.status === 'Completed' || param.score !== undefined || param.lastScore !== undefined)) {
+      return true;
+    }
+
+    // 2. Check candidateSubmissions specifically by ID, exact Title, or Category
+    return (candidateSubmissions || []).some(
+      s => {
+        const subAsmId = String(s.assessment_id || s.assessmentId || '').trim().toLowerCase();
+        if (targetId && subAsmId && subAsmId === targetId) return true;
+        const subTitle = String(s.assessment_title || s.assessmentName || '').trim().toLowerCase();
+        if (targetTitle && subTitle && subTitle === targetTitle) return true;
+        return false;
+      }
+    );
+  }, [assessments, candidateSubmissions]);
+
+  const areAllAssessmentsCompleted = React.useCallback(() => {
+    if (role === 'admin') return true;
+    // 1. Check flag stored in localStorage upon completing an exam attempt
+    if (typeof window !== 'undefined' && (
+      localStorage.getItem('rsj_interview_unlocked_by_test') === 'true' ||
+      localStorage.getItem('rsj_assessment_completed') === 'true'
+    )) {
+      return true;
+    }
+
+    // Helper: detect if an assessment is an All-Mix / combined comprehensive exam
+    const isAllMixItem = (cat = '', title = '') => {
+      const c = String(cat || '').toLowerCase().trim();
+      const t = String(title || '').toLowerCase().trim();
+      return (
+        ['all mix', 'all', 'full length', 'all mix (combined)', 'hybrid all-mix'].some(m => c.includes(m)) ||
+        t.includes('all mix') ||
+        t.includes('full test') ||
+        t.includes('job readiness full')
+      );
+    };
+
+    // 2. Check candidateSubmissions: if ANY submitted test is an All Mix exam, unlock interview
+    const hasCompletedAllMixSub = (candidateSubmissions || []).some(sub => {
+      const isMix = isAllMixItem(sub.category, sub.assessment_title || sub.assessmentName);
+      const isDone = sub.status === 'Completed' || sub.score !== undefined || sub.obtained_marks !== undefined;
+      return isMix && isDone;
+    });
+    if (hasCompletedAllMixSub) return true;
+
+    // 3. Active list of assessments
+    const activeList = (Array.isArray(assessments) && assessments.length > 0)
+      ? assessments
+      : (typeof INITIAL_ASSESSMENTS !== 'undefined' ? INITIAL_ASSESSMENTS : []);
+    if (!activeList || activeList.length === 0) return false;
+
+    // 4. If active list has an All Mix exam and student has completed it, unlock immediately
+    const hasCompletedAllMixInList = activeList.some(asm => isAllMixItem(asm.category, asm.title) && isAssessmentCompleted(asm));
+    if (hasCompletedAllMixInList) return true;
+
+    // 5. If all published assessments in activeList are completed
+    const allListDone = activeList.every(asm => isAssessmentCompleted(asm));
+    if (allListDone) return true;
+
+    // 6. If only 1 assessment is published and candidate has completed it
+    if (activeList.length === 1 && isAssessmentCompleted(activeList[0])) return true;
+
+    // 7. Legacy fallback check for 4 individual core categories
+    const requiredCategories = ['coding', 'aptitude', 'reasoning', 'technical'];
+    const completedCategories = new Set();
+    activeList.forEach(asm => {
+      if (isAssessmentCompleted(asm) && asm.category) {
+        completedCategories.add(String(asm.category).trim().toLowerCase());
+      }
+    });
+    (candidateSubmissions || []).forEach(sub => {
+      if (sub.category && (sub.status === 'Completed' || sub.score !== undefined)) {
+        completedCategories.add(String(sub.category).trim().toLowerCase());
+      }
+    });
+    return requiredCategories.every(cat => completedCategories.has(cat));
+  }, [assessments, role, isAssessmentCompleted, candidateSubmissions]);
+
+  const isInterviewUnlocked = role === 'admin' || areAllAssessmentsCompleted();
+
+  // Sync to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('rsj_candidate_submissions', JSON.stringify(candidateSubmissions));
+    } catch (e) {}
+  }, [candidateSubmissions]);
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('rsj_user', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('rsj_user');
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (adminUser) {
+      localStorage.setItem('rsj_admin_user', JSON.stringify(adminUser));
+    } else {
+      localStorage.removeItem('rsj_admin_user');
+    }
+  }, [adminUser]);
+
+  useEffect(() => {
+    localStorage.setItem('rsj_role', role);
+  }, [role]);
+
+  useEffect(() => {
+    if (currentView) {
+      localStorage.setItem('rsj_current_view', currentView);
+    }
+  }, [currentView]);
+
+  // Validate stored JWT session on startup
+  useEffect(() => {
+    const validateSession = async () => {
+      const token = localStorage.getItem('rsj_token');
+      if (!token) return;
+      try {
+        const res = await api.auth.me();
+        if (res.ok && res.data) {
+          const candidateObj = res.data.candidate || (res.data.role === 'candidate' ? res.data.user : null);
+          if (res.data.role === 'candidate' && candidateObj) {
+            setCurrentUser(candidateObj);
+            setRole('candidate');
+            // Synchronize candidate submissions from DB
+            try {
+              const subRes = await api.submissions.my();
+              const subList = Array.isArray(subRes?.data?.data)
+                ? subRes.data.data
+                : (Array.isArray(subRes?.data) ? subRes.data : []);
+              if (subRes.ok && Array.isArray(subList)) {
+                setCandidateSubmissions(subList);
+                try { localStorage.setItem('rsj_candidate_submissions', JSON.stringify(subList)); } catch(e){}
+                if (subList.length > 0) {
+                  const latest = subList[0];
+                  const mappedResult = {
+                    score: Number(latest.score ?? 0),
+                    totalMarks: Number(latest.total_marks ?? 100),
+                    obtainedMarks: Number(latest.obtained_marks ?? latest.score ?? 0),
+                    accuracy: Number(latest.accuracy ?? latest.score ?? 0),
+                    correctCount: Number(latest.correct_count ?? 0),
+                    incorrectCount: Number(latest.incorrect_count ?? 0),
+                    unansweredCount: Number(latest.unanswered_count ?? 0),
+                    timeTaken: latest.time_taken || '28 min',
+                    completedAt: new Date(latest.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    assessmentName: latest.assessment_title || 'Technical Assessment',
+                    assessmentId: latest.assessment_id,
+                    categoryScores: typeof latest.category_scores === 'string' ? JSON.parse(latest.category_scores) : (latest.category_scores || {}),
+                    topicBreakdown: typeof latest.topic_breakdown === 'string' ? JSON.parse(latest.topic_breakdown) : (latest.topic_breakdown || []),
+                  };
+                  setLatestResult(mappedResult);
+                  try { localStorage.setItem('rsj_latest_result', JSON.stringify(mappedResult)); } catch(e){}
+                } else {
+                  setLatestResult(null);
+                  try { localStorage.removeItem('rsj_latest_result'); } catch(e){}
+                }
+              }
+            } catch (subErr) {
+              console.warn('Could not sync latest candidate submission:', subErr.message);
+            }
+          } else if (res.data.role === 'admin' && (res.data.user || res.data.admin)) {
+            setAdminUser(res.data.user || res.data.admin);
+            setRole('admin');
+          }
+        } else {
+          // Token is expired or invalid
+          api.clearToken();
+          setCurrentUser(null);
+          setAdminUser(null);
+          setRole('guest');
+        }
+      } catch (err) {
+        console.warn('Session auto-validation failed:', err.message);
+      }
+    };
+    validateSession();
+  }, []);
+
+  // Continuously ensure candidate submissions are synced with PostgreSQL database
+  useEffect(() => {
+    let isMounted = true;
+    const syncSubmissions = async () => {
+      const token = localStorage.getItem('rsj_token');
+      if (token && currentUser && role === 'candidate') {
+        try {
+          const subRes = await api.submissions.my();
+          const subList = Array.isArray(subRes?.data?.data)
+            ? subRes.data.data
+            : (Array.isArray(subRes?.data) ? subRes.data : []);
+          if (isMounted && subRes.ok && Array.isArray(subList)) {
+            setCandidateSubmissions(subList);
+            try { localStorage.setItem('rsj_candidate_submissions', JSON.stringify(subList)); } catch(e){}
+            if (subList.length > 0) {
+              const latest = subList[0];
+              const mappedResult = {
+                score: Number(latest.score ?? 0),
+                totalMarks: Number(latest.total_marks ?? 100),
+                obtainedMarks: Number(latest.obtained_marks ?? latest.score ?? 0),
+                accuracy: Number(latest.accuracy ?? latest.score ?? 0),
+                correctCount: Number(latest.correct_count ?? 0),
+                incorrectCount: Number(latest.incorrect_count ?? 0),
+                unansweredCount: Number(latest.unanswered_count ?? 0),
+                timeTaken: latest.time_taken || '28 min',
+                completedAt: new Date(latest.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                assessmentName: latest.assessment_title || 'Technical Assessment',
+                assessmentId: latest.assessment_id,
+                categoryScores: typeof latest.category_scores === 'string' ? JSON.parse(latest.category_scores) : (latest.category_scores || {}),
+                topicBreakdown: typeof latest.topic_breakdown === 'string' ? JSON.parse(latest.topic_breakdown) : (latest.topic_breakdown || []),
+              };
+              setLatestResult(mappedResult);
+              try { localStorage.setItem('rsj_latest_result', JSON.stringify(mappedResult)); } catch(e){}
+            } else {
+              setLatestResult(null);
+              try { localStorage.removeItem('rsj_latest_result'); } catch(e){}
+            }
+          }
+        } catch (e) {}
+      }
+    };
+    syncSubmissions();
+    return () => { isMounted = false; };
+  }, [currentUser?.id, currentUser?.email, role]);
+
+  useEffect(() => {
+    localStorage.setItem('rsj_assessments', JSON.stringify(assessments));
+  }, [assessments]);
+
+  // Sync assessments from backend API
+  const fetchAssessments = React.useCallback(async () => {
+    try {
+      const res = await api.assessments.getAll();
+      const rawList = Array.isArray(res?.data?.data)
+        ? res.data.data
+        : (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []));
+
+      if (res.ok && Array.isArray(rawList)) {
+        const seen = new Set();
+        const unique = [];
+        for (const rawAsm of rawList) {
+          if (!rawAsm?.id || rawAsm.id.startsWith('asm-demo-') || DUMMY_ASM_IDS.includes(rawAsm.id)) continue;
+          const asmDuration = Number(rawAsm.duration_minutes ?? rawAsm.durationMinutes) || (rawAsm.category === 'Coding' ? 60 : 30);
+          const asmQuestions = Number(rawAsm.total_questions ?? rawAsm.totalQuestions) || (rawAsm.category === 'Coding' ? 3 : 10);
+          const asmPassing = Number(rawAsm.passing_score ?? rawAsm.passingScore) || 60;
+          const asmTotalMarks = Number(rawAsm.total_marks ?? rawAsm.totalMarks) || 100;
+          const asmSelectedIds = Array.isArray(rawAsm.selected_question_ids) 
+            ? rawAsm.selected_question_ids 
+            : (Array.isArray(rawAsm.selectedQuestionIds) ? rawAsm.selectedQuestionIds : []);
+
+          const asm = {
+            ...rawAsm,
+            id: rawAsm.id,
+            title: rawAsm.title,
+            category: rawAsm.category || 'Technical',
+            description: rawAsm.description || '',
+            difficulty: rawAsm.difficulty || 'Medium',
+            status: rawAsm.status || 'Available',
+            totalQuestions: asmQuestions,
+            total_questions: asmQuestions,
+            durationMinutes: asmDuration,
+            duration_minutes: asmDuration,
+            passingScore: asmPassing,
+            passing_score: asmPassing,
+            totalMarks: asmTotalMarks,
+            total_marks: asmTotalMarks,
+            selectedQuestionIds: asmSelectedIds,
+            selected_question_ids: asmSelectedIds,
+            topics: Array.isArray(rawAsm.topics) ? rawAsm.topics : []
+          };
+          const key = String(asm.id).trim().toLowerCase();
+          if (!seen.has(key)) {
+            seen.add(key);
+            unique.push(asm);
+          }
+        }
+        setAssessments(unique);
+        try {
+          localStorage.setItem('rsj_assessments', JSON.stringify(unique));
+        } catch (e) {}
+      }
+    } catch (err) {
+      console.warn('Backend assessments sync warning:', err.message);
+    }
+  }, []);
+
+  // Sync questions from backend API
+  const fetchQuestions = React.useCallback(async () => {
+    try {
+      const res = await api.questions.getAll();
+      const rawList = Array.isArray(res?.data?.data)
+        ? res.data.data
+        : (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []));
+
+      if (res.ok && Array.isArray(rawList)) {
+        const mapped = rawList
+          .filter(q => q && q.id && !DUMMY_Q_IDS.includes(q.id))
+          .map(q => ({
+            ...q,
+            id: q.id,
+            category: q.category,
+            topic: q.topic,
+            difficulty: q.difficulty,
+            type: q.type || 'Single Choice',
+            question: q.question,
+            codeSnippet: q.code_snippet || q.codeSnippet,
+            code_snippet: q.code_snippet || q.codeSnippet,
+            language: q.language,
+            options: typeof q.options === 'string' ? JSON.parse(q.options) : (q.options || []),
+            test_cases: typeof q.test_cases === 'string' ? JSON.parse(q.test_cases) : (q.testCases || []),
+            testCases: typeof q.test_cases === 'string' ? JSON.parse(q.test_cases) : (q.testCases || []),
+            starter_templates: typeof q.starter_templates === 'string' ? JSON.parse(q.starter_templates) : (q.starterTemplates || null),
+            starterTemplates: typeof q.starter_templates === 'string' ? JSON.parse(q.starter_templates) : (q.starterTemplates || null),
+            constraints: q.constraints,
+            correctAnswer: q.correct_answer || q.correctAnswer,
+            correct_answer: q.correct_answer || q.correctAnswer,
+            explanation: q.explanation,
+            marks: Number(q.marks) > 0 ? Number(q.marks) : 1,
+            timeLimitSec: Number(q.time_limit_sec || q.timeLimitSec) || 60,
+            tags: q.tags || []
+          }));
+        setQuestionBank(mapped);
+        try {
+          localStorage.setItem('rsj_question_bank', JSON.stringify(mapped));
+        } catch (e) {}
+      }
+    } catch (err) {
+      console.warn('Backend questions sync warning:', err.message);
+    }
+  }, []);
+
+  // Sync candidates list from backend API
+  const fetchCandidates = React.useCallback(async () => {
+    try {
+      const res = await api.candidates.getAll();
+      const rawList = Array.isArray(res?.data?.data)
+        ? res.data.data
+        : (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []));
+
+      if (res.ok && Array.isArray(rawList)) {
+        const mapped = rawList
+          .filter(c => c && c.id && !DUMMY_CAND_IDS.includes(c.id))
+          .map(c => ({
+            ...c,
+            id: c.id,
+            name: c.name || c.fullName || 'Candidate',
+            fullName: c.name || c.fullName || 'Candidate',
+            email: c.email,
+            mobile: c.mobile || c.phoneNo || c.phone || '',
+            phoneNo: c.mobile || c.phoneNo || c.phone || '',
+            college: c.college || c.collegeName || '',
+            collegeName: c.college || c.collegeName || '',
+            degree: c.degree || 'B.Tech',
+            branch: c.branch || 'CSE',
+            specialization: c.specialization || 'General',
+            country: c.country || 'India',
+            state: c.state || '',
+            city: c.city || '',
+            graduationYear: Number(c.graduation_year || c.graduationYear || 2026),
+            graduation_year: Number(c.graduation_year || c.graduationYear || 2026),
+            experienceLevel: c.experience_level || c.experienceLevel || 'Fresher',
+            tenthSchool: c.tenth_school || c.tenthSchool,
+            tenthMarks: c.tenth_marks != null ? Number(c.tenth_marks) : (c.tenthMarks != null ? Number(c.tenthMarks) : null),
+            twelfthCollege: c.twelfth_college || c.twelfthCollege,
+            twelfthDiplomaMarks: c.twelfth_diploma_marks != null ? Number(c.twelfth_diploma_marks) : (c.twelfthDiplomaMarks != null ? Number(c.twelfthDiplomaMarks) : null),
+            graduationPercentage: c.graduation_percentage != null ? Number(c.graduation_percentage) : (c.graduationPercentage != null ? Number(c.graduationPercentage) : null),
+            cgpa: c.cgpa != null ? Number(c.cgpa) : (c.graduation_percentage != null ? Number(c.graduation_percentage) : null),
+            backlogs: Number(c.backlogs ?? 0),
+            overallScore: Number(c.overall_score ?? c.job_readiness_score ?? c.overallScore ?? 0),
+            jobReadinessScore: Number(c.overall_score ?? c.job_readiness_score ?? c.overallScore ?? 0),
+            aptitudeScore: Number(c.aptitude_score ?? c.aptitudeScore ?? 0),
+            reasoningScore: Number(c.reasoning_score ?? c.reasoningScore ?? 0),
+            technicalScore: Number(c.technical_score ?? c.technicalScore ?? 0),
+            verbalScore: Number(c.verbal_score ?? c.verbalScore ?? 0),
+            codingScore: Number(c.coding_score ?? c.codingScore ?? 0),
+            assessmentsCompleted: Number(c.assessments_completed ?? c.assessmentsCompleted ?? 0),
+            assessmentStatus: c.assessment_status || c.assessmentStatus || c.status || 'Active',
+            status: c.status || c.assessment_status || 'Active',
+            registeredAt: c.created_at ? new Date(c.created_at).toISOString().split('T')[0] : ''
+          }));
+        setCandidatesList(mapped);
+        try {
+          localStorage.setItem('rsj_candidates_list', JSON.stringify(mapped));
+        } catch (e) {}
+      }
+    } catch (err) {
+      console.warn('Candidates auto-sync failed:', err.message);
+    }
+  }, []);
+
+  // Sync assessments, question bank, and candidate roster from database on load/auth changes
+  useEffect(() => {
+    fetchAssessments();
+    fetchQuestions();
+    fetchCandidates();
+  }, [fetchAssessments, fetchQuestions, fetchCandidates, currentUser?.id, role]);
+
+  useEffect(() => {
+    localStorage.setItem('rsj_question_bank', JSON.stringify(questionBank));
+  }, [questionBank]);
+
+  useEffect(() => {
+    localStorage.setItem('rsj_candidates_list', JSON.stringify(candidatesList));
+  }, [candidatesList]);
+
+  useEffect(() => {
+    if (latestResult) {
+      localStorage.setItem('rsj_latest_result', JSON.stringify(latestResult));
+    }
+  }, [latestResult]);
+
+  // ==========================================
+  // RBAC PERMISSION & VIEW GUARD ENGINE
+  // ==========================================
+  const ADMIN_ONLY_VIEWS = [
+    'admin-candidates',
+    'admin-questions',
+    'admin-assessments',
+    'admin-interviews',
+    'admin-analytics'
+  ];
+
+  const CANDIDATE_PROTECTED_VIEWS = [
+    'dashboard',
+    'assessments',
+    'take-assessment',
+    'candidate-analytics',
+    'ai-mock-interview'
+  ];
+
+  const PUBLIC_VIEWS = ['hero', 'landing', 'signup', 'login', 'admin', 'admin-login', '/', '/hero', '/signup', '/login', '/admin', '/admin-login'];
+
+  // ── Guarded Navigation Helper (react-router-dom aware) ──────────────────
+  const VIEW_TO_PATH = {
+    'hero': '/',
+    'landing': '/',
+    '/': '/',
+    '/hero': '/',
+    'login': '/login',
+    '/login': '/login',
+    'signup': '/signup',
+    '/signup': '/signup',
+    'admin': '/admin',
+    'admin-login': '/admin',
+    '/admin': '/admin',
+    '/admin-login': '/admin',
+    'dashboard': '/dashboard',
+    '/dashboard': '/dashboard',
+    'assessments': '/assessments',
+    '/assessments': '/assessments',
+    'take-assessment': '/take-assessment',
+    'ai-mock-interview': '/interview',
+    '/ai-mock-interview': '/interview',
+    'interview': '/interview',
+    '/interview': '/interview',
+    'results': '/results',
+    '/results': '/results',
+    'candidate-analytics': '/results',
+    '/candidate-analytics': '/results',
+    'admin-candidates': '/admin/candidates',
+    'admin-questions': '/admin/questions',
+    'admin-assessments': '/admin/assessments',
+    'admin-interviews': '/admin/interviews',
+    'admin-analytics': '/admin/analytics',
+  };
+
+  const navigateTo = (view, payload = null) => {
+    const normalizedView = view?.replace(/^\//, '') || 'hero';
+    const effectiveRole = role !== 'guest' ? role : (
+      typeof window !== 'undefined'
+        ? (localStorage.getItem('rsj_role') || (localStorage.getItem('rsj_admin_user') ? 'admin' : (localStorage.getItem('rsj_user') ? 'candidate' : 'guest')))
+        : role
+    );
+
+    // 1. Guard Admin-Only Views
+    if (ADMIN_ONLY_VIEWS.includes(normalizedView)) {
+      if (effectiveRole !== 'admin') {
+        addToast('Access Denied: Admin privileges required to access this portal.', 'error');
+        const dest = effectiveRole === 'candidate' ? '/dashboard' : '/admin';
+        if (routerNavigateRef.current) routerNavigateRef.current(dest);
+        else try { window.history.pushState(null, '', dest); } catch (e) {}
+        return;
+      }
+    }
+
+    // 2. Guard Candidate-Protected Views
+    if (CANDIDATE_PROTECTED_VIEWS.includes(normalizedView)) {
+      if (effectiveRole !== 'candidate' && effectiveRole !== 'admin') {
+        addToast('Please login or register to access student assessments.', 'info');
+        if (routerNavigateRef.current) routerNavigateRef.current('/signup');
+        else try { window.history.pushState(null, '', '/signup'); } catch (e) {}
+        return;
+      }
+    }
+
+    // 3. Assessment launch (still sets view state for AssessmentPage)
+    if ((normalizedView === 'take-assessment') && payload) {
+      startAssessment(payload);
+      if (routerNavigateRef.current) routerNavigateRef.current('/take-assessment');
+      else try { window.history.pushState(null, '', '/take-assessment'); } catch (e) {}
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // 4. Navigate via react-router or fallback to pushState
+    const path = VIEW_TO_PATH[view] || VIEW_TO_PATH[normalizedView] || `/${normalizedView}`;
+    setCurrentView(normalizedView);
+    if (routerNavigateRef.current) {
+      routerNavigateRef.current(path);
+    } else {
+      try {
+        if (window.location.pathname !== path) window.history.pushState(null, '', path);
+      } catch (e) {}
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Candidate Authentication Actions
+  const registerCandidate = async (formData) => {
+    try {
+      const res = await api.auth.register({
+        name: formData.fullName || formData.name,
+        fullName: formData.fullName || formData.name,
+        email: formData.email,
+        mobile: formData.mobile || formData.phoneNo,
+        phoneNo: formData.mobile || formData.phoneNo,
+        college: formData.college || formData.collegeName,
+        collegeName: formData.college || formData.collegeName,
+        degree: formData.degree || 'B.Tech',
+        branch: formData.branch,
+        specialization: formData.specialization,
+        country: formData.country || 'India',
+        state: formData.state,
+        city: formData.city,
+        graduationYear: formData.graduationYear || 2026,
+        graduation_year: formData.graduationYear || 2026,
+        experienceLevel: formData.experienceLevel || 'Fresher',
+        tenthSchool: formData.tenthSchool,
+        tenth_school: formData.tenthSchool,
+        tenthMarks: formData.tenthMarks,
+        tenth_marks: formData.tenthMarks,
+        twelfthCollege: formData.twelfthCollege,
+        twelfth_college: formData.twelfthCollege,
+        twelfthDiplomaMarks: formData.twelfthDiplomaMarks,
+        twelfth_diploma_marks: formData.twelfthDiplomaMarks,
+        cgpa: formData.cgpa,
+        sgpa: formData.cgpa,
+        graduationPercentage: formData.cgpa,
+        graduation_percentage: formData.cgpa,
+        backlogs: formData.backlogs || 0,
+        password: formData.password
+      });
+
+      if (!res.ok) {
+        addToast(res.error || 'Failed to register account in database.', 'error');
+        return false;
+      }
+
+      if (res.data?.token) {
+        api.saveToken(res.data.token);
+      }
+
+      const registeredCand = res.data?.candidate || {
+        id: `cand-${Date.now()}`,
+        name: formData.fullName || formData.name,
+        email: formData.email,
+        mobile: formData.mobile || formData.phoneNo,
+        college: formData.college || formData.collegeName,
+        degree: formData.degree || 'B.Tech',
+        branch: formData.branch,
+        specialization: formData.specialization,
+        country: formData.country || 'India',
+        state: formData.state,
+        city: formData.city,
+        graduationYear: formData.graduationYear || 2026,
+        graduation_year: formData.graduationYear || 2026,
+        experienceLevel: formData.experienceLevel || 'Fresher',
+        tenthSchool: formData.tenthSchool,
+        tenth_school: formData.tenthSchool,
+        tenthMarks: formData.tenthMarks,
+        tenth_marks: formData.tenthMarks,
+        twelfthCollege: formData.twelfthCollege,
+        twelfth_college: formData.twelfthCollege,
+        twelfthDiplomaMarks: formData.twelfthDiplomaMarks,
+        twelfth_diploma_marks: formData.twelfthDiplomaMarks,
+        graduationPercentage: formData.cgpa,
+        graduation_percentage: formData.cgpa,
+        cgpa: formData.cgpa,
+        sgpa: formData.cgpa,
+        backlogs: formData.backlogs || 0,
+      };
+
+      setCandidatesList(prev => [registeredCand, ...prev.filter(c => c.id !== registeredCand.id)]);
+      try {
+        localStorage.setItem('rsj_registered_email', formData.email || '');
+      } catch (e) {}
+      addToast(`Account created successfully! Please sign in to enter your assessment exam.`, 'success');
+      setCurrentView('login');
+      navigateTo('login');
+      return true;
+    } catch (err) {
+      console.error('Registration API error:', err);
+      addToast(err.message || 'Registration failed', 'error');
+      return false;
+    }
+  };
+
+  const loginCandidate = async (email, password) => {
+    try {
+      const res = await api.auth.login({ email, password });
+      if (!res.ok) {
+        const errMsg = res.error || 'Invalid email or password.';
+        addToast(errMsg, 'error');
+        return { success: false, error: errMsg };
+      }
+
+      if (res.data?.token) {
+        api.saveToken(res.data.token);
+      }
+
+      const cand = res.data?.candidate || { email, name: email.split('@')[0] };
+      try {
+        localStorage.setItem('rsj_user', JSON.stringify(cand));
+        localStorage.setItem('rsj_role', 'candidate');
+      } catch (e) {}
+
+      setCurrentUser(cand);
+      setRole('candidate');
+      try {
+        const subRes = await api.submissions.my();
+        const subList = Array.isArray(subRes?.data?.data)
+          ? subRes.data.data
+          : (Array.isArray(subRes?.data) ? subRes.data : []);
+        if (subRes.ok && Array.isArray(subList)) {
+          setCandidateSubmissions(subList);
+          if (subList.length > 0) {
+            const latest = subList[0];
+            const mappedResult = {
+              score: Number(latest.score ?? 0),
+              totalMarks: Number(latest.total_marks ?? 100),
+              obtainedMarks: Number(latest.obtained_marks ?? latest.score ?? 0),
+              accuracy: Number(latest.accuracy ?? latest.score ?? 0),
+              correctCount: Number(latest.correct_count ?? 0),
+              incorrectCount: Number(latest.incorrect_count ?? 0),
+              unansweredCount: Number(latest.unanswered_count ?? 0),
+              timeTaken: latest.time_taken || '28 min',
+              completedAt: new Date(latest.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+              assessmentName: latest.assessment_title || 'Technical Assessment',
+              assessmentId: latest.assessment_id,
+              categoryScores: typeof latest.category_scores === 'string' ? JSON.parse(latest.category_scores) : (latest.category_scores || {}),
+              topicBreakdown: typeof latest.topic_breakdown === 'string' ? JSON.parse(latest.topic_breakdown) : (latest.topic_breakdown || []),
+            };
+            setLatestResult(mappedResult);
+          } else {
+            setLatestResult(null);
+          }
+        } else {
+          setCandidateSubmissions([]);
+          setLatestResult(null);
+        }
+      } catch (e) {}
+      addToast(`Welcome back, ${cand.name || 'Candidate'}! Directing to your exam assessments.`, 'success');
+      setCurrentView('assessments');
+      navigateTo('assessments');
+      return { success: true };
+    } catch (err) {
+      console.error('Candidate login error:', err);
+      const msg = err.message || 'Login failed.';
+      addToast(msg, 'error');
+      return { success: false, error: msg };
+    }
+  };
+
+  const logoutCandidate = () => {
+    api.clearToken();
+    setCurrentUser(null);
+    setRole('guest');
+    setCandidateSubmissions([]);
+    try {
+      localStorage.removeItem('rsj_candidate_submissions');
+      localStorage.removeItem('rsj_current_view');
+      localStorage.removeItem('rsj_user');
+      localStorage.removeItem('rsj_role');
+    } catch (e) {}
+    navigateTo('login');
+    addToast('Signed out of Student Portal', 'info');
+  };
+
+  // Admin Authentication Actions
+  const loginAdmin = async (email, password) => {
+    try {
+      const res = await api.auth.adminLogin({ email, password });
+      if (!res.ok) {
+        const errMsg = res.error || 'Invalid admin credentials.';
+        addToast(errMsg, 'error');
+        return { success: false, error: errMsg };
+      }
+
+      if (res.data?.token) {
+        api.saveToken(res.data.token);
+      }
+
+      const admin = res.data?.admin || { email, role: 'admin' };
+      try {
+        localStorage.setItem('rsj_admin_user', JSON.stringify(admin));
+        localStorage.setItem('rsj_role', 'admin');
+      } catch (e) {}
+
+      setAdminUser(admin);
+      setRole('admin');
+      fetchCandidates();
+      addToast(`Welcome, Admin! Access granted to Recruiter Console.`, 'success');
+      setCurrentView('admin-candidates');
+      navigateTo('admin-candidates');
+      return { success: true };
+    } catch (err) {
+      console.error('Admin login error:', err);
+      const msg = err.message || 'Admin login failed.';
+      addToast(msg, 'error');
+      return { success: false, error: msg };
+    }
+  };
+
+  const logoutAdmin = () => {
+    api.clearToken();
+    setAdminUser(null);
+    setRole('guest');
+    try {
+      localStorage.removeItem('rsj_current_view');
+    } catch (e) {}
+    navigateTo('admin');
+    addToast('Signed out of Recruiter Console', 'info');
+  };
+
+  const logout = () => {
+    if (role === 'admin') {
+      logoutAdmin();
+    } else {
+      logoutCandidate();
+    }
+  };
+
+  // Start / Submit Assessment
+  const startAssessment = async (assessmentId) => {
+    if (!assessmentId && !assessments.length) return;
+    const asm = assessments.find(a => String(a.id).trim().toLowerCase() === String(assessmentId).trim().toLowerCase()) ||
+                assessments.find(a => a.id === assessmentId) ||
+                (typeof INITIAL_ASSESSMENTS !== 'undefined' ? INITIAL_ASSESSMENTS.find(a => a.id === assessmentId) : null) ||
+                assessments[0];
+    if (!asm) return;
+
+    let finalUniqueQuestions = [];
+
+    // 1. Fetch official questions from PostgreSQL backend API
+    try {
+      const qRes = await api.assessments.getQuestions(asm.id);
+      const list = Array.isArray(qRes?.data?.data)
+        ? qRes.data.data
+        : (Array.isArray(qRes?.data) ? qRes.data : (Array.isArray(qRes) ? qRes : []));
+      if (list.length > 0) {
+        finalUniqueQuestions = list.map(q => {
+          const qId = q.question_id || q.id;
+          const bankMatch = questionBank.find(bq => bq.id === qId) ||
+                            INITIAL_QUESTION_BANK.find(bq => bq.id === qId) ||
+                            questionBank.find(bq => bq.question?.trim().toLowerCase() === q.question?.trim().toLowerCase()) ||
+                            INITIAL_QUESTION_BANK.find(bq => bq.question?.trim().toLowerCase() === q.question?.trim().toLowerCase());
+
+          const isCoding = q.type === 'Coding' || q.category === 'Coding' || bankMatch?.category === 'Coding';
+          const defaultMarks = isCoding ? 10 : 4;
+          const resolvedMarks = Number(q.marks) > 0 ? Number(q.marks) : (Number(bankMatch?.marks) > 0 ? Number(bankMatch.marks) : defaultMarks);
+          const resolvedAnswer = q.correct_answer || q.correctAnswer || bankMatch?.correctAnswer || bankMatch?.correct_answer || '';
+
+          return {
+            ...q,
+            id: qId,
+            questionId: qId,
+            question: q.question,
+            type: q.type || (isCoding ? 'Coding' : 'Single Choice'),
+            category: q.category || bankMatch?.category || asm.category,
+            topic: q.topic || bankMatch?.topic || 'General',
+            difficulty: q.difficulty || bankMatch?.difficulty || asm.difficulty || 'Medium',
+            marks: resolvedMarks,
+            correctAnswer: resolvedAnswer,
+            correct_answer: resolvedAnswer,
+            options: typeof q.options === 'string' ? JSON.parse(q.options) : (q.options || bankMatch?.options || []),
+            test_cases: typeof q.test_cases === 'string' ? JSON.parse(q.test_cases) : (q.test_cases || bankMatch?.test_cases || []),
+            starter_templates: typeof q.starter_templates === 'string' ? JSON.parse(q.starter_templates) : (q.starter_templates || bankMatch?.starter_templates || null),
+            constraints: q.constraints || bankMatch?.constraints || null
+          };
+        });
+      }
+    } catch (err) {
+      console.warn('[startAssessment] Could not load questions via API:', err.message);
+    }
+
+    // 2. Fallback to questionBank if API returned no questions
+    if (finalUniqueQuestions.length === 0) {
+      // Deduplicate question bank by ID and statement
+      const uniquePoolMap = new Map();
+      questionBank.forEach(q => {
+        if (q && q.id && q.question) {
+          const key = `${q.id}-${q.question.trim().toLowerCase()}`;
+          if (!uniquePoolMap.has(key)) {
+            uniquePoolMap.set(key, q);
+          }
+        }
+      });
+      const cleanQuestionBank = Array.from(uniquePoolMap.values());
+
+      // Get questions matching assessment category
+      const cat = (asm.category || 'Technical').trim();
+      const isAllMix = ['All', 'Full Length', 'All Mix (Combined)', 'All Mix'].some(m => m.toLowerCase() === cat.toLowerCase());
+      const isCodingCat = cat.toLowerCase() === 'coding';
+
+      let availableQuestions = [];
+      if (isCodingCat) {
+        availableQuestions = cleanQuestionBank.filter(isCodingQuestion);
+      } else if (isAllMix) {
+        availableQuestions = cleanQuestionBank.filter(q => !isCodingQuestion(q));
+      } else {
+        availableQuestions = cleanQuestionBank.filter(q => q.category && q.category.trim().toLowerCase() === cat.toLowerCase() && !isCodingQuestion(q));
+      }
+
+      if (availableQuestions.length === 0) {
+        availableQuestions = isCodingCat
+          ? cleanQuestionBank.filter(isCodingQuestion)
+          : cleanQuestionBank.filter(q => !isCodingQuestion(q));
+      }
+
+      let selectedQList = [];
+      const qIds = asm.selected_question_ids || asm.selectedQuestionIds;
+      if (Array.isArray(qIds) && qIds.length > 0) {
+        const idSet = new Set(qIds);
+        selectedQList = cleanQuestionBank.filter(q => idSet.has(q.id));
+      }
+
+      if (selectedQList.length === 0 && availableQuestions.length > 0) {
+        const targetCount = Math.min(
+          Number(asm.totalQuestions || asm.total_questions) || 5,
+          availableQuestions.length
+        );
+        selectedQList = availableQuestions.slice(0, targetCount);
+      }
+
+      const seenIds = new Set();
+      selectedQList.forEach(q => {
+        if (!seenIds.has(q.id)) {
+          seenIds.add(q.id);
+          finalUniqueQuestions.push(q);
+        }
+      });
+
+      if (finalUniqueQuestions.length === 0 && cleanQuestionBank.length > 0) {
+        cleanQuestionBank.slice(0, 5).forEach(q => finalUniqueQuestions.push(q));
+      }
+    }
+
+    const durationMin = Number(asm.durationMinutes || asm.duration_minutes) || 10;
+    const activeObj = {
+      ...asm,
+      durationMinutes: durationMin,
+      questions: finalUniqueQuestions,
+      totalQuestions: finalUniqueQuestions.length
+    };
+
+    setActiveAssessment(activeObj);
+    setAssessmentAnswers({});
+    setMarkedForReview([]);
+    setCurrentQuestionIndex(0);
+    setTimeRemainingSeconds(durationMin * 60);
+    setCurrentView('take-assessment');
+    navigateTo('take-assessment');
+  };
+
+  const matchOptionAnswer = (userAns, correctAns, options) => {
+    if (userAns === undefined || userAns === null) return false;
+    const cleanUser = String(userAns).trim().toUpperCase();
+    const cleanCorrect = String(correctAns || '').trim().toUpperCase();
+    if (cleanUser && cleanUser === cleanCorrect) return true;
+
+    if (Array.isArray(options) && options.length > 0) {
+      let correctIdx = -1;
+      if (['A', 'B', 'C', 'D'].includes(cleanCorrect)) {
+        correctIdx = cleanCorrect.charCodeAt(0) - 65;
+      } else if (!isNaN(Number(cleanCorrect))) {
+        correctIdx = Number(cleanCorrect);
+      } else {
+        correctIdx = options.findIndex(opt => {
+          const text = typeof opt === 'object' && opt !== null ? (opt.text || opt.label || '') : String(opt);
+          return text.trim().toUpperCase() === cleanCorrect;
+        });
+      }
+
+      let userIdx = -1;
+      if (['A', 'B', 'C', 'D'].includes(cleanUser)) {
+        userIdx = cleanUser.charCodeAt(0) - 65;
+      } else if (!isNaN(Number(cleanUser))) {
+        userIdx = Number(cleanUser);
+      } else {
+        userIdx = options.findIndex(opt => {
+          const text = typeof opt === 'object' && opt !== null ? (opt.text || opt.label || '') : String(opt);
+          return text.trim().toUpperCase() === cleanUser;
+        });
+      }
+
+      if (correctIdx !== -1 && userIdx !== -1 && correctIdx === userIdx) return true;
+      if (correctIdx >= 0 && correctIdx < options.length) {
+        const correctOpt = options[correctIdx];
+        const correctText = typeof correctOpt === 'object' && correctOpt !== null ? (correctOpt.text || correctOpt.label || '') : String(correctOpt);
+        if (cleanUser === correctText.trim().toUpperCase()) return true;
+      }
+    }
+    return false;
+  };
+
+  const submitAssessment = async (answers, timeSpentMin = 28, metadata = {}) => {
+    // Generate calculated score for the active assessment's exact questions
+    const asmQuestions = (activeAssessment?.questions && activeAssessment.questions.length > 0)
+      ? activeAssessment.questions
+      : questionBank;
+    const totalQuestions = asmQuestions.length || 1;
+
+    let totalPossibleMarks = 0;
+    let totalObtainedMarks = 0;
+    let correct = 0;
+    let incorrect = 0;
+    let unanswered = 0;
+    const categoryStats = {};
+    const topicStats = {};
+
+    asmQuestions.forEach((q) => {
+      const isCoding = q.type === 'Coding' || q.category === 'Coding';
+      const qMarks = Number(q.marks) > 0 ? Number(q.marks) : (isCoding ? 10 : 4);
+      const cat = (q.category || 'Technical').trim();
+      const top = (q.topic || 'General').trim();
+
+      let correctAns = (q.correctAnswer || q.correct_answer || '').trim();
+      if (!correctAns) {
+        const bankMatch = questionBank.find(bq => bq.id === q.id) ||
+                          INITIAL_QUESTION_BANK.find(bq => bq.id === q.id) ||
+                          questionBank.find(bq => bq.question?.trim().toLowerCase() === q.question?.trim().toLowerCase()) ||
+                          INITIAL_QUESTION_BANK.find(bq => bq.question?.trim().toLowerCase() === q.question?.trim().toLowerCase());
+        correctAns = (bankMatch?.correctAnswer || bankMatch?.correct_answer || '').trim();
+      }
+
+      totalPossibleMarks += qMarks;
+
+      if (!categoryStats[cat]) {
+        categoryStats[cat] = { totalMarks: 0, obtainedMarks: 0, totalQuestions: 0, correctCount: 0 };
+      }
+      categoryStats[cat].totalMarks += qMarks;
+      categoryStats[cat].totalQuestions += 1;
+
+      if (!topicStats[top]) {
+        topicStats[top] = {
+          topic: top,
+          category: cat,
+          totalMarks: 0,
+          obtainedMarks: 0,
+          totalQuestions: 0,
+          correctCount: 0,
+          incorrectCount: 0,
+          unansweredCount: 0
+        };
+      }
+      topicStats[top].totalMarks += qMarks;
+      topicStats[top].totalQuestions += 1;
+
+      const userAns = answers[q.id];
+      const isCodingAnswer = isCoding || (typeof userAns === 'object' && userAns !== null);
+      const hasAnswered = isCodingAnswer || (userAns !== undefined && userAns !== null && String(userAns).trim() !== '');
+
+      if (hasAnswered) {
+        if (isCodingAnswer) {
+          const scorePct = Number(userAns?.score ?? (userAns?.passedTests && userAns?.totalTests ? (userAns.passedTests / userAns.totalTests) * 100 : (userAns?.code ? 100 : 0)));
+          const earned = Math.round((scorePct / 100) * qMarks);
+          totalObtainedMarks += earned;
+          categoryStats[cat].obtainedMarks += earned;
+          topicStats[top].obtainedMarks += earned;
+
+          if (scorePct >= 60) {
+            correct += 1;
+            categoryStats[cat].correctCount += 1;
+            topicStats[top].correctCount += 1;
+          } else {
+            incorrect += 1;
+            topicStats[top].incorrectCount += 1;
+          }
+        } else {
+          const isCorrect = matchOptionAnswer(userAns, correctAns, q.options);
+          if (isCorrect) {
+            correct += 1;
+            totalObtainedMarks += qMarks;
+
+            categoryStats[cat].correctCount += 1;
+            categoryStats[cat].obtainedMarks += qMarks;
+
+            topicStats[top].correctCount += 1;
+            topicStats[top].obtainedMarks += qMarks;
+          } else {
+            incorrect += 1;
+            topicStats[top].incorrectCount += 1;
+          }
+        }
+      } else {
+        unanswered += 1;
+        topicStats[top].unansweredCount += 1;
+      }
+    });
+
+    if (totalPossibleMarks === 0) totalPossibleMarks = 40;
+    const attemptedCount = correct + incorrect;
+    let calculatedScore = Math.min(100, Math.max(0, Math.round((totalObtainedMarks / totalPossibleMarks) * 100)));
+    let accuracy = attemptedCount > 0 ? Math.round((correct / attemptedCount) * 100) : 0;
+
+    // Helper function to normalize category to one of the standard sections
+    const normalizeSection = (rawCat) => {
+      const c = (rawCat || '').toLowerCase().trim();
+      if (c.includes('code') || c.includes('prog')) return 'coding';
+      if (c.includes('apt') || c.includes('quant') || c.includes('math')) return 'aptitude';
+      if (c.includes('reason') || c.includes('logic')) return 'reasoning';
+      if (c.includes('verbal') || c.includes('eng')) return 'verbal';
+      if (c.includes('tech')) return 'technical';
+      return c || 'technical';
+    };
+
+    // Build dynamic category scores based on marks with section normalization
+    const categoryScores = {
+      aptitude: 0,
+      reasoning: 0,
+      technical: 0,
+      verbal: 0,
+      coding: 0,
+    };
+
+    const normalizedCategoryStats = {
+      aptitude: { totalMarks: 0, obtainedMarks: 0 },
+      reasoning: { totalMarks: 0, obtainedMarks: 0 },
+      technical: { totalMarks: 0, obtainedMarks: 0 },
+      verbal: { totalMarks: 0, obtainedMarks: 0 },
+      coding: { totalMarks: 0, obtainedMarks: 0 },
+    };
+
+    Object.keys(categoryStats).forEach(cat => {
+      const stat = categoryStats[cat];
+      const normalizedKey = normalizeSection(cat);
+      if (!normalizedCategoryStats[normalizedKey]) {
+        normalizedCategoryStats[normalizedKey] = { totalMarks: 0, obtainedMarks: 0 };
+      }
+      normalizedCategoryStats[normalizedKey].totalMarks += stat.totalMarks;
+      normalizedCategoryStats[normalizedKey].obtainedMarks += stat.obtainedMarks;
+    });
+
+    Object.keys(normalizedCategoryStats).forEach(sec => {
+      const stat = normalizedCategoryStats[sec];
+      if (stat.totalMarks > 0) {
+        categoryScores[sec] = Math.round((stat.obtainedMarks / stat.totalMarks) * 100);
+      } else {
+        const prevSecScore = Number(currentUser?.[`${sec}Score`] ?? (sec === 'verbal' ? currentUser?.verbalScore : null) ?? latestResult?.categoryScores?.[sec] ?? 0);
+        categoryScores[sec] = prevSecScore;
+      }
+    });
+
+    // Build dynamic topic breakdown with marks and accuracy
+    let topicBreakdown = Object.keys(topicStats).map(topic => {
+      const stat = topicStats[topic];
+      const topicScore = stat.totalMarks > 0
+        ? Math.round((stat.obtainedMarks / stat.totalMarks) * 100)
+        : 0;
+      let status = 'Needs Review';
+      if (topicScore >= 85) status = 'Mastered';
+      else if (topicScore >= 70) status = 'Strong';
+      else if (topicScore >= 50) status = 'Average';
+      else status = 'Weak';
+
+      return {
+        topic: stat.topic,
+        category: stat.category,
+        score: topicScore,
+        obtainedMarks: stat.obtainedMarks,
+        totalMarks: stat.totalMarks,
+        correctCount: stat.correctCount,
+        incorrectCount: stat.incorrectCount,
+        unansweredCount: stat.unansweredCount,
+        totalQuestions: stat.totalQuestions,
+        status
+      };
+    });
+
+    if (topicBreakdown.length === 0) {
+      topicBreakdown = [
+        {
+          topic: 'Core Technical Concepts',
+          category: 'Technical',
+          score: calculatedScore,
+          obtainedMarks: totalObtainedMarks,
+          totalMarks: totalPossibleMarks || 10,
+          correctCount: correct,
+          incorrectCount: incorrect,
+          unansweredCount: unanswered,
+          totalQuestions,
+          status: calculatedScore >= 70 ? 'Strong' : 'Average'
+        }
+      ];
+    }
+
+    // 1. Send submission data to backend API -> calculated authoritatively on PostgreSQL backend!
+    const submissionRes = await api.submissions.submit({
+      assessmentId: activeAssessment?.id || 'asm-1',
+      assessmentTitle: activeAssessment?.title || 'Technical Assessment',
+      candidateId: currentUser?.id || 'cand-user',
+      candidateName: currentUser?.name || currentUser?.fullName || 'Test Candidate',
+      candidateEmail: currentUser?.email || 'student@university.edu',
+      score: calculatedScore,
+      accuracy: accuracy,
+      correctCount: correct,
+      incorrectCount: incorrect,
+      unansweredCount: unanswered,
+      totalQuestions,
+      obtainedMarks: totalObtainedMarks,
+      totalMarks: totalPossibleMarks,
+      timeTaken: `${timeSpentMin} min`,
+      categoryScores,
+      topicBreakdown,
+      questionIds: asmQuestions.map(q => q.id),
+      answers: answers,
+      proctoringViolations: Number(metadata.proctoringViolations || 0),
+      autoSubmitted: Boolean(metadata.autoSubmitted),
+      autoSubmitReason: metadata.autoSubmitReason || null
+    });
+
+    // Check if backend rejected because already submitted
+    if (!submissionRes.ok && (submissionRes.status === 403 || submissionRes.data?.alreadySubmitted)) {
+      const targetAsmId = activeAssessment?.id || 'asm-1';
+      const existingSub = {
+        assessment_id: targetAsmId,
+        assessmentId: targetAsmId,
+        status: 'Completed',
+        score: submissionRes.data?.submission?.score ?? calculatedScore ?? 0,
+        obtained_marks: submissionRes.data?.submission?.obtained_marks ?? submissionRes.data?.submission?.obtainedMarks ?? totalObtainedMarks,
+        obtainedMarks: submissionRes.data?.submission?.obtained_marks ?? submissionRes.data?.submission?.obtainedMarks ?? totalObtainedMarks,
+        total_marks: submissionRes.data?.submission?.total_marks ?? submissionRes.data?.submission?.totalMarks ?? totalPossibleMarks,
+        totalMarks: submissionRes.data?.submission?.total_marks ?? submissionRes.data?.submission?.totalMarks ?? totalPossibleMarks,
+        created_at: new Date().toISOString()
+      };
+      setCandidateSubmissions(prev => [
+        existingSub,
+        ...prev.filter(s => String(s.assessment_id || s.assessmentId || '').trim().toLowerCase() !== String(targetAsmId).trim().toLowerCase())
+      ]);
+      setActiveAssessment(null);
+      setAssessmentAnswers({});
+      setCurrentQuestionIndex(0);
+      setMarkedForReview([]);
+      stopMediaStream();
+      addToast(submissionRes.error || 'This assessment has already been submitted and recorded.', 'info');
+      navigateTo('candidate-analytics');
+      return;
+    }
+
+    // If backend returned authoritative evaluation, synchronize frontend state with DB
+    const dbData = submissionRes?.data?.data || submissionRes?.data;
+    if (submissionRes?.ok && dbData && typeof dbData === 'object') {
+      const dbAsmId = dbData.assessment_id || dbData.assessmentId || activeAssessment?.id || 'asm-1';
+      if (typeof dbData.score === 'number') calculatedScore = dbData.score;
+      if (typeof dbData.accuracy === 'number') accuracy = dbData.accuracy;
+      if (typeof dbData.correct_count === 'number') correct = dbData.correct_count;
+      if (typeof dbData.incorrect_count === 'number') incorrect = dbData.incorrect_count;
+      if (typeof dbData.unanswered_count === 'number') unanswered = dbData.unanswered_count;
+
+      const dbObtained = typeof dbData.obtained_marks === 'number' ? dbData.obtained_marks : (typeof dbData.obtainedMarks === 'number' ? dbData.obtainedMarks : null);
+      const dbTotal = typeof dbData.total_marks === 'number' ? dbData.total_marks : (typeof dbData.totalMarks === 'number' ? dbData.totalMarks : null);
+
+      if (dbObtained !== null && dbObtained > 0) totalObtainedMarks = dbObtained;
+      if (dbTotal !== null && dbTotal > 0) totalPossibleMarks = dbTotal;
+      if (totalPossibleMarks > 0) {
+        calculatedScore = Math.min(100, Math.max(0, Math.round((totalObtainedMarks / totalPossibleMarks) * 100)));
+      }
+
+      setCandidateSubmissions(prev => [
+        {
+          ...dbData,
+          assessment_id: dbAsmId,
+          assessmentId: dbAsmId,
+          score: calculatedScore,
+          accuracy: accuracy,
+          obtained_marks: totalObtainedMarks,
+          obtainedMarks: totalObtainedMarks,
+          total_marks: totalPossibleMarks,
+          totalMarks: totalPossibleMarks,
+          correct_count: correct,
+          incorrect_count: incorrect,
+          unanswered_count: unanswered,
+          total_questions: totalQuestions,
+          status: 'Completed',
+          created_at: new Date().toISOString()
+        },
+        ...prev.filter(s => s.id !== dbData.id && String(s.assessment_id || s.assessmentId || '').trim().toLowerCase() !== String(dbAsmId).trim().toLowerCase())
+      ]);
+
+      if (dbData.topic_breakdown) {
+        try {
+          topicBreakdown = typeof dbData.topic_breakdown === 'string'
+            ? JSON.parse(dbData.topic_breakdown)
+            : dbData.topic_breakdown;
+        } catch (e) {}
+      }
+      if (dbData.category_scores) {
+        try {
+          const dbCat = typeof dbData.category_scores === 'string'
+            ? JSON.parse(dbData.category_scores)
+            : dbData.category_scores;
+          Object.assign(categoryScores, dbCat);
+        } catch (e) {}
+      }
+    }
+
+    const strongTopics = (topicBreakdown || []).filter(t => (t.score ?? 0) >= 70).map(t => `${t.topic} (${t.score}% - ${t.obtainedMarks ?? t.correctCount ?? 0}/${t.totalMarks ?? t.totalQuestions ?? 0} marks)`);
+    const weakTopics = (topicBreakdown || []).filter(t => (t.score ?? 0) < 70).map(t => `${t.topic} (${t.score}% - ${t.obtainedMarks ?? t.correctCount ?? 0}/${t.totalMarks ?? t.totalQuestions ?? 0} marks)`);
+
+    const dynamicStrengths = strongTopics.length > 0 ? strongTopics : ['Question attempt consistency', 'Basic problem understanding'];
+    const dynamicWeaknesses = weakTopics.length > 0 ? weakTopics : ['Speed & time management under exam pressure'];
+    const dynamicRecommendations = weakTopics.length > 0
+      ? (topicBreakdown || []).filter(t => (t.score ?? 0) < 70).map(t => `Practice topic questions in ${t.topic} (currently scored ${t.obtainedMarks ?? t.correctCount ?? 0}/${t.totalMarks ?? t.totalQuestions ?? 0} marks)`)
+      : ['Continue practicing mock exams to maintain 100% mastery'];
+
+    const result = {
+      score: calculatedScore,
+      totalMarks: totalPossibleMarks,
+      obtainedMarks: totalObtainedMarks,
+      accuracy: accuracy,
+      correctCount: correct,
+      incorrectCount: incorrect,
+      unansweredCount: unanswered,
+      totalQuestions,
+      timeTaken: `${timeSpentMin} min`,
+      completedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      assessmentId: activeAssessment?.id || 'asm-1',
+      assessmentName: activeAssessment?.title || 'Technical Assessment',
+      categoryScores,
+      topicBreakdown,
+      strengths: dynamicStrengths,
+      weaknesses: dynamicWeaknesses,
+      recommendedTopics: dynamicRecommendations
+    };
+
+    setLatestResult(result);
+    try {
+      localStorage.setItem('rsj_latest_result', JSON.stringify(result));
+    } catch (e) {}
+
+    // 2. Update candidate score in currentUser state
+    setCurrentUser(prev => {
+      if (!prev) return null;
+      const aptScore = (categoryScores.aptitude > 0) ? categoryScores.aptitude : Number(prev.aptitudeScore ?? 0);
+      const reasonScore = (categoryScores.reasoning > 0) ? categoryScores.reasoning : Number(prev.reasoningScore ?? 0);
+      const techScore = (categoryScores.technical > 0) ? categoryScores.technical : Number(prev.technicalScore ?? 0);
+      const verbScore = (categoryScores.verbal > 0) ? categoryScores.verbal : Number(prev.verbalScore ?? 0);
+      const codeScore = (categoryScores.coding > 0) ? categoryScores.coding : Number(prev.codingScore ?? 0);
+      const activeScores = [aptScore, reasonScore, techScore, verbScore, codeScore].filter(s => s > 0);
+      const compositeReadiness = activeScores.length > 0 ? Math.round(activeScores.reduce((a, b) => a + b, 0) / activeScores.length) : calculatedScore;
+
+      const updatedUser = {
+        ...prev,
+        overallScore: compositeReadiness,
+        jobReadinessScore: compositeReadiness,
+        aptitudeScore: aptScore,
+        reasoningScore: reasonScore,
+        technicalScore: techScore,
+        verbalScore: verbScore,
+        codingScore: codeScore,
+        assessmentStatus: 'Completed',
+        assessmentsCompleted: (prev.assessmentsCompleted || 0) + 1
+      };
+      try {
+        localStorage.setItem('rsj_user', JSON.stringify(updatedUser));
+      } catch (e) {}
+      return updatedUser;
+    });
+
+    // 3. Update candidate entry in candidatesList so candidate score is immediately shown on Candidate Roster page!
+    setCandidatesList(prev => {
+      const activeEmail = currentUser?.email?.toLowerCase();
+      const activeId = currentUser?.id;
+
+      let found = false;
+      const updatedList = prev.map(c => {
+        if ((activeId && c.id === activeId) || (activeEmail && c.email?.toLowerCase() === activeEmail)) {
+          found = true;
+          return {
+            ...c,
+            overallScore: calculatedScore,
+            jobReadinessScore: calculatedScore,
+            assessmentStatus: 'Completed',
+            status: 'Completed',
+            assessmentsCompleted: (c.assessmentsCompleted || 0) + 1
+          };
+        }
+        return c;
+      });
+
+      if (!found && currentUser) {
+        const newCand = {
+          id: currentUser.id || `cand-${Date.now()}`,
+          name: currentUser.name || currentUser.fullName || 'Candidate Student',
+          email: currentUser.email || 'student@university.edu',
+          mobile: currentUser.mobile || currentUser.phoneNo || currentUser.phone || '+91 9876543210',
+          college: currentUser.college || currentUser.collegeName || 'BITS Pilani',
+          branch: currentUser.branch || 'CSE',
+          specialization: currentUser.specialization || 'Full-Stack Development',
+          country: currentUser.country || 'India',
+          state: currentUser.state || 'Telangana',
+          city: currentUser.city || 'Hyderabad',
+          graduationYear: currentUser.graduationYear || 2026,
+          experienceLevel: currentUser.experienceLevel || 'Fresher',
+          overallScore: calculatedScore,
+          jobReadinessScore: calculatedScore,
+          assessmentStatus: 'Completed',
+          status: 'Active',
+          assessmentsCompleted: 1
+        };
+        updatedList.unshift(newCand);
+      }
+
+      localStorage.setItem('rsj_candidates_list', JSON.stringify(updatedList));
+      return updatedList;
+    });
+
+    // Mark assessment completed
+    const currentAsmId = activeAssessment?.id || 'asm-1';
+    if (activeAssessment) {
+      setAssessments(prev => {
+        const updated = prev.map(a => a.id === activeAssessment.id ? {
+          ...a,
+          status: 'Completed',
+          progress: 100,
+          completedQuestions: a.totalQuestions,
+          lastScore: calculatedScore
+        } : a);
+        localStorage.setItem('rsj_assessments', JSON.stringify(updated));
+        return updated;
+      });
+    }
+
+    // Ensure candidateSubmissions has this assessment marked Completed
+    setCandidateSubmissions(prev => {
+      const exists = prev.some(s => 
+        String(s.assessment_id || s.assessmentId || '').trim().toLowerCase() === String(currentAsmId).trim().toLowerCase() ||
+        (activeAssessment?.title && String(s.assessment_title || s.assessmentName || '').trim().toLowerCase() === String(activeAssessment.title).trim().toLowerCase())
+      );
+      let updated;
+      if (!exists) {
+        updated = [
+          {
+            assessment_id: currentAsmId,
+            assessmentId: currentAsmId,
+            assessment_title: activeAssessment?.title || 'Technical Readiness Assessment',
+            assessmentName: activeAssessment?.title || 'Technical Readiness Assessment',
+            category: activeAssessment?.category || 'Technical',
+            status: 'Completed',
+            score: calculatedScore,
+            accuracy: accuracy,
+            created_at: new Date().toISOString()
+          },
+          ...prev
+        ];
+      } else {
+        updated = prev.map(s => {
+          const matchId = String(s.assessment_id || s.assessmentId || '').trim().toLowerCase() === String(currentAsmId).trim().toLowerCase();
+          const matchTitle = activeAssessment?.title && String(s.assessment_title || s.assessmentName || '').trim().toLowerCase() === String(activeAssessment.title).trim().toLowerCase();
+          return (matchId || matchTitle) ? {
+            ...s,
+            assessment_title: s.assessment_title || activeAssessment?.title,
+            category: s.category || activeAssessment?.category,
+            status: 'Completed',
+            score: calculatedScore,
+            accuracy: accuracy
+          } : s;
+        });
+      }
+      try {
+        localStorage.setItem('rsj_candidate_submissions', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    if (typeof document !== 'undefined' && (document.fullscreenElement || document.webkitFullscreenElement)) {
+      try {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      } catch (e) {}
+    }
+
+    // CLOSE EXAM SESSION COMPLETELY
+    setActiveAssessment(null);
+    setAssessmentAnswers({});
+    setCurrentQuestionIndex(0);
+    setMarkedForReview([]);
+    stopMediaStream();
+
+    addToast('Assessment submitted successfully! Score calculated.', 'success');
+    setCurrentView('candidate-analytics');
+    try {
+      window.history.pushState(null, '', '/candidate-analytics');
+    } catch (e) {}
+    return submissionRes;
+  };
+
+
+
+  // Question Bank CRUD
+  const addQuestionsBatch = (questionsArray) => {
+    if (!Array.isArray(questionsArray) || questionsArray.length === 0) return;
+
+    setQuestionBank(prev => {
+      const existingNumIds = prev
+        .map(q => parseInt(q.id.replace('q-', ''), 10))
+        .filter(n => !isNaN(n));
+      let currentMax = existingNumIds.length > 0 ? Math.max(...existingNumIds) : 100;
+
+      const preparedBatch = questionsArray.map(q => {
+        let qId = q.id;
+        if (!qId || qId === 'q-101') {
+          currentMax += 1;
+          qId = `q-${currentMax}`;
+        }
+        return {
+          ...q,
+          id: qId
+        };
+      });
+
+      const map = new Map();
+      prev.forEach(item => map.set(item.id, item));
+      preparedBatch.forEach(item => map.set(item.id, item));
+
+      const updated = Array.from(map.values());
+      localStorage.setItem('rsj_question_bank', JSON.stringify(updated));
+
+      // Asynchronously save all questions to PostgreSQL database
+      preparedBatch.forEach(item => {
+        api.questions.create({
+          id: item.id,
+          category: item.category,
+          topic: item.topic,
+          difficulty: item.difficulty,
+          type: item.type || 'Single Choice',
+          question: item.question,
+          codeSnippet: item.codeSnippet,
+          language: item.language,
+          options: item.options,
+          correctAnswer: item.correctAnswer,
+          explanation: item.explanation,
+          marks: item.marks,
+          timeLimitSec: item.timeLimitSec,
+          tags: item.tags,
+          testCases: item.testCases || item.test_cases,
+          starterTemplates: item.starterTemplates || item.starter_templates,
+          constraints: item.constraints
+        });
+      });
+
+      return updated;
+    });
+
+    if (questionsArray.length === 1) {
+      addToast('Question saved to database!', 'success');
+    } else {
+      addToast(`Successfully saved ${questionsArray.length} questions to database!`, 'success');
+    }
+  };
+
+  const addQuestion = (newQ) => {
+    addQuestionsBatch([newQ]);
+  };
+
+  const updateQuestion = (updatedQ) => {
+    setQuestionBank(prev => {
+      const updated = prev.map(q => q.id === updatedQ.id ? updatedQ : q);
+      localStorage.setItem('rsj_question_bank', JSON.stringify(updated));
+      return updated;
+    });
+    api.questions.update(updatedQ.id, updatedQ);
+    addToast('Question updated in database', 'success');
+  };
+
+  const deleteQuestion = (id) => {
+    setQuestionBank(prev => {
+      const updated = prev.filter(q => q.id !== id);
+      localStorage.setItem('rsj_question_bank', JSON.stringify(updated));
+      return updated;
+    });
+    api.questions.delete(id);
+    addToast('Question deleted from database', 'info');
+  };
+
+
+
+  // Assessment CRUD
+  const addAssessment = async (newAsm) => {
+    const generatedId = newAsm.id || `asm-${Date.now()}`;
+    const created = {
+      ...newAsm,
+      id: generatedId,
+      status: 'Available',
+      progress: 0,
+      completedQuestions: 0,
+      lastScore: null
+    };
+
+    setAssessments(prev => {
+      const updated = [created, ...prev.filter(a => a.id !== generatedId)];
+      localStorage.setItem('rsj_assessments', JSON.stringify(updated));
+      return updated;
+    });
+
+    try {
+      const res = await api.assessments.create({
+        id: generatedId,
+        title: created.title,
+        category: created.category,
+        description: created.description,
+        difficulty: created.difficulty,
+        durationMinutes: created.durationMinutes,
+        totalQuestions: created.totalQuestions,
+        passingScore: created.passingScore,
+        selectedQuestionIds: created.selectedQuestionIds || []
+      });
+
+      if (res && res.ok) {
+        addToast(`Assessment "${newAsm.title}" published & saved to database!`, 'success');
+      } else {
+        console.warn('Backend assessment create issue:', res?.error);
+        addToast(`Assessment "${newAsm.title}" saved!`, 'success');
+      }
+    } catch (err) {
+      console.warn('Error saving assessment to API:', err.message);
+      addToast(`Assessment "${newAsm.title}" saved!`, 'success');
+    }
+  };
+
+  const updateAssessment = async (updatedAsm) => {
+    setAssessments(prev => {
+      const updated = prev.map(a => a.id === updatedAsm.id ? { ...a, ...updatedAsm } : a);
+      localStorage.setItem('rsj_assessments', JSON.stringify(updated));
+      return updated;
+    });
+
+    try {
+      const res = await api.assessments.update(updatedAsm.id, {
+        title: updatedAsm.title,
+        category: updatedAsm.category,
+        description: updatedAsm.description,
+        difficulty: updatedAsm.difficulty,
+        durationMinutes: updatedAsm.durationMinutes,
+        totalQuestions: updatedAsm.totalQuestions,
+        passingScore: updatedAsm.passingScore,
+        status: updatedAsm.status || 'Available',
+        selectedQuestionIds: updatedAsm.selectedQuestionIds || []
+      });
+
+      if (res && res.ok) {
+        addToast(`Assessment "${updatedAsm.title}" updated successfully!`, 'success');
+      } else {
+        addToast(`Assessment "${updatedAsm.title}" updated!`, 'success');
+      }
+    } catch (err) {
+      addToast(`Assessment "${updatedAsm.title}" updated!`, 'success');
+    }
+  };
+
+  const deleteAssessment = (id) => {
+    setAssessments(prev => {
+      const updated = prev.filter(a => a.id !== id);
+      localStorage.setItem('rsj_assessments', JSON.stringify(updated));
+      return updated;
+    });
+
+    // Delete from PostgreSQL database
+    api.assessments.delete(id);
+    addToast('Assessment deleted from database', 'info');
+  };
+
+  // Candidate CRUD
+  const addCandidate = (candData) => {
+    const newCand = {
+      ...INITIAL_CANDIDATE,
+      id: `cand-${Date.now()}`,
+      ...candData,
+      registeredAt: new Date().toISOString().split('T')[0]
+    };
+    setCandidatesList(prev => [newCand, ...prev]);
+    addToast(`Candidate ${candData.name} added successfully`, 'success');
+  };
+
+  const deleteCandidate = async (id) => {
+    try {
+      const res = await api.candidates.delete(id);
+      if (res && res.ok) {
+        setCandidatesList(prev => {
+          const updated = prev.filter(c => c.id !== id);
+          try {
+            localStorage.setItem('rsj_candidates_list', JSON.stringify(updated));
+          } catch (e) {}
+          return updated;
+        });
+        addToast('Candidate deleted successfully from database', 'success');
+      } else {
+        addToast(res?.error || 'Failed to delete candidate from database', 'error');
+      }
+    } catch (err) {
+      console.error('Error deleting candidate:', err);
+      addToast('Failed to delete candidate from database', 'error');
+    }
+  };
+
+  const resetCandidateAttempt = async (id, assessmentId = null) => {
+    try {
+      const res = await api.candidates.resetAttempt(id, assessmentId);
+      if (res && res.ok) {
+        // Refresh candidates list from DB if possible
+        try {
+          const candRes = await api.candidates.getAll();
+          const rawList = Array.isArray(candRes?.data?.data)
+            ? candRes.data.data
+            : (Array.isArray(candRes?.data) ? candRes.data : []);
+          if (candRes && candRes.ok && Array.isArray(rawList)) {
+            const dbCandidates = rawList.map(c => ({
+              id: c.id,
+              name: c.name,
+              email: c.email,
+              mobile: c.mobile || c.phone,
+              college: c.college,
+              degree: c.degree || 'B.Tech',
+              branch: c.branch,
+              specialization: c.specialization,
+              country: c.country || 'India',
+              state: c.state,
+              city: c.city,
+              graduationYear: c.graduation_year || 2026,
+              experienceLevel: c.experience_level || 'Fresher',
+              status: c.status || 'Active',
+              assessmentStatus: c.assessment_status || c.readiness_status || 'Active',
+              registeredAt: c.created_at ? new Date(c.created_at).toISOString().split('T')[0] : '2026-08-28',
+              overallScore: Number(c.overall_score ?? c.job_readiness_score ?? 0),
+              jobReadinessScore: Number(c.overall_score ?? c.job_readiness_score ?? 0),
+              aptitudeScore: Number(c.aptitude_score ?? 0),
+              reasoningScore: Number(c.reasoning_score ?? 0),
+              technicalScore: Number(c.technical_score ?? 0),
+              verbalScore: Number(c.verbal_score ?? 0),
+              codingScore: Number(c.coding_score ?? 0),
+              assessmentsCompleted: Number(c.assessments_completed ?? 0)
+            }));
+            setCandidatesList(dbCandidates);
+            try {
+              localStorage.setItem('rsj_candidates_list', JSON.stringify(dbCandidates));
+            } catch (e) {}
+          }
+        } catch (e) {
+          console.warn('Failed to refresh candidate list after attempt reset:', e.message);
+        }
+
+        // If the reset candidate is the currently logged-in candidate, refresh their submissions and status
+        if (currentUser && (currentUser.id === id || currentUser.email === id)) {
+          try {
+            const subRes = await api.submissions.my();
+            const subList = Array.isArray(subRes?.data?.data)
+              ? subRes.data.data
+              : (Array.isArray(subRes?.data) ? subRes.data : []);
+            if (subRes && subRes.ok && Array.isArray(subList)) {
+              setCandidateSubmissions(subList);
+              if (subList.length === 0) {
+                setLatestResult(null);
+              }
+            }
+          } catch (e) {}
+        }
+
+        addToast(res.message || 'Assessment attempt reset successfully. The candidate can now retake the assessment.', 'success');
+        return { success: true, data: res };
+      } else {
+        const errorMsg = res?.error || 'Failed to reset assessment attempt';
+        addToast(errorMsg, 'error');
+        return { success: false, error: errorMsg };
+      }
+    } catch (err) {
+      console.error('Error resetting candidate attempt:', err);
+      const errorMsg = err.message || 'Failed to reset assessment attempt';
+      addToast(errorMsg, 'error');
+      return { success: false, error: errorMsg };
+    }
+  };
+
+  return (
+    <AppContext.Provider
+      value={{
+        currentUser,
+        setCurrentUser,
+        role,
+        setRole,
+        currentView,
+        setCurrentView,
+        navigateTo,
+        assessments,
+        questionBank,
+        candidatesList,
+        recommendations,
+        activeAssessment,
+        setActiveAssessment,
+        mediaStream,
+        setMediaStream,
+        stopMediaStream,
+        assessmentAnswers,
+        setAssessmentAnswers,
+        markedForReview,
+        setMarkedForReview,
+        currentQuestionIndex,
+        setCurrentQuestionIndex,
+        timeRemainingSeconds,
+        setTimeRemainingSeconds,
+        latestResult,
+        toasts,
+        addToast,
+        removeToast,
+        registerCandidate,
+        loginCandidate,
+        loginAdmin,
+        logout,
+        startAssessment,
+        submitAssessment,
+        addQuestion,
+        addQuestionsBatch,
+        updateQuestion,
+        deleteQuestion,
+        addAssessment,
+        updateAssessment,
+        deleteAssessment,
+        addCandidate,
+        deleteCandidate,
+        resetCandidateAttempt,
+        fetchCandidates,
+        fetchAssessments,
+        fetchQuestions,
+        candidateSubmissions,
+        setCandidateSubmissions,
+        isAssessmentCompleted,
+        areAllAssessmentsCompleted,
+        isInterviewUnlocked,
+        kpis: INITIAL_ADMIN_KPIS,
+        setRouterNavigate
+      }}
+    >
+      {children}
+    </AppContext.Provider>
+  );
+};
+
+export const useApp = () => useContext(AppContext);
