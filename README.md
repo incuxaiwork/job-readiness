@@ -42,11 +42,18 @@ npm run start        # backend serves the API and frontend/dist together
 ## Deploy to Railway
 `railway.json` at the repo root drives the build and the start command:
 
-- Build (`npm run deploy:build`): installs backend + frontend deps, runs
-  `prisma generate`, and builds `frontend/dist`.
+- Build: `npm install --prefix backend --include=dev && npm install --prefix
+  frontend --include=dev && npm run build` — installs **both** sub-packages with
+  dev tools (`vite`, `prisma`) included, then builds `frontend/dist`.
 - Start (`npm run deploy:start`): `npm run start` → the Express server binds
   `0.0.0.0:$PORT` and serves the API plus the built frontend.
 - Health check: `GET /api/health`.
+
+The root `postinstall` script installs backend + frontend deps automatically, so
+Railway's default flow (`npm install` → `npm run build` → `npm run start`) works
+even if `railway.json` is not present in the deployed commit. `--include=dev` is
+required because `NODE_ENV=production` otherwise skips `vite` and the `prisma`
+CLI during the build.
 
 Required service variables (same names as `backend/.env.example`):
 `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `NODE_ENV=production`, and
