@@ -44,7 +44,8 @@ Each service points at a sub-folder as its **Root Directory**; each folder has i
 own `railway.json`.
 
 ### Service BE — API (`Root Directory: backend`)
-- Build: `npm ci --include=dev && npx prisma generate`
+- Build: `npx prisma generate` — Nixpacks' install phase already runs `npm ci`;
+  the build command only generates the Prisma client.
 - Start: `node src/index.js` — binds `0.0.0.0:$PORT`, serves `/api/*`.
 - Health check: `/api/health`.
 - Variables: `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `NODE_ENV=production`,
@@ -52,14 +53,17 @@ own `railway.json`.
   `REFRESH_COOKIE_SAMESITE=none`. Railway injects `PORT`.
 
 ### Service FE — frontend (`Root Directory: frontend`)
-- Build: `npm ci --include=dev && npm run build`
+- Build: `npm run build` — Nixpacks' install phase already ran `npm ci`.
 - Start: `node server.mjs` — serves `frontend/dist` with SPA fallback
   (`server.mjs`), so React Router deep links work.
 - Variables: `VITE_API_URL=https://<backend-service-url>/api` (read at build time).
 
-`--include=dev` is required because `NODE_ENV=production` otherwise skips `vite`
-and the `prisma` CLI during the build. Build commands can also be pasted into the
-service's "Build command" field in the Railway dashboard.
+The build tools (`vite`, `tailwindcss`, `@vitejs/plugin-react`, `prisma` CLI) are
+declared in each package's `dependencies` so Nixpacks' single `npm ci` installs
+them even with `NODE_ENV=production`. **Never put another `npm ci`/`npm install`
+in the build command** — Nixpacks installs once, and a second `npm ci` fails with
+`EBUSY` removing `node_modules/.cache`. Build commands can alternatively be
+pasted into the service's "Build command" field in the Railway dashboard.
 
 ### Split-deploy gotchas (handled)
 - The refresh-token cookie is set by the backend with
