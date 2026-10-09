@@ -39,25 +39,36 @@ npm run build        # builds frontend/dist
 npm run start        # backend serves the API and frontend/dist together
 ```
 
-## Deploy to Railway
-`railway.json` at the repo root drives the build and the start command:
+## Deploy to Railway (two services)
+Each service points at a sub-folder as its **Root Directory**; each folder has its
+own `railway.json`.
 
-- Build: `npm install --prefix backend --include=dev && npm install --prefix
-  frontend --include=dev && npm run build` — installs **both** sub-packages with
-  dev tools (`vite`, `prisma`) included, then builds `frontend/dist`.
-- Start (`npm run deploy:start`): `npm run start` → the Express server binds
-  `0.0.0.0:$PORT` and serves the API plus the built frontend.
-- Health check: `GET /api/health`.
+### Service BE — API (`Root Directory: backend`)
+- Build: `npm ci --include=dev && npx prisma generate`
+- Start: `node src/index.js` — binds `0.0.0.0:$PORT`, serves `/api/*`.
+- Health check: `/api/health`.
+- Variables: `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `NODE_ENV=production`,
+  `CORS_ORIGIN=https://<frontend-service-url>`, and
+  `REFRESH_COOKIE_SAMESITE=none`. Railway injects `PORT`.
 
-The root `postinstall` script installs backend + frontend deps automatically, so
-Railway's default flow (`npm install` → `npm run build` → `npm run start`) works
-even if `railway.json` is not present in the deployed commit. `--include=dev` is
-required because `NODE_ENV=production` otherwise skips `vite` and the `prisma`
-CLI during the build.
+### Service FE — frontend (`Root Directory: frontend`)
+- Build: `npm ci --include=dev && npm run build`
+- Start: `node server.mjs` — serves `frontend/dist` with SPA fallback
+  (`server.mjs`), so React Router deep links work.
+- Variables: `VITE_API_URL=https://<backend-service-url>/api` (read at build time).
 
-Required service variables (same names as `backend/.env.example`):
-`DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `NODE_ENV=production`, and
-`CORS_ORIGIN` set to the public Railway URL. Railway injects `PORT` automatically.
+`--include=dev` is required because `NODE_ENV=production` otherwise skips `vite`
+and the `prisma` CLI during the build. Build commands can also be pasted into the
+service's "Build command" field in the Railway dashboard.
+
+### Split-deploy gotchas (handled)
+- The refresh-token cookie is set by the backend with
+  `SameSite=<REFRESH_COOKIE_SAMESITE>` (`auth.controller.js`) — on two different
+  domains it must be `none` (with HTTPS) or the browser won't send it, breaking
+  session refresh.
+- CORS must list the frontend URL (`credentials: true` is already enabled).
+- `VITE_API_URL` must point at the backend at build time; `frontend/src/services/api.js`
+  already sends `credentials: "include"` and uses this URL.
 
 ### Database safety (Prisma)
 The schema is created and upgraded **idempotently at startup** by
