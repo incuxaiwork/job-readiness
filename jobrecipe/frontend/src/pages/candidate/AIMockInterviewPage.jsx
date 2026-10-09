@@ -226,7 +226,7 @@ function DrArvindSwamiVideoCam({
 
 export const AIMockInterviewPage = () => {
   const navigate = useNavigate();
-  const { navigateTo, currentUser, role, adminUser, candidateSubmissions, assessments, isAssessmentCompleted, addToast, startAssessment } = useApp();
+  const { navigateTo, currentUser, role, adminUser, candidateSubmissions, assessments, isAssessmentCompleted, addToast, startAssessment, isInterviewUnlocked } = useApp();
 
   // Helper to open candidate analysis report
   const handleOpenCandidateAnalysis = () => {
@@ -2021,8 +2021,19 @@ export const AIMockInterviewPage = () => {
   // ==========================================
   const isAdmin = role === 'admin' || Boolean(adminUser) || (typeof window !== 'undefined' && localStorage.getItem('rsj_role') === 'admin');
 
-  // List of active assessments (Coding, Reasoning, Aptitude, Technical)
-  const activeAssessmentsList = (assessments && assessments.length >= 4) ? assessments : [
+  const isAllMix = (cat = '', title = '') => {
+    const c = String(cat || '').toLowerCase().trim();
+    const t = String(title || '').toLowerCase().trim();
+    return (
+      ['all mix', 'all', 'full length', 'all mix (combined)', 'hybrid all-mix'].some(m => c.includes(m)) ||
+      t.includes('all mix') ||
+      t.includes('full test') ||
+      t.includes('job readiness full')
+    );
+  };
+
+  // List of active assessments (dynamic or mock fallback)
+  const activeAssessmentsList = (Array.isArray(assessments) && assessments.length > 0) ? assessments : [
     { id: 'asm-code-1', title: 'Full-Stack Algorithmic Coding Challenge', category: 'Coding', totalQuestions: 4, durationMinutes: 10 },
     { id: 'asm-reas-1', title: 'Logical Reasoning & Critical Thinking Exam', category: 'Reasoning', totalQuestions: 10, durationMinutes: 10 },
     { id: 'asm-apt-1', title: 'Quantitative Aptitude Benchmark Test', category: 'Aptitude', totalQuestions: 10, durationMinutes: 10 },
@@ -2051,7 +2062,17 @@ export const AIMockInterviewPage = () => {
   const completedList = activeAssessmentsList.filter(checkIsCompleted);
   const completedCount = completedList.length;
   const totalRequiredCount = activeAssessmentsList.length;
-  const hasCompletedAllAssessments = totalRequiredCount > 0 && completedCount === totalRequiredCount;
+  const hasCompletedAllMixInList = activeAssessmentsList.some(asm => isAllMix(asm.category, asm.title) && checkIsCompleted(asm));
+  const hasCompletedAllMixSub = (candidateSubmissions || []).some(s => isAllMix(s.category, s.assessment_title || s.assessmentName) && (s.status === 'Completed' || s.score !== undefined || s.obtained_marks !== undefined));
+
+  const hasCompletedAllAssessments = Boolean(
+    isInterviewUnlocked ||
+    isAdmin ||
+    hasCompletedAllMixInList ||
+    hasCompletedAllMixSub ||
+    (totalRequiredCount > 0 && completedCount === totalRequiredCount) ||
+    (totalRequiredCount === 1 && completedCount >= 1)
+  );
   const completionPercentage = totalRequiredCount > 0 ? Math.round((completedCount / totalRequiredCount) * 100) : 0;
 
   // ==========================================
@@ -2076,14 +2097,16 @@ export const AIMockInterviewPage = () => {
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100/80 border border-amber-300 text-amber-900 text-xs font-bold">
               <span>Prerequisite Required</span>
               <span>•</span>
-              <span>4 Assessments Mandatory</span>
+              <span>{activeAssessmentsList.length === 1 || activeAssessmentsList.some(a => isAllMix(a.category, a.title)) ? 'Assessment Completion Mandatory' : `${totalRequiredCount} Assessments Mandatory`}</span>
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               AI Mock Interview is Locked
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto leading-relaxed">
-              Complete all four assessment modules (Coding, Aptitude, Reasoning, Technical) to unlock your personalized AI Mock Interview session.
+              {activeAssessmentsList.length === 1 || activeAssessmentsList.some(a => isAllMix(a.category, a.title))
+                ? 'Complete your Job Readiness Assessment to unlock your personalized AI Mock Interview session.'
+                : 'Complete all assessment modules to unlock your personalized AI Mock Interview session.'}
             </p>
           </div>
 

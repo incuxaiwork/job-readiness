@@ -3,7 +3,7 @@ const { Pool } = pkg;
 import dotenv from 'dotenv';
 dotenv.config();
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = process.env.DATABASE_URL || process.env.DATABASE_PUBLIC_URL;
 
 if (!connectionString) {
   console.warn('⚠️ DATABASE_URL is not set. Running in local fallback mode without PostgreSQL.');

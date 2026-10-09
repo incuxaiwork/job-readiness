@@ -141,7 +141,7 @@ export const AppProvider = ({ children }) => {
             duration_minutes: 10,
             topics: Array.isArray(a.topics) ? a.topics : []
           }));
-        if (filtered.length >= 4) {
+        if (filtered.length > 0) {
           localStorage.setItem('rsj_assessments', JSON.stringify(filtered));
           return filtered;
         }
@@ -270,8 +270,8 @@ export const AppProvider = ({ children }) => {
     const targetTitle = (isObj && param.title ? String(param.title) : String(param)).trim().toLowerCase();
     const targetCat = (isObj && param.category ? String(param.category) : '').trim().toLowerCase();
 
-    // 1. Direct status check on object if explicitly marked completed with score
-    if (isObj && param.status === 'Completed' && (param.score !== undefined || param.lastScore !== undefined)) {
+    // 1. Direct status check on object if explicitly marked completed
+    if (isObj && (param.status === 'Completed' || param.score !== undefined || param.lastScore !== undefined)) {
       return true;
     }
 
@@ -291,16 +291,53 @@ export const AppProvider = ({ children }) => {
 
   const areAllAssessmentsCompleted = () => {
     if (role === 'admin') return true;
-    const activeList = (Array.isArray(assessments) && assessments.length >= 4)
+
+    // 1. Check flag stored in localStorage upon completing an exam attempt
+    if (typeof window !== 'undefined' && (
+      localStorage.getItem('rsj_interview_unlocked_by_test') === 'true' ||
+      localStorage.getItem('rsj_assessment_completed') === 'true'
+    )) {
+      return true;
+    }
+
+    // Helper: detect if an assessment is an All-Mix / combined comprehensive exam
+    const isAllMixItem = (cat = '', title = '') => {
+      const c = String(cat || '').toLowerCase().trim();
+      const t = String(title || '').toLowerCase().trim();
+      return (
+        ['all mix', 'all', 'full length', 'all mix (combined)', 'hybrid all-mix'].some(m => c.includes(m)) ||
+        t.includes('all mix') ||
+        t.includes('full test') ||
+        t.includes('job readiness full')
+      );
+    };
+
+    // 2. Check candidateSubmissions: if ANY submitted test is an All Mix exam, unlock interview
+    const hasCompletedAllMixSub = (candidateSubmissions || []).some(sub => {
+      const isMix = isAllMixItem(sub.category, sub.assessment_title || sub.assessmentName);
+      const isDone = sub.status === 'Completed' || sub.score !== undefined || sub.obtained_marks !== undefined;
+      return isMix && isDone;
+    });
+    if (hasCompletedAllMixSub) return true;
+
+    // 3. Active list of assessments
+    const activeList = (Array.isArray(assessments) && assessments.length > 0)
       ? assessments
       : INITIAL_ASSESSMENTS;
     if (!activeList || activeList.length === 0) return false;
 
-    // Check if all assessments in activeList are completed
+    // 4. If active list has an All Mix exam and student has completed it, unlock immediately
+    const hasCompletedAllMixInList = activeList.some(asm => isAllMixItem(asm.category, asm.title) && isAssessmentCompleted(asm));
+    if (hasCompletedAllMixInList) return true;
+
+    // 5. If all published assessments in activeList are completed
     const allListDone = activeList.every(asm => isAssessmentCompleted(asm));
     if (allListDone) return true;
 
-    // Also check if all 4 core categories have been completed
+    // 6. If only 1 assessment is published and candidate has completed it
+    if (activeList.length === 1 && isAssessmentCompleted(activeList[0])) return true;
+
+    // 7. Legacy fallback check for 4 individual core categories
     const requiredCategories = ['coding', 'aptitude', 'reasoning', 'technical'];
     const completedCategories = new Set();
     activeList.forEach(asm => {
@@ -473,7 +510,7 @@ export const AppProvider = ({ children }) => {
       } catch (err) {
         console.warn('Backend assessments sync warning:', err.message);
       }
-      setAssessments(prev => (prev && prev.length >= 4 ? prev : INITIAL_ASSESSMENTS));
+      setAssessments(prev => (prev && prev.length > 0 ? prev : INITIAL_ASSESSMENTS));
     };
     fetchAssessments();
   }, [currentUser?.id, role]);

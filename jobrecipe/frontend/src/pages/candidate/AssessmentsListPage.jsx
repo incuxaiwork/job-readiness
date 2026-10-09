@@ -57,7 +57,7 @@ export const AssessmentsListPage = () => {
             Assessments & Mock Tests
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Complete all four modules (Coding, Aptitude, Reasoning, Technical) to generate your verified Job Readiness Report.
+            Complete your assessment to generate your verified Job Readiness Report and unlock your personalized AI Mock Interview.
           </p>
         </div>
 

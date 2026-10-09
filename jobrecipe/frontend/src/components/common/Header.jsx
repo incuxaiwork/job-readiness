@@ -195,7 +195,7 @@ export const Header = ({ onToggleSidebar }) => {
               <button
                 onClick={() => {
                   if (!isInterviewUnlocked) {
-                    addToast('Please complete all 4 assessments (Coding, Aptitude, Reasoning, Technical) to unlock your AI Mock Interview session.', 'warning');
+                    addToast('Please complete your required assessment to unlock your AI Mock Interview session.', 'warning');
                     navigateTo('assessments');
                     return;
                   }
@@ -206,7 +206,7 @@ export const Header = ({ onToggleSidebar }) => {
                     ? 'bg-slate-900 hover:bg-slate-800 text-white border-slate-700/60'
                     : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-200'
                 }`}
-                title={isInterviewUnlocked ? 'AI Mock Interview' : 'Complete 4 assessments to unlock'}
+                title={isInterviewUnlocked ? 'AI Mock Interview' : 'Complete assessment to unlock'}
               >
                 {isInterviewUnlocked ? (
                   <>
@@ -336,7 +336,7 @@ export const Header = ({ onToggleSidebar }) => {
                             <button
                               onClick={() => {
                                 if (!isInterviewUnlocked) {
-                                  addToast('Please complete all 4 assessments (Coding, Aptitude, Reasoning, Technical) to unlock your AI Mock Interview session.', 'warning');
+                                  addToast('Please complete your required assessment to unlock your AI Mock Interview session.', 'warning');
                                   navigateTo('assessments');
                                 } else {
                                   navigateTo('ai-mock-interview');

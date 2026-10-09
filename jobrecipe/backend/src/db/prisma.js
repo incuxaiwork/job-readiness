@@ -3,7 +3,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:dKicnZwveKVdMTVUAJfnhJCCcilefJsN@hayabusa.proxy.rlwy.net:50081/railway';
+const connectionString = process.env.DATABASE_URL || process.env.DATABASE_PUBLIC_URL || 'postgresql://postgres:yqWznfiBimujSCpYREhsaRDWmkeSiIkn@mainline.proxy.rlwy.net:56422/railway';
 const adapter = new PrismaPg({ connectionString });
 
 // Global Prisma Client singleton

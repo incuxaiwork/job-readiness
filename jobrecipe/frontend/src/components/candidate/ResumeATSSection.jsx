@@ -139,7 +139,7 @@ export const ResumeATSSection = () => {
 
   const handleLaunchInterview = () => {
     if (!isInterviewUnlocked && role !== 'admin') {
-      addToast('Please complete all 4 assessments (Coding, Aptitude, Reasoning, Technical) to unlock your AI Mock Interview session.', 'warning');
+      addToast('Please complete your required assessment to unlock your AI Mock Interview session.', 'warning');
       navigateTo('assessments');
       return;
     }
@@ -334,7 +334,7 @@ export const ResumeATSSection = () => {
             {!isInterviewUnlocked && role !== 'admin' ? (
               <>
                 <Lock className="w-4 h-4 text-amber-200" />
-                <span>Complete 4 Assessments to Unlock AI Mock Interview</span>
+                <span>Complete Assessment to Unlock AI Mock Interview</span>
               </>
             ) : (
               <>
