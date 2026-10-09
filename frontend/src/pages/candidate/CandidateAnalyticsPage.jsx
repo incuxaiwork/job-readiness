@@ -59,6 +59,31 @@ export default function CandidateAnalyticsPage() {
     }
   }, []);
 
+  useEffect(() => {
+    // Keep the active tab in sync while the user scrolls between sections
+    const ids = ['results', 'concepts', 'interview', 'eligibility'];
+
+    const updateActive = () => {
+      const offset = 140; // sticky header + tab bar height
+      let current = null;
+      for (const id of ids) {
+        const el = sectionRefs[id]?.current;
+        if (!el) continue;
+        if (current === null) current = id;
+        if (el.getBoundingClientRect().top - offset <= 0) current = id;
+      }
+      if (current) setActiveSection((prev) => (prev === current ? prev : current));
+    };
+
+    updateActive();
+    window.addEventListener('scroll', updateActive, { passive: true });
+    window.addEventListener('resize', updateActive);
+    return () => {
+      window.removeEventListener('scroll', updateActive);
+      window.removeEventListener('resize', updateActive);
+    };
+  }, [latestResult, candidateSubmissions]);
+
   // 1. Get distinct latest submission per assessment from candidateSubmissions
   const distinctSubs = React.useMemo(() => {
     const subs = Array.isArray(candidateSubmissions) ? candidateSubmissions : [];

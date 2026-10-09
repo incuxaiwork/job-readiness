@@ -8,6 +8,7 @@ import {
   getRoleDefaults
 } from '../../utils/resumeParser';
 import { getFaceLandmarker, classifyFrame } from '../../services/proctoringService';
+import { getActiveAssessments, checkAssessmentCompleted } from '../../utils/interviewLock';
 import {
   Volume2,
   Video,
@@ -2068,30 +2069,10 @@ export const AIMockInterviewPage = () => {
   const isAdmin = role === 'admin' || Boolean(adminUser) || (typeof window !== 'undefined' && localStorage.getItem('rsj_role') === 'admin');
 
   // List of active assessments (Coding, Reasoning, Aptitude, Technical)
-  const activeAssessmentsList = (assessments && assessments.length > 0) ? assessments : [
-    { id: 'asm-code-2026', title: 'Full-Stack Algorithmic Coding Challenge', category: 'Coding', totalQuestions: 4, durationMinutes: 10 },
-    { id: 'asm-reas-2026', title: 'Logical Reasoning & Critical Thinking Exam', category: 'Reasoning', totalQuestions: 10, durationMinutes: 10 },
-    { id: 'asm-apt-2026', title: 'Quantitative Aptitude Benchmark Test', category: 'Aptitude', totalQuestions: 10, durationMinutes: 10 },
-    { id: 'asm-tech-2026', title: 'Core Technical & CS Fundamentals Assessment', category: 'Technical', totalQuestions: 10, durationMinutes: 10 }
-  ];
+  const activeAssessmentsList = getActiveAssessments(assessments);
 
-  const checkIsCompleted = (asm) => {
-    if (!asm) return false;
-    if (typeof isAssessmentCompleted === 'function' && isAssessmentCompleted(asm)) return true;
-    const targetId = String(asm.id || '').trim().toLowerCase();
-    const targetCat = String(asm.category || '').trim().toLowerCase();
-    const targetTitle = String(asm.title || '').trim().toLowerCase();
-
-    return (candidateSubmissions || []).some(s => {
-      const subAsmId = String(s.assessment_id || s.assessmentId || '').trim().toLowerCase();
-      if (targetId && subAsmId === targetId) return true;
-      const subCat = String(s.category || '').trim().toLowerCase();
-      if (targetCat && subCat && subCat === targetCat) return true;
-      const subTitle = String(s.assessment_title || s.assessmentName || '').trim().toLowerCase();
-      if (targetTitle && subTitle && subTitle === targetTitle) return true;
-      return false;
-    });
-  };
+  const checkIsCompleted = (asm) =>
+    checkAssessmentCompleted(asm, { isAssessmentCompleted, candidateSubmissions });
 
   const completedList = activeAssessmentsList.filter(checkIsCompleted);
   const completedCount = completedList.length;
@@ -2102,7 +2083,7 @@ export const AIMockInterviewPage = () => {
   // If candidate has not completed all assessments yet, and is not admin: show Lock Screen
   if (!isAdmin && !hasCompletedAllAssessments) {
     return (
-      <div className="relative min-h-[82vh] rounded-3xl overflow-hidden bg-white text-slate-800 border border-slate-200/80 shadow-md p-6 sm:p-10 flex flex-col items-center justify-center text-center">
+      <div className="relative w-full text-slate-800 flex flex-col items-center justify-center text-center">
         {/* Ambient Glows */}
         <div className="absolute top-0 right-1/4 w-80 h-80 rounded-full bg-brand-500/5 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-1/4 w-80 h-80 rounded-full bg-amber-500/5 blur-3xl pointer-events-none" />
@@ -2124,13 +2105,7 @@ export const AIMockInterviewPage = () => {
         <div className="w-20 h-20 rounded-3xl bg-amber-50 border border-amber-200 flex items-center justify-center mb-4 shadow-md shadow-amber-500/10 text-amber-600">
           <Lock className="w-10 h-10" />
         </div>
-
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-mono font-bold uppercase tracking-wider mb-3">
-          <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-          <span>Stage Lock • All {totalRequiredCount} Module Tests Required</span>
-        </div>
-
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight max-w-xl">
+         <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight max-w-xl">
           AI Mock Interview Locked
         </h2>
 

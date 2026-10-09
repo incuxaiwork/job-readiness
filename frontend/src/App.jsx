@@ -26,6 +26,7 @@ import { AdminInterviewsPage } from './pages/admin/AdminInterviewsPage';
 
 import { JobReadinessHero } from './pages/JobReadinessHero';
 import { ShieldAlert, Lock } from 'lucide-react';
+import { isInterviewLocked } from './utils/interviewLock';
 
 // ── Route Guards ────────────────────────────────────────────────────────────
 
@@ -142,6 +143,21 @@ function ShellLayout({ children }) {
   );
 }
 
+// ── Interview route: locked state uses the normal shell, live interview is full-screen ──
+function InterviewRoute() {
+  const { role, adminUser, assessments, candidateSubmissions, isAssessmentCompleted } = useApp();
+  const locked = isInterviewLocked({ role, adminUser, assessments, candidateSubmissions, isAssessmentCompleted });
+
+  if (locked) {
+    return (
+      <ShellLayout>
+        <AIMockInterviewPage />
+      </ShellLayout>
+    );
+  }
+  return <InterviewRunner />;
+}
+
 // ── App ─────────────────────────────────────────────────────────────────────
 export default function App() {
   return (
@@ -156,11 +172,11 @@ export default function App() {
         <Route path="/admin" element={<><AdminLoginPage /><ToastContainer /></>} />
         <Route path="/admin-login" element={<Navigate to="/admin" replace />} />
 
-        {/* AI Mock Interview — distraction-free full screen without shell/sidebar */}
+        {/* AI Mock Interview — full-screen when unlocked; normal shell while locked */}
         <Route
           path="/interview"
           element={
-            <InterviewRunner />
+            <InterviewRoute />
           }
         />
         <Route path="/ai-mock-interview" element={<Navigate to="/interview" replace />} />
