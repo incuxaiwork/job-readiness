@@ -589,13 +589,13 @@ export const fallbackCandidates = [
     graduationYear: 2026,
     experience_level: 'Fresher',
     experienceLevel: 'Fresher',
-    job_readiness_score: 78,
-    aptitude_score: 82,
-    reasoning_score: 74,
-    technical_score: 78,
-    verbal_score: 70,
-    coding_score: 80,
-    assessments_completed: 2,
+    job_readiness_score: 0,
+    aptitude_score: 0,
+    reasoning_score: 0,
+    technical_score: 0,
+    verbal_score: 0,
+    coding_score: 0,
+    assessments_completed: 0,
     tenth_school: 'Kendriya Vidyalaya',
     tenthSchool: 'Kendriya Vidyalaya',
     tenth_marks: 89.0,
@@ -627,13 +627,13 @@ export const fallbackCandidates = [
     graduationYear: 2026,
     experience_level: 'Fresher',
     experienceLevel: 'Fresher',
-    job_readiness_score: 82,
-    aptitude_score: 85,
-    reasoning_score: 80,
-    technical_score: 84,
-    verbal_score: 78,
-    coding_score: 82,
-    assessments_completed: 3,
+    job_readiness_score: 0,
+    aptitude_score: 0,
+    reasoning_score: 0,
+    technical_score: 0,
+    verbal_score: 0,
+    coding_score: 0,
+    assessments_completed: 0,
     tenth_school: 'Delhi Public School',
     tenthSchool: 'Delhi Public School',
     tenth_marks: 92.4,
@@ -733,12 +733,13 @@ export const saveSubmissionFallback = (submission) => {
   const newCode = Number(catScores.coding || 0);
 
   const updateCand = (c) => {
-    const apt = newApt > 0 ? newApt : (c.aptitude_score || c.aptitudeScore || 75);
-    const reason = newReason > 0 ? newReason : (c.reasoning_score || c.reasoningScore || 70);
-    const tech = newTech > 0 ? newTech : (c.technical_score || c.technicalScore || 80);
-    const verb = newVerb > 0 ? newVerb : (c.verbal_score || c.verbalScore || 75);
-    const code = newCode > 0 ? newCode : (c.coding_score || c.codingScore || 75);
-    const overall = Math.round((apt + reason + tech + verb + code) / 5);
+    const apt = newApt > 0 ? newApt : Number(c.aptitude_score || c.aptitudeScore || 0);
+    const reason = newReason > 0 ? newReason : Number(c.reasoning_score || c.reasoningScore || 0);
+    const tech = newTech > 0 ? newTech : Number(c.technical_score || c.technicalScore || 0);
+    const verb = newVerb > 0 ? newVerb : Number(c.verbal_score || c.verbalScore || 0);
+    const code = newCode > 0 ? newCode : Number(c.coding_score || c.codingScore || 0);
+    const activeScores = [apt, reason, tech, verb, code].filter(s => s > 0);
+    const overall = activeScores.length > 0 ? Math.round(activeScores.reduce((a, b) => a + b, 0) / activeScores.length) : 0;
 
     return {
       ...c,

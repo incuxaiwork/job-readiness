@@ -204,34 +204,15 @@ export const AppProvider = ({ children }) => {
   const [latestResult, setLatestResult] = useState(() => {
     try {
       const saved = localStorage.getItem('rsj_latest_result');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Only return if it's a real verified submission, not legacy hardcoded mock
+        if (parsed && parsed.assessmentName !== 'Technical Assessment' || parsed?.assessmentId) {
+          return parsed;
+        }
+      }
     } catch (e) {}
-    return {
-      score: 78,
-      totalMarks: 100,
-      accuracy: 82,
-      correctCount: 16,
-      incorrectCount: 4,
-      unansweredCount: 0,
-      timeTaken: '28 min',
-      completedAt: 'Aug 30, 2026',
-      assessmentName: 'Technical Assessment',
-      categoryScores: {
-        aptitude: 82,
-        reasoning: 74,
-        technical: 78
-      },
-      topicBreakdown: [
-        { topic: 'Arrays & Strings', score: 90, status: 'Mastered' },
-        { topic: 'Object-Oriented Programming (OOP)', score: 80, status: 'Strong' },
-        { topic: 'Binary Trees & Graph Traversals', score: 72, status: 'Average' },
-        { topic: 'DBMS & Transaction Management', score: 65, status: 'Needs Review' },
-        { topic: 'SQL Joins & Window Functions', score: 58, status: 'Weak' }
-      ],
-      strengths: ['Logical reasoning', 'Programming fundamentals', 'Problem solving'],
-      weaknesses: ['SQL joins & window queries', 'Quantitative aptitude (Probability)', 'Data structures (Advanced)'],
-      recommendedTopics: ['SQL Window Functions', 'Probability & Combinatorics', 'Graph Search Algorithms']
-    };
+    return null;
   });
 
   // Global Toast Notifications
@@ -349,20 +330,8 @@ export const AppProvider = ({ children }) => {
                 ? subRes.data.data
                 : (Array.isArray(subRes?.data) ? subRes.data : []);
               if (subRes.ok && Array.isArray(subList)) {
-                setCandidateSubmissions(prev => {
-                  const mergedMap = new Map();
-                  (prev || []).forEach(s => {
-                    const k = (s.id || s.assessment_id || s.assessmentId || '').toString().toLowerCase();
-                    if (k) mergedMap.set(k, s);
-                  });
-                  subList.forEach(s => {
-                    const k = (s.id || s.assessment_id || s.assessmentId || '').toString().toLowerCase();
-                    if (k) mergedMap.set(k, s);
-                  });
-                  const mergedList = Array.from(mergedMap.values());
-                  try { localStorage.setItem('rsj_candidate_submissions', JSON.stringify(mergedList)); } catch(e){}
-                  return mergedList;
-                });
+                setCandidateSubmissions(subList);
+                try { localStorage.setItem('rsj_candidate_submissions', JSON.stringify(subList)); } catch(e){}
                 if (subList.length > 0) {
                   const latest = subList[0];
                   const mappedResult = {
@@ -381,6 +350,10 @@ export const AppProvider = ({ children }) => {
                     topicBreakdown: typeof latest.topic_breakdown === 'string' ? JSON.parse(latest.topic_breakdown) : (latest.topic_breakdown || []),
                   };
                   setLatestResult(mappedResult);
+                  try { localStorage.setItem('rsj_latest_result', JSON.stringify(mappedResult)); } catch(e){}
+                } else {
+                  setLatestResult(null);
+                  try { localStorage.removeItem('rsj_latest_result'); } catch(e){}
                 }
               }
             } catch (subErr) {
@@ -415,21 +388,32 @@ export const AppProvider = ({ children }) => {
           const subList = Array.isArray(subRes?.data?.data)
             ? subRes.data.data
             : (Array.isArray(subRes?.data) ? subRes.data : []);
-          if (isMounted && subRes.ok && Array.isArray(subList) && subList.length > 0) {
-            setCandidateSubmissions(prev => {
-              const mergedMap = new Map();
-              (prev || []).forEach(s => {
-                const k = (s.id || s.assessment_id || s.assessmentId || '').toString().toLowerCase();
-                if (k) mergedMap.set(k, s);
-              });
-              subList.forEach(s => {
-                const k = (s.id || s.assessment_id || s.assessmentId || '').toString().toLowerCase();
-                if (k) mergedMap.set(k, s);
-              });
-              const mergedList = Array.from(mergedMap.values());
-              try { localStorage.setItem('rsj_candidate_submissions', JSON.stringify(mergedList)); } catch(e){}
-              return mergedList;
-            });
+          if (isMounted && subRes.ok && Array.isArray(subList)) {
+            setCandidateSubmissions(subList);
+            try { localStorage.setItem('rsj_candidate_submissions', JSON.stringify(subList)); } catch(e){}
+            if (subList.length > 0) {
+              const latest = subList[0];
+              const mappedResult = {
+                score: Number(latest.score ?? 0),
+                totalMarks: Number(latest.total_marks ?? 100),
+                obtainedMarks: Number(latest.obtained_marks ?? latest.score ?? 0),
+                accuracy: Number(latest.accuracy ?? latest.score ?? 0),
+                correctCount: Number(latest.correct_count ?? 0),
+                incorrectCount: Number(latest.incorrect_count ?? 0),
+                unansweredCount: Number(latest.unanswered_count ?? 0),
+                timeTaken: latest.time_taken || '28 min',
+                completedAt: new Date(latest.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                assessmentName: latest.assessment_title || 'Technical Assessment',
+                assessmentId: latest.assessment_id,
+                categoryScores: typeof latest.category_scores === 'string' ? JSON.parse(latest.category_scores) : (latest.category_scores || {}),
+                topicBreakdown: typeof latest.topic_breakdown === 'string' ? JSON.parse(latest.topic_breakdown) : (latest.topic_breakdown || []),
+              };
+              setLatestResult(mappedResult);
+              try { localStorage.setItem('rsj_latest_result', JSON.stringify(mappedResult)); } catch(e){}
+            } else {
+              setLatestResult(null);
+              try { localStorage.removeItem('rsj_latest_result'); } catch(e){}
+            }
           }
         } catch (e) {}
       }
@@ -866,7 +850,12 @@ export const AppProvider = ({ children }) => {
               topicBreakdown: typeof latest.topic_breakdown === 'string' ? JSON.parse(latest.topic_breakdown) : (latest.topic_breakdown || []),
             };
             setLatestResult(mappedResult);
+          } else {
+            setLatestResult(null);
           }
+        } else {
+          setCandidateSubmissions([]);
+          setLatestResult(null);
         }
       } catch (e) {}
       addToast(`Welcome back, ${cand.name || 'Candidate'}! Directing to your exam assessments.`, 'success');
@@ -1275,7 +1264,7 @@ export const AppProvider = ({ children }) => {
       if (stat.totalMarks > 0) {
         categoryScores[sec] = Math.round((stat.obtainedMarks / stat.totalMarks) * 100);
       } else {
-        const prevSecScore = currentUser?.[`${sec}Score`] || (sec === 'verbal' ? currentUser?.verbalScore : 0) || latestResult?.categoryScores?.[sec] || 75;
+        const prevSecScore = Number(currentUser?.[`${sec}Score`] ?? (sec === 'verbal' ? currentUser?.verbalScore : null) ?? latestResult?.categoryScores?.[sec] ?? 0);
         categoryScores[sec] = prevSecScore;
       }
     });
@@ -1470,12 +1459,13 @@ export const AppProvider = ({ children }) => {
     // 2. Update candidate score in currentUser state
     setCurrentUser(prev => {
       if (!prev) return null;
-      const aptScore = (categoryScores.aptitude > 0) ? categoryScores.aptitude : (prev.aptitudeScore || 75);
-      const reasonScore = (categoryScores.reasoning > 0) ? categoryScores.reasoning : (prev.reasoningScore || 70);
-      const techScore = (categoryScores.technical > 0) ? categoryScores.technical : (prev.technicalScore || 80);
-      const verbScore = (categoryScores.verbal > 0) ? categoryScores.verbal : (prev.verbalScore || 75);
-      const codeScore = (categoryScores.coding > 0) ? categoryScores.coding : (prev.codingScore || 75);
-      const compositeReadiness = Math.round((aptScore + reasonScore + techScore + verbScore + codeScore) / 5);
+      const aptScore = (categoryScores.aptitude > 0) ? categoryScores.aptitude : Number(prev.aptitudeScore ?? 0);
+      const reasonScore = (categoryScores.reasoning > 0) ? categoryScores.reasoning : Number(prev.reasoningScore ?? 0);
+      const techScore = (categoryScores.technical > 0) ? categoryScores.technical : Number(prev.technicalScore ?? 0);
+      const verbScore = (categoryScores.verbal > 0) ? categoryScores.verbal : Number(prev.verbalScore ?? 0);
+      const codeScore = (categoryScores.coding > 0) ? categoryScores.coding : Number(prev.codingScore ?? 0);
+      const activeScores = [aptScore, reasonScore, techScore, verbScore, codeScore].filter(s => s > 0);
+      const compositeReadiness = activeScores.length > 0 ? Math.round(activeScores.reduce((a, b) => a + b, 0) / activeScores.length) : calculatedScore;
 
       const updatedUser = {
         ...prev,

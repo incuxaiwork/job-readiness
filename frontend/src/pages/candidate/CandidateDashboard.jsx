@@ -203,7 +203,7 @@ export const CandidateDashboard = () => {
           </div>
 
           <div className="py-2">
-            <ScoreRing score={currentUser?.jobReadinessScore || 78} maxScore={100} size={180} />
+            <ScoreRing score={Number(currentUser?.jobReadinessScore ?? currentUser?.job_readiness_score ?? 0)} maxScore={100} size={180} />
           </div>
 
           {/* Subscore Breakdown */}
@@ -406,7 +406,10 @@ export const CandidateDashboard = () => {
                     {isCompleted ? (
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => navigateTo('candidate-analytics')}
+                          onClick={() => {
+                            localStorage.setItem('rsj_selected_analytics_asm_id', asm.id || '');
+                            navigateTo('candidate-analytics');
+                          }}
                           className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-xs"
                           title="Single-Attempt Policy Active: View your final score & analysis"
                         >

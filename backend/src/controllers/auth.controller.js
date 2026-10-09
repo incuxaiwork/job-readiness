@@ -150,14 +150,14 @@ export const register = async (req, res) => {
       cgpa: candidateCgpa,
       sgpa: candidateCgpa,
       backlogs: candidateBacklogs,
-      jobReadinessScore: 78,
+      jobReadinessScore: 0,
       readinessLevel: "In Progress",
       readinessStatus: "In Progress",
-      aptitudeScore: 80,
-      reasoningScore: 75,
-      technicalScore: 78,
-      verbalScore: 70,
-      codingScore: 75,
+      aptitudeScore: 0,
+      reasoningScore: 0,
+      technicalScore: 0,
+      verbalScore: 0,
+      codingScore: 0,
       assessmentsCompleted: 0
     };
     saveUser({ id, name: candidateName, email: candidateEmail, role: 'candidate', candidate });
@@ -261,8 +261,8 @@ export const register = async (req, res) => {
       graduationPercentage: candidateCgpa, graduation_percentage: candidateCgpa,
       cgpa: candidateCgpa, sgpa: candidateCgpa,
       backlogs: candidateBacklogs,
-      jobReadinessScore: 78, readinessLevel: "In Progress", readinessStatus: "In Progress",
-      aptitudeScore: 80, reasoningScore: 75, technicalScore: 78, verbalScore: 70, codingScore: 75,
+      jobReadinessScore: 0, readinessLevel: "In Progress", readinessStatus: "In Progress",
+      aptitudeScore: 0, reasoningScore: 0, technicalScore: 0, verbalScore: 0, codingScore: 0,
       assessmentsCompleted: 0
     };
     saveUser({ id, name: candidateName, email: candidateEmail, role: 'candidate', candidate });
@@ -354,14 +354,14 @@ export const loginCandidate = async (req, res) => {
       `SELECT u.id, u.email, u.password_hash, u.name, u.role,
               cp.mobile, cp.college, cp.degree, cp.branch, cp.specialization, cp.country, cp.state, cp.city, cp.graduation_year,
               COALESCE(cp.experience_level, c.experience_level, 'Fresher') as experience_level,
-              COALESCE(c.readiness_status, 'In Progress') as readiness_status,
-              COALESCE(c.job_readiness_score, 0) as job_readiness_score,
-              COALESCE(c.aptitude_score, 0) as aptitude_score,
-              COALESCE(c.reasoning_score, 0) as reasoning_score,
-              COALESCE(c.technical_score, 0) as technical_score,
-              COALESCE(c.verbal_score, 0) as verbal_score,
-              COALESCE(c.coding_score, 0) as coding_score,
-              COALESCE(c.assessments_completed, 0) as assessments_completed,
+              COALESCE(s.readiness_status, c.readiness_status, 'In Progress') as readiness_status,
+              COALESCE(s.real_score, c.job_readiness_score, 0) as job_readiness_score,
+              COALESCE(s.apt_score, c.aptitude_score, 0) as aptitude_score,
+              COALESCE(s.reason_score, c.reasoning_score, 0) as reasoning_score,
+              COALESCE(s.tech_score, c.technical_score, 0) as technical_score,
+              COALESCE(s.verb_score, c.verbal_score, 0) as verbal_score,
+              COALESCE(s.code_score, c.coding_score, 0) as coding_score,
+              COALESCE(s.sub_count, c.assessments_completed, 0) as assessments_completed,
               COALESCE(cp.tenth_marks, c.tenth_marks) as tenth_marks,
               COALESCE(cp.twelfth_diploma_marks, c.twelfth_diploma_marks) as twelfth_diploma_marks,
               COALESCE(cp.graduation_percentage, c.graduation_percentage) as graduation_percentage,
@@ -369,6 +369,20 @@ export const loginCandidate = async (req, res) => {
        FROM users u
        LEFT JOIN candidate_profiles cp ON u.id = cp.user_id OR u.id = cp.id
        LEFT JOIN candidates c ON u.id = c.id
+       LEFT JOIN (
+         SELECT 
+           candidate_id,
+           COUNT(id) as sub_count,
+           CASE WHEN SUM(total_marks) > 0 THEN ROUND((SUM(obtained_marks) * 100.0) / SUM(total_marks)) ELSE 0 END as real_score,
+           COALESCE(MAX(CASE WHEN LOWER(assessment_title) LIKE '%apt%' OR LOWER(assessment_title) LIKE '%quant%' THEN score ELSE 0 END), 0) as apt_score,
+           COALESCE(MAX(CASE WHEN LOWER(assessment_title) LIKE '%reason%' OR LOWER(assessment_title) LIKE '%logic%' THEN score ELSE 0 END), 0) as reason_score,
+           COALESCE(MAX(CASE WHEN LOWER(assessment_title) LIKE '%tech%' THEN score ELSE 0 END), 0) as tech_score,
+           COALESCE(MAX(CASE WHEN LOWER(assessment_title) LIKE '%verb%' OR LOWER(assessment_title) LIKE '%eng%' THEN score ELSE 0 END), 0) as verb_score,
+           COALESCE(MAX(CASE WHEN LOWER(assessment_title) LIKE '%code%' OR LOWER(assessment_title) LIKE '%prog%' THEN score ELSE 0 END), 0) as code_score,
+           'Completed' as readiness_status
+         FROM assessment_submissions
+         GROUP BY candidate_id
+       ) s ON (s.candidate_id = u.id)
        WHERE LOWER(u.email) = LOWER($1) AND u.role = 'candidate'
        LIMIT 1`,
       [email.trim()]
@@ -398,25 +412,26 @@ export const loginCandidate = async (req, res) => {
 
     res.cookie(REFRESH_COOKIE, refreshToken, refreshCookieOpts());
 
+    const finalReadinessScore = Number(user.job_readiness_score ?? 0);
     const candidate = {
       id: user.id, name: user.name, email: user.email, mobile: user.mobile,
       college: user.college, degree: user.degree, branch: user.branch,
       specialization: user.specialization, country: user.country,
       state: user.state, city: user.city, graduationYear: user.graduation_year,
       experienceLevel: user.experience_level,
-      jobReadinessScore: user.job_readiness_score || user.jobReadinessScore || 78,
-      job_readiness_score: user.job_readiness_score || user.jobReadinessScore || 78,
-      overallScore: user.job_readiness_score || user.jobReadinessScore || 78,
-      readinessLevel: (user.job_readiness_score || user.jobReadinessScore || 78) >= 65 ? "Job Ready" : "In Progress",
-      readinessStatus: user.readiness_status || "Completed",
-      aptitudeScore: user.aptitude_score || user.aptitudeScore || 82,
-      reasoningScore: user.reasoning_score || user.reasoningScore || 74,
-      technicalScore: user.technical_score || user.technicalScore || 78,
-      verbalScore: user.verbal_score || user.verbalScore || 70,
-      verbal_score: user.verbal_score || user.verbalScore || 70,
-      codingScore: user.coding_score || user.codingScore || 80,
-      coding_score: user.coding_score || user.codingScore || 80,
-      assessmentsCompleted: user.assessments_completed || 0,
+      jobReadinessScore: finalReadinessScore,
+      job_readiness_score: finalReadinessScore,
+      overallScore: finalReadinessScore,
+      readinessLevel: finalReadinessScore >= 65 ? "Job Ready" : "In Progress",
+      readinessStatus: Number(user.assessments_completed ?? 0) > 0 ? (finalReadinessScore >= 65 ? "Job Ready" : "In Progress") : "In Progress",
+      aptitudeScore: Number(user.aptitude_score ?? 0),
+      reasoningScore: Number(user.reasoning_score ?? 0),
+      technicalScore: Number(user.technical_score ?? 0),
+      verbalScore: Number(user.verbal_score ?? 0),
+      verbal_score: Number(user.verbal_score ?? 0),
+      codingScore: Number(user.coding_score ?? 0),
+      coding_score: Number(user.coding_score ?? 0),
+      assessmentsCompleted: Number(user.assessments_completed ?? 0),
       tenthMarks: user.tenth_marks, twelfthDiplomaMarks: user.twelfth_diploma_marks,
       graduationPercentage: user.graduation_percentage,
       tenth_marks: user.tenth_marks, twelfth_diploma_marks: user.twelfth_diploma_marks,
@@ -447,19 +462,19 @@ export const loginCandidate = async (req, res) => {
         city: 'Bengaluru',
         graduationYear: 2026,
         experienceLevel: 'Fresher',
-        jobReadinessScore: 82,
-        job_readiness_score: 82,
-        overallScore: 82,
-        readinessLevel: 'Job Ready',
-        readinessStatus: 'Job Ready',
-        aptitudeScore: 85,
-        reasoningScore: 80,
-        technicalScore: 84,
-        verbalScore: 78,
-        verbal_score: 78,
-        codingScore: 82,
-        coding_score: 82,
-        assessmentsCompleted: 2,
+        jobReadinessScore: 0,
+        job_readiness_score: 0,
+        overallScore: 0,
+        readinessLevel: 'In Progress',
+        readinessStatus: 'In Progress',
+        aptitudeScore: 0,
+        reasoningScore: 0,
+        technicalScore: 0,
+        verbalScore: 0,
+        verbal_score: 0,
+        codingScore: 0,
+        coding_score: 0,
+        assessmentsCompleted: 0,
         tenthMarks: 90,
         twelfthDiplomaMarks: 88,
         graduationPercentage: 82.5,
@@ -603,7 +618,7 @@ export const getMe = async (req, res) => {
   try {
     const candRes = await pool.query(`
       SELECT
-        COALESCE(cp.id, c.id) as id,
+        COALESCE(cp.id, c.id, u.id) as id,
         COALESCE(cp.name, u.name, 'Candidate') as name,
         COALESCE(cp.email, u.email) as email,
         cp.mobile, cp.college, cp.degree, cp.branch, cp.specialization,
@@ -613,20 +628,33 @@ export const getMe = async (req, res) => {
         COALESCE(cp.twelfth_diploma_marks, c.twelfth_diploma_marks) as twelfth_diploma_marks,
         COALESCE(cp.graduation_percentage, c.graduation_percentage) as graduation_percentage,
         COALESCE(cp.backlogs, c.backlogs, 0) as backlogs,
-        COALESCE(c.job_readiness_score, 0) as job_readiness_score,
-        COALESCE(c.job_readiness_score, 0) as overall_score,
-        COALESCE(c.aptitude_score, 0) as aptitude_score,
-        COALESCE(c.reasoning_score, 0) as reasoning_score,
-        COALESCE(c.technical_score, 0) as technical_score,
-        COALESCE(c.verbal_score, 0) as verbal_score,
-        COALESCE(c.coding_score, 0) as coding_score,
-        COALESCE(c.assessments_completed, 0) as assessments_completed,
-        COALESCE(c.readiness_status, 'In Progress') as readiness_status,
-        COALESCE(cp.created_at, c.created_at) as created_at
-      FROM candidate_profiles cp
-      LEFT JOIN candidates c ON cp.id = c.id
-      LEFT JOIN users u ON cp.user_id = u.id
-      WHERE cp.id=$1 OR cp.user_id=$1
+        COALESCE(s.real_score, c.job_readiness_score, 0) as job_readiness_score,
+        COALESCE(s.real_score, c.job_readiness_score, 0) as overall_score,
+        COALESCE(s.apt_score, c.aptitude_score, 0) as aptitude_score,
+        COALESCE(s.reason_score, c.reasoning_score, 0) as reasoning_score,
+        COALESCE(s.tech_score, c.technical_score, 0) as technical_score,
+        COALESCE(s.verb_score, c.verbal_score, 0) as verbal_score,
+        COALESCE(s.code_score, c.coding_score, 0) as coding_score,
+        COALESCE(s.sub_count, c.assessments_completed, 0) as assessments_completed,
+        CASE WHEN COALESCE(s.sub_count, c.assessments_completed, 0) > 0 THEN 'Completed' ELSE 'In Progress' END as readiness_status,
+        COALESCE(cp.created_at, c.created_at, u.created_at) as created_at
+      FROM users u
+      LEFT JOIN candidate_profiles cp ON (cp.user_id = u.id OR cp.id = u.id OR (cp.email IS NOT NULL AND LOWER(cp.email) = LOWER(u.email)))
+      LEFT JOIN candidates c ON (cp.id = c.id OR u.id = c.id)
+      LEFT JOIN (
+        SELECT 
+          candidate_id,
+          COUNT(id) as sub_count,
+          CASE WHEN SUM(total_marks) > 0 THEN ROUND((SUM(obtained_marks) * 100.0) / SUM(total_marks)) ELSE 0 END as real_score,
+          COALESCE(MAX(CASE WHEN LOWER(assessment_title) LIKE '%apt%' OR LOWER(assessment_title) LIKE '%quant%' THEN score ELSE 0 END), 0) as apt_score,
+          COALESCE(MAX(CASE WHEN LOWER(assessment_title) LIKE '%reason%' OR LOWER(assessment_title) LIKE '%logic%' THEN score ELSE 0 END), 0) as reason_score,
+          COALESCE(MAX(CASE WHEN LOWER(assessment_title) LIKE '%tech%' THEN score ELSE 0 END), 0) as tech_score,
+          COALESCE(MAX(CASE WHEN LOWER(assessment_title) LIKE '%verb%' OR LOWER(assessment_title) LIKE '%eng%' THEN score ELSE 0 END), 0) as verb_score,
+          COALESCE(MAX(CASE WHEN LOWER(assessment_title) LIKE '%code%' OR LOWER(assessment_title) LIKE '%prog%' THEN score ELSE 0 END), 0) as code_score
+        FROM assessment_submissions
+        GROUP BY candidate_id
+      ) s ON (s.candidate_id = u.id)
+      WHERE u.id=$1 OR cp.id=$1 OR cp.user_id=$1
       LIMIT 1
     `, [req.user.id]);
 

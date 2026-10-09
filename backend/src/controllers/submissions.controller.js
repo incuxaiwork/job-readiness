@@ -227,26 +227,43 @@ export const submitAssessment = async (req, res) => {
     );
 
     // 5. Update or insert candidate readiness status and scores in candidates table
-    await client.query(
-      `INSERT INTO candidates (id, job_readiness_score, aptitude_score, reasoning_score, technical_score, verbal_score, coding_score, readiness_status, assessments_completed)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'Completed', 1)
-       ON CONFLICT (id) DO UPDATE SET
-         aptitude_score = CASE WHEN EXCLUDED.aptitude_score > 0 THEN EXCLUDED.aptitude_score ELSE COALESCE(NULLIF(candidates.aptitude_score, 0), 75) END,
-         reasoning_score = CASE WHEN EXCLUDED.reasoning_score > 0 THEN EXCLUDED.reasoning_score ELSE COALESCE(NULLIF(candidates.reasoning_score, 0), 70) END,
-         technical_score = CASE WHEN EXCLUDED.technical_score > 0 THEN EXCLUDED.technical_score ELSE COALESCE(NULLIF(candidates.technical_score, 0), 80) END,
-         verbal_score = CASE WHEN EXCLUDED.verbal_score > 0 THEN EXCLUDED.verbal_score ELSE COALESCE(NULLIF(candidates.verbal_score, 0), 75) END,
-         coding_score = CASE WHEN EXCLUDED.coding_score > 0 THEN EXCLUDED.coding_score ELSE COALESCE(NULLIF(candidates.coding_score, 0), 75) END,
-         job_readiness_score = ROUND((
-           (CASE WHEN EXCLUDED.aptitude_score > 0 THEN EXCLUDED.aptitude_score ELSE COALESCE(NULLIF(candidates.aptitude_score, 0), 75) END) +
-           (CASE WHEN EXCLUDED.reasoning_score > 0 THEN EXCLUDED.reasoning_score ELSE COALESCE(NULLIF(candidates.reasoning_score, 0), 70) END) +
-           (CASE WHEN EXCLUDED.technical_score > 0 THEN EXCLUDED.technical_score ELSE COALESCE(NULLIF(candidates.technical_score, 0), 80) END) +
-           (CASE WHEN EXCLUDED.verbal_score > 0 THEN EXCLUDED.verbal_score ELSE COALESCE(NULLIF(candidates.verbal_score, 0), 75) END) +
-           (CASE WHEN EXCLUDED.coding_score > 0 THEN EXCLUDED.coding_score ELSE COALESCE(NULLIF(candidates.coding_score, 0), 75) END)
-         ) / 5.0),
-         readiness_status = 'Completed',
-         assessments_completed = COALESCE(candidates.assessments_completed, 0) + 1`,
-      [candidateId, finalScore, finalAptitudeScore, finalReasoningScore, finalTechnicalScore, finalVerbalScore, finalCodingScore]
-    );
+    // 5. Update candidate readiness status and scores in candidates table strictly from real submissions
+    await client.query(`
+      WITH agg AS (
+        SELECT 
+          COUNT(DISTINCT id) as total_submissions,
+          COALESCE(SUM(obtained_marks), 0) as total_obtained,
+          COALESCE(SUM(total_marks), 0) as total_possible,
+          COALESCE(MAX(CASE WHEN LOWER(assessment_title) LIKE '%apt%' OR LOWER(assessment_title) LIKE '%quant%' THEN score ELSE 0 END), 0) as apt_score,
+          COALESCE(MAX(CASE WHEN LOWER(assessment_title) LIKE '%reason%' OR LOWER(assessment_title) LIKE '%logic%' THEN score ELSE 0 END), 0) as reason_score,
+          COALESCE(MAX(CASE WHEN LOWER(assessment_title) LIKE '%tech%' THEN score ELSE 0 END), 0) as tech_score,
+          COALESCE(MAX(CASE WHEN LOWER(assessment_title) LIKE '%verb%' OR LOWER(assessment_title) LIKE '%eng%' THEN score ELSE 0 END), 0) as verb_score,
+          COALESCE(MAX(CASE WHEN LOWER(assessment_title) LIKE '%code%' OR LOWER(assessment_title) LIKE '%prog%' THEN score ELSE 0 END), 0) as code_score
+        FROM assessment_submissions
+        WHERE candidate_id = $1 OR (candidate_email IS NOT NULL AND LOWER(candidate_email) = LOWER($2))
+      )
+      INSERT INTO candidates (id, job_readiness_score, aptitude_score, reasoning_score, technical_score, verbal_score, coding_score, readiness_status, assessments_completed)
+      SELECT 
+        $1,
+        CASE WHEN agg.total_possible > 0 THEN ROUND((agg.total_obtained * 100.0) / agg.total_possible) ELSE 0 END,
+        agg.apt_score,
+        agg.reason_score,
+        agg.tech_score,
+        agg.verb_score,
+        agg.code_score,
+        CASE WHEN agg.total_submissions > 0 THEN 'Completed' ELSE 'In Progress' END,
+        agg.total_submissions
+      FROM agg
+      ON CONFLICT (id) DO UPDATE SET
+        job_readiness_score = EXCLUDED.job_readiness_score,
+        aptitude_score = EXCLUDED.aptitude_score,
+        reasoning_score = EXCLUDED.reasoning_score,
+        technical_score = EXCLUDED.technical_score,
+        verbal_score = EXCLUDED.verbal_score,
+        coding_score = EXCLUDED.coding_score,
+        readiness_status = EXCLUDED.readiness_status,
+        assessments_completed = EXCLUDED.assessments_completed
+    `, [candidateId, email || '']);
 
     // 6. If candidate profile exists, update timestamp
     if (email || candidateId) {
@@ -299,7 +316,16 @@ export const getAllSubmissions = async (req, res) => {
               COALESCE(cp.email, s.candidate_email) as candidate_email, 
               cp.college,
               COALESCE(a.title, s.assessment_title) as assessment_title,
-              COALESCE(a.category, 'Technical') as category
+              COALESCE(a.category, 
+                CASE 
+                  WHEN LOWER(s.assessment_title) LIKE '%verb%' THEN 'Verbal'
+                  WHEN LOWER(s.assessment_title) LIKE '%apt%' THEN 'Aptitude'
+                  WHEN LOWER(s.assessment_title) LIKE '%reason%' THEN 'Reasoning'
+                  WHEN LOWER(s.assessment_title) LIKE '%code%' THEN 'Coding'
+                  WHEN LOWER(s.assessment_title) LIKE '%mix%' OR LOWER(s.assessment_title) LIKE '%full%' THEN 'All Mix'
+                  ELSE 'Technical'
+                END
+              ) as category
        FROM assessment_submissions s
        LEFT JOIN candidate_profiles cp ON s.candidate_id = cp.id OR s.candidate_id = cp.user_id OR LOWER(s.candidate_email) = LOWER(cp.email)
        LEFT JOIN assessments a ON s.assessment_id = a.id
@@ -322,7 +348,16 @@ export const getMySubmissions = async (req, res) => {
     const result = await pool.query(
       `SELECT s.*, 
               COALESCE(a.title, s.assessment_title) as assessment_title, 
-              COALESCE(a.category, 'Technical') as category
+              COALESCE(a.category, 
+                CASE 
+                  WHEN LOWER(s.assessment_title) LIKE '%verb%' THEN 'Verbal'
+                  WHEN LOWER(s.assessment_title) LIKE '%apt%' THEN 'Aptitude'
+                  WHEN LOWER(s.assessment_title) LIKE '%reason%' THEN 'Reasoning'
+                  WHEN LOWER(s.assessment_title) LIKE '%code%' THEN 'Coding'
+                  WHEN LOWER(s.assessment_title) LIKE '%mix%' OR LOWER(s.assessment_title) LIKE '%full%' THEN 'All Mix'
+                  ELSE 'Technical'
+                END
+              ) as category
        FROM assessment_submissions s
        LEFT JOIN assessments a ON s.assessment_id = a.id
        WHERE s.candidate_id = $1 OR LOWER(s.candidate_email) = LOWER($2)
