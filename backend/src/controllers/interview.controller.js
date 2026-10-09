@@ -870,39 +870,14 @@ export const getSessionAnalysis = async (req, res) => {
 
 /**
  * POST /api/interview/analyze-frame
- * Analyzes video frame via Python AI engine (OpenCV / YOLO) or fallback heuristics.
+ * Returns face/attention heuristics for a candidate video frame.
+ * Real proctoring runs client-side via MediaPipe; this is a stateless fallback.
  */
 export const analyzeFrame = async (req, res) => {
   try {
-    const { image, sessionId } = req.body;
+    const { image } = req.body;
     if (!image) {
       return res.status(400).json({ success: false, error: 'Image data required.' });
-    }
-
-    // Try forwarding to the internal Python AI service (AI_SERVICE_URL, default port 8000)
-    try {
-      const aiBase = (process.env.AI_SERVICE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
-      const response = await fetch(`${aiBase}/api/check_face`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image }),
-        signal: AbortSignal.timeout(3000)
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return res.json({
-          success: true,
-          faceDetected: data.face_detected,
-          eyeContact: data.eye_contact ? 95 : 60,
-          emotion: data.emotion || 'Neutral',
-          attention: data.attention_score || 85,
-          confidence: data.confidence_score || 80,
-          phoneDetected: data.phone_detected || false
-        });
-      }
-    } catch {
-      // Python AI engine not active, compute based on image presence
     }
 
     return res.json({

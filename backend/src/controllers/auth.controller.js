@@ -63,7 +63,7 @@ const signRefreshToken = (payload) =>
 const refreshCookieOpts = () => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "Strict" : "Lax",
+  sameSite: process.env.REFRESH_COOKIE_SAMESITE || (process.env.NODE_ENV === "production" ? "Strict" : "Lax"),
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
   path: "/api/auth",
 });
