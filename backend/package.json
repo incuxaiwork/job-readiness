@@ -9,7 +9,12 @@
     "dev": "node --watch-path=src src/index.js",
     "seed": "node scripts/seed.js",
     "reset:candidate": "node scripts/reset_candidate_password.js",
+    "db:generate": "prisma generate",
+    "db:baseline": "node scripts/prisma-baseline.js",
     "postinstall": "prisma generate"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
