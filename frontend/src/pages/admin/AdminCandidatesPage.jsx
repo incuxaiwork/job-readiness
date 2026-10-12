@@ -34,8 +34,11 @@ import {
   Volume2,
   ShieldCheck,
   Zap,
-  Smile
+  Smile,
+  Mic,
+  Settings
 } from 'lucide-react';
+import { InterviewSettingsPanel } from '../../components/admin/InterviewSettingsPanel';
 
 export const AdminCandidatesPage = () => {
   const { candidatesList, deleteCandidate, resetCandidateAttempt, addToast, navigateTo, assessments, fetchCandidates, adminUser, role } = useApp();
@@ -60,6 +63,7 @@ export const AdminCandidatesPage = () => {
   const [allInterviewSessions, setAllInterviewSessions] = useState([]);
   const [candidateInterviewSession, setCandidateInterviewSession] = useState(null);
   const [loadingInterview, setLoadingInterview] = useState(false);
+  const [showInterviewSettings, setShowInterviewSettings] = useState(false);
 
   // Fetch all recorded interview sessions & refresh candidate roster for admin visibility.
   // Super-admin only: interview sessions are a platform-wide module, not part of the college portal.
@@ -263,13 +267,24 @@ export const AdminCandidatesPage = () => {
           </p>
         </div>
 
-        <button
-          onClick={handleDownloadCSV}
-          className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md shadow-brand-600/20 transition-all flex items-center gap-2 self-start sm:self-auto"
-        >
-          <Download className="w-4 h-4" />
-          <span>Export Candidate Directory (CSV)</span>
-        </button>
+        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+          {isSuperAdmin && (
+            <button
+              onClick={() => setShowInterviewSettings(true)}
+              className="px-4 py-2.5 bg-slate-900 hover:bg-black text-cyan-300 rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-2 border border-cyan-500/30"
+            >
+              <Settings className="w-4 h-4" />
+              <span>Interview Settings</span>
+            </button>
+          )}
+          <button
+            onClick={handleDownloadCSV}
+            className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md shadow-brand-600/20 transition-all flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            <span>Export Candidate Directory (CSV)</span>
+          </button>
+        </div>
       </div>
 
       {/* SEARCH & FILTERS BAR */}
@@ -1085,6 +1100,18 @@ export const AdminCandidatesPage = () => {
               </button>
             </div>
           </div>
+        </Modal>
+      )}
+
+      {/* Interview Settings Modal (super-admin only) */}
+      {isSuperAdmin && (
+        <Modal
+          isOpen={showInterviewSettings}
+          onClose={() => setShowInterviewSettings(false)}
+          title="AI Mock Interview Settings"
+          size="2xl"
+        >
+          <InterviewSettingsPanel />
         </Modal>
       )}
 

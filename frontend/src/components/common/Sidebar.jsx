@@ -43,7 +43,6 @@ export const Sidebar = ({ isOpen, onClose }) => {
     ...(!isCollegeAdmin ? [
       { id: 'admin-questions', label: 'Question Bank', icon: Database, badge: null },
       { id: 'admin-assessments', label: 'Assessments Wizard', icon: Layers, badge: '4' },
-      { id: 'admin-interviews', label: 'AI Mock Interviews', icon: Mic, badge: 'Live' },
     ] : []),
     { id: 'admin-analytics', label: 'Analytics', icon: BarChart3, badge: null },
     ...(isSuperAdmin ? [{ id: 'admin-colleges', label: 'Colleges', icon: Building2, badge: null }] : []),

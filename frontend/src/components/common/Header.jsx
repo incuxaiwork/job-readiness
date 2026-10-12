@@ -13,7 +13,6 @@ import {
   Menu,
   BarChart2,
   FileText,
-  Layers,
   HelpCircle,
   Lock,
   LogIn,
@@ -377,17 +376,11 @@ export const Header = ({ onToggleSidebar }) => {
                               <HelpCircle className="w-4 h-4 text-slate-400" /> Question Bank
                             </button>
 
-                            <button
-                              onClick={() => { navigateTo('admin-assessments'); setProfileOpen(false); }}
+                  <button
+                    onClick={() => { navigateTo('admin-assessments'); setProfileOpen(false); }}
                   >
                     Assessments
                   </button>
-                  <button
-                    onClick={() => { navigateTo('admin-interviews'); setProfileOpen(false); }}
-                              className="w-full text-left px-4 py-2 font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5"
-                            >
-                              <Layers className="w-4 h-4 text-slate-400" /> Assessments
-                            </button>
 
                             <button
                               onClick={() => { navigateTo('admin-analytics'); setProfileOpen(false); }}

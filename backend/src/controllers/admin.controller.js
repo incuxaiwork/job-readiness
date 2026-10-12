@@ -63,7 +63,8 @@ export const getAnalytics = async (req, res) => {
             { range: '81-100%', count: 38 }
           ],
           readinessOverview: { ready: 68, inProgress: 32 },
-          skillRadar: { technical: 82, reasoning: 76, aptitude: 79, verbal: 74, coding: 80 }
+          skillRadar: { technical: 82, reasoning: 76, aptitude: 79, verbal: 74, coding: 80 },
+          collegeBreakdown: []
         }
       });
     }
@@ -206,6 +207,24 @@ export const getAnalytics = async (req, res) => {
       LIMIT 25
     `;
 
+    // Query 7: Per-College Performance Breakdown (grouped by college)
+    const collegeBreakdownQuery = `
+      SELECT
+        COALESCE(col.name, cp.college, 'Unspecified') AS college,
+        COUNT(DISTINCT s.candidate_id) as candidates,
+        COUNT(*) as submissions,
+        COALESCE(ROUND(AVG(s.score), 1), 0) as avg_score,
+        COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE s.score >= 65) / NULLIF(COUNT(*), 0), 1), 0) as pass_rate,
+        COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE s.score >= 70) / NULLIF(COUNT(*), 0), 1), 0) as job_readiness_rate
+      FROM assessment_submissions s
+      LEFT JOIN candidate_profiles cp ON s.candidate_id = cp.id OR s.candidate_id = cp.user_id OR LOWER(s.candidate_email) = LOWER(cp.email)
+      LEFT JOIN colleges col ON col.id = s.college_id
+      ${whereClause}
+      GROUP BY COALESCE(col.name, cp.college, 'Unspecified')
+      ORDER BY submissions DESC
+      LIMIT 50
+    `;
+
     const [
       kpiRes,
       distRes,
@@ -213,7 +232,8 @@ export const getAnalytics = async (req, res) => {
       trendRes,
       topicsRes,
       collegesRes,
-      asmsRes
+      asmsRes,
+      collegeRes
     ] = await Promise.all([
       pool.query(kpiQuery, params),
       pool.query(distQuery, params),
@@ -221,7 +241,8 @@ export const getAnalytics = async (req, res) => {
       pool.query(trendQuery, params),
       pool.query(topicsQuery, params),
       pool.query(collegesQuery),
-      pool.query(asmsQuery)
+      pool.query(asmsQuery),
+      pool.query(collegeBreakdownQuery, params)
     ]);
 
     // Format KPIs
@@ -294,7 +315,6 @@ export const getAnalytics = async (req, res) => {
       failureRate: `${parseFloat(r.failure_rate) || 0}%`,
       count: parseInt(r.count) || 0
     }));
-
     // Fallback if no topic breakdown rows match the specific filter
     if (weakestTopics.length === 0) {
       weakestTopics = [
@@ -304,6 +324,16 @@ export const getAnalytics = async (req, res) => {
         { topic: 'Logical Deduction & Puzzles', avgScore: '62%', failureRate: '38%', count: 0 },
       ];
     }
+
+    // Format Per-College Breakdown
+    const collegeBreakdown = collegeRes.rows.map(r => ({
+      college: r.college,
+      candidates: parseInt(r.candidates) || 0,
+      submissions: parseInt(r.submissions) || 0,
+      avgScore: parseFloat(r.avg_score) || 0,
+      passRate: parseFloat(r.pass_rate) || 0,
+      jobReadinessRate: parseFloat(r.job_readiness_rate) || 0
+    }));
 
     // Filter Options
     const filterOptions = {
@@ -320,6 +350,7 @@ export const getAnalytics = async (req, res) => {
       categoryAverages,
       trend,
       weakestTopics,
+      collegeBreakdown,
       filterOptions,
     });
   } catch (err) {

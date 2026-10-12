@@ -106,7 +106,7 @@ export const AppProvider = ({ children }) => {
       else if (path === '/dashboard') setCurrentView('dashboard');
       else if (path === '/assessments') setCurrentView('assessments');
       else if (path === '/candidate-analytics' || path === '/results') setCurrentView('candidate-analytics');
-      else if (path === '/admin/interviews') setCurrentView('admin-interviews');
+      else if (path === '/admin/interviews') setCurrentView('admin-candidates');
     else if (path.startsWith('/admin-')) setCurrentView(path.substring(1));
     };
     window.addEventListener('popstate', handlePopState);
@@ -676,7 +676,6 @@ export const AppProvider = ({ children }) => {
     'admin-candidates',
     'admin-questions',
     'admin-assessments',
-    'admin-interviews',
     'admin-analytics'
   ];
 
@@ -720,7 +719,6 @@ export const AppProvider = ({ children }) => {
     'admin-candidates': '/admin/candidates',
     'admin-questions': '/admin/questions',
     'admin-assessments': '/admin/assessments',
-    'admin-interviews': '/admin/interviews',
     'admin-analytics': '/admin/analytics',
     'admin-colleges': '/admin/colleges',
   };

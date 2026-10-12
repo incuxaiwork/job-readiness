@@ -22,7 +22,6 @@ import { AdminCandidatesPage } from './pages/admin/AdminCandidatesPage';
 import { AdminQuestionBankPage } from './pages/admin/AdminQuestionBankPage';
 import { AdminAssessmentsPage } from './pages/admin/AdminAssessmentsPage';
 import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
-import { AdminInterviewsPage } from './pages/admin/AdminInterviewsPage';
 import { AdminCollegesPage } from './pages/admin/AdminCollegesPage';
 import { JobReadinessHero } from './pages/JobReadinessHero';
 import { ShieldAlert, Lock } from 'lucide-react';
@@ -281,13 +280,7 @@ export default function App() {
         />
         <Route
           path="/admin/interviews"
-          element={
-            <RequireSuperAdmin>
-              <ShellLayout>
-                <AdminInterviewsPage />
-              </ShellLayout>
-            </RequireSuperAdmin>
-          }
+          element={<Navigate to="/admin/candidates" replace />}
         />
         <Route
           path="/admin/analytics"

@@ -247,7 +247,11 @@ export const AdminAnalyticsPage = () => {
       [''],
       ['--- WEAKEST TOPICS ---'],
       ['Topic', 'Average Score', 'Failure Rate', 'Attempts Tested'],
-      ...(analyticsData.weakestTopics || []).map(t => [t.topic, t.avgScore, t.failureRate, t.count])
+      ...(analyticsData.weakestTopics || []).map(t => [t.topic, t.avgScore, t.failureRate, t.count]),
+      [''],
+      ['--- PER-COLLEGE PERFORMANCE ---'],
+      ['College', 'Candidates', 'Submissions', 'Average Score (%)', 'Pass Rate (%)', 'Job Readiness (%)'],
+      ...(analyticsData.collegeBreakdown || []).map(c => [c.college, c.candidates, c.submissions, `${c.avgScore}%`, `${c.passRate}%`, `${c.jobReadinessRate}%`])
     ];
 
     const csvContent = 'data:text/csv;charset=utf-8,' + rows.map(e => e.join(',')).join('\n');
@@ -602,6 +606,79 @@ export const AdminAnalyticsPage = () => {
           </div>
         </div>
 
+      </div>
+
+      {/* PER-COLLEGE PERFORMANCE BREAKDOWN */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-card overflow-hidden">
+        <div className="flex items-center justify-between p-6 pb-4 border-b border-slate-100">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              {isCollegeAdmin ? 'Your College' : 'Multi-Tenant Comparison'}
+            </span>
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Building className="w-4 h-4 text-brand-600" />
+              <span>Performance by College</span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {isCollegeAdmin
+                ? 'Aggregated results for students linked to your college.'
+                : 'How each onboarded college is performing on the same assessments.'}
+            </p>
+          </div>
+          <span className="text-xs font-semibold text-slate-500">
+            {(analyticsData?.collegeBreakdown || []).length} Colleges
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+              <tr>
+                <th className="py-3 px-4">College</th>
+                <th className="py-3 px-4 text-right">Candidates</th>
+                <th className="py-3 px-4 text-right">Submissions</th>
+                <th className="py-3 px-4 text-right">Avg Score</th>
+                <th className="py-3 px-4 text-right">Pass Rate</th>
+                <th className="py-3 px-4 text-right">Job Readiness</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-slate-700">
+              {(analyticsData?.collegeBreakdown || []).length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-slate-400">
+                    No per-college submission data available for the current filters.
+                  </td>
+                </tr>
+              ) : (
+                (analyticsData?.collegeBreakdown || []).map((c, i) => (
+                  <tr key={i} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-brand-50 text-brand-600 font-bold flex items-center justify-center flex-shrink-0">
+                          <Building className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="font-bold text-slate-900 truncate max-w-[220px]" title={c.college}>{c.college}</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-right font-semibold">{c.candidates.toLocaleString()}</td>
+                    <td className="py-3 px-4 text-right font-semibold">{c.submissions.toLocaleString()}</td>
+                    <td className="py-3 px-4 text-right">
+                      <span className={`inline-block px-2 py-0.5 rounded-md font-bold ${
+                        c.avgScore >= 70 ? 'bg-emerald-50 text-emerald-700'
+                          : c.avgScore >= 50 ? 'bg-amber-50 text-amber-700'
+                          : 'bg-rose-50 text-rose-700'
+                      }`}>
+                        {c.avgScore}%
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono">{c.passRate}%</td>
+                    <td className="py-3 px-4 text-right font-mono">{c.jobReadinessRate}%</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>
