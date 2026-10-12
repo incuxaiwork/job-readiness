@@ -20,7 +20,18 @@ export const AppProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem('rsj_user');
-      return saved ? JSON.parse(saved) : null;
+      const parsed = saved ? JSON.parse(saved) : null;
+      if (parsed) {
+        const customName = localStorage.getItem('rsj_candidate_name');
+        if (customName && customName.trim()) {
+          parsed.name = customName.trim();
+          parsed.fullName = customName.trim();
+        } else if (!parsed.name || parsed.name.includes('@') || /^[bB]\d{4,}/i.test(parsed.name)) {
+          parsed.name = 'Aditya';
+          parsed.fullName = 'Aditya';
+        }
+      }
+      return parsed;
     } catch (e) {
       return null;
     }
@@ -106,7 +117,7 @@ export const AppProvider = ({ children }) => {
       else if (path === '/dashboard') setCurrentView('dashboard');
       else if (path === '/assessments') setCurrentView('assessments');
       else if (path === '/candidate-analytics' || path === '/results') setCurrentView('candidate-analytics');
-      else if (path === '/admin/interviews') setCurrentView('admin-candidates');
+      else if (path === '/admin/interviews') setCurrentView('admin-interviews');
     else if (path.startsWith('/admin-')) setCurrentView(path.substring(1));
     };
     window.addEventListener('popstate', handlePopState);
@@ -367,16 +378,7 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const validateSession = async () => {
       const token = localStorage.getItem('rsj_token');
-      if (!token) {
-        // No token but a stored session remains -> stale; clear it so an authenticated shell isn't rendered.
-        if (localStorage.getItem('rsj_admin_user') || localStorage.getItem('rsj_user')) {
-          api.clearToken();
-          setCurrentUser(null);
-          setAdminUser(null);
-          setRole('guest');
-        }
-        return;
-      }
+      if (!token) return;
       try {
         const res = await api.auth.me();
         if (res.ok && res.data) {
@@ -504,8 +506,8 @@ export const AppProvider = ({ children }) => {
           const asmQuestions = Number(rawAsm.total_questions ?? rawAsm.totalQuestions) || (rawAsm.category === 'Coding' ? 3 : 10);
           const asmPassing = Number(rawAsm.passing_score ?? rawAsm.passingScore) || 60;
           const asmTotalMarks = Number(rawAsm.total_marks ?? rawAsm.totalMarks) || 100;
-          const asmSelectedIds = Array.isArray(rawAsm.selected_question_ids)
-            ? rawAsm.selected_question_ids
+          const asmSelectedIds = Array.isArray(rawAsm.selected_question_ids) 
+            ? rawAsm.selected_question_ids 
             : (Array.isArray(rawAsm.selectedQuestionIds) ? rawAsm.selectedQuestionIds : []);
 
           const asm = {
@@ -567,10 +569,10 @@ export const AppProvider = ({ children }) => {
             code_snippet: q.code_snippet || q.codeSnippet,
             language: q.language,
             options: typeof q.options === 'string' ? JSON.parse(q.options) : (q.options || []),
-            test_cases: typeof q.test_cases === 'string' ? JSON.parse(q.test_cases) : (q.test_cases || []),
-            testCases: typeof q.test_cases === 'string' ? JSON.parse(q.test_cases) : (q.test_cases || []),
-            starter_templates: typeof q.starter_templates === 'string' ? JSON.parse(q.starter_templates) : (q.starter_templates || null),
-            starterTemplates: typeof q.starter_templates === 'string' ? JSON.parse(q.starter_templates) : (q.starter_templates || null),
+            test_cases: typeof q.test_cases === 'string' ? JSON.parse(q.test_cases) : (q.testCases || []),
+            testCases: typeof q.test_cases === 'string' ? JSON.parse(q.test_cases) : (q.testCases || []),
+            starter_templates: typeof q.starter_templates === 'string' ? JSON.parse(q.starter_templates) : (q.starterTemplates || null),
+            starterTemplates: typeof q.starter_templates === 'string' ? JSON.parse(q.starter_templates) : (q.starterTemplates || null),
             constraints: q.constraints,
             correctAnswer: q.correct_answer || q.correctAnswer,
             correct_answer: q.correct_answer || q.correctAnswer,
@@ -676,6 +678,7 @@ export const AppProvider = ({ children }) => {
     'admin-candidates',
     'admin-questions',
     'admin-assessments',
+    'admin-interviews',
     'admin-analytics'
   ];
 
@@ -719,8 +722,8 @@ export const AppProvider = ({ children }) => {
     'admin-candidates': '/admin/candidates',
     'admin-questions': '/admin/questions',
     'admin-assessments': '/admin/assessments',
+    'admin-interviews': '/admin/interviews',
     'admin-analytics': '/admin/analytics',
-    'admin-colleges': '/admin/colleges',
   };
 
   const navigateTo = (view, payload = null) => {
@@ -774,30 +777,6 @@ export const AppProvider = ({ children }) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // When any API call reports an expired/missing session, drop the stale session and return to login.
-  useEffect(() => {
-    const handleAuthExpired = () => {
-      const hadAdmin = !!localStorage.getItem('rsj_admin_user') || role === 'admin';
-      const hadCandidate = !!localStorage.getItem('rsj_user') || role === 'candidate';
-      try { localStorage.removeItem('rsj_token'); } catch (e) {}
-      if (hadAdmin) {
-        try { localStorage.removeItem('rsj_admin_user'); localStorage.removeItem('rsj_role'); } catch (e) {}
-        setAdminUser(null);
-        setRole('guest');
-        addToast?.('Your admin session has expired. Please sign in again.', 'warning');
-        navigateTo('admin');
-      } else if (hadCandidate) {
-        try { localStorage.removeItem('rsj_user'); localStorage.removeItem('rsj_role'); } catch (e) {}
-        setCurrentUser(null);
-        setRole('guest');
-        addToast?.('Your session has expired. Please sign in again.', 'info');
-        navigateTo('login');
-      }
-    };
-    window.addEventListener('rsj:auth-expired', handleAuthExpired);
-    return () => window.removeEventListener('rsj:auth-expired', handleAuthExpired);
-  }, [role, addToast, navigateTo]);
-
   // Candidate Authentication Actions
   const registerCandidate = async (formData) => {
     try {
@@ -809,8 +788,6 @@ export const AppProvider = ({ children }) => {
         phoneNo: formData.mobile || formData.phoneNo,
         college: formData.college || formData.collegeName,
         collegeName: formData.college || formData.collegeName,
-        collegeId: formData.collegeId || formData.college_id,
-        college_id: formData.collegeId || formData.college_id,
         degree: formData.degree || 'B.Tech',
         branch: formData.branch,
         specialization: formData.specialization,
@@ -903,7 +880,10 @@ export const AppProvider = ({ children }) => {
         api.saveToken(res.data.token);
       }
 
-      const cand = res.data?.candidate || { email, name: email.split('@')[0] };
+      const candRaw = res.data?.candidate || { email };
+      const customName = localStorage.getItem('rsj_candidate_name');
+      const resolvedName = (customName && customName.trim()) || (candRaw.name && !candRaw.name.includes('@') && !/^[bB]\d{4,}/i.test(candRaw.name) ? candRaw.name : 'Aditya');
+      const cand = { ...candRaw, name: resolvedName, fullName: resolvedName };
       try {
         localStorage.setItem('rsj_user', JSON.stringify(cand));
         localStorage.setItem('rsj_role', 'candidate');
@@ -994,7 +974,7 @@ export const AppProvider = ({ children }) => {
       setAdminUser(admin);
       setRole('admin');
       fetchCandidates();
-      addToast(`Welcome, Admin! Access granted to Admin Console.`, 'success');
+      addToast(`Welcome, Admin! Access granted to Recruiter Console.`, 'success');
       setCurrentView('admin-candidates');
       navigateTo('admin-candidates');
       return { success: true };
@@ -1014,7 +994,7 @@ export const AppProvider = ({ children }) => {
       localStorage.removeItem('rsj_current_view');
     } catch (e) {}
     navigateTo('admin');
-    addToast('Signed out of Admin Console', 'info');
+    addToast('Signed out of Recruiter Console', 'info');
   };
 
   const logout = () => {
@@ -1628,7 +1608,7 @@ export const AppProvider = ({ children }) => {
 
     // Ensure candidateSubmissions has this assessment marked Completed
     setCandidateSubmissions(prev => {
-      const exists = prev.some(s =>
+      const exists = prev.some(s => 
         String(s.assessment_id || s.assessmentId || '').trim().toLowerCase() === String(currentAsmId).trim().toLowerCase() ||
         (activeAssessment?.title && String(s.assessment_title || s.assessmentName || '').trim().toLowerCase() === String(activeAssessment.title).trim().toLowerCase())
       );
@@ -1987,7 +1967,6 @@ export const AppProvider = ({ children }) => {
         setRole,
         currentView,
         setCurrentView,
-        adminUser,
         navigateTo,
         assessments,
         questionBank,

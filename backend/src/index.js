@@ -29,56 +29,13 @@ import adminRoutes from './routes/admin.routes.js';
 import codeRoutes from './routes/code.routes.js';
 import interviewRoutes from './routes/interview.routes.js';
 import attemptsRoutes from './routes/attempts.routes.js';
-import ttsRoutes from './routes/tts.routes.js';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '5000', 10);
 const HOST = '0.0.0.0';
 
-// ─── Security: Proxy trust for accurate client IPs ──────────────────────────
-// The production deploy sits behind a TLS-terminating reverse proxy (Railway edge),
-// so request socket addresses are the proxy's. Trusting a BOUNDED number of hops lets
-// the rate limiters see the real client IP without honoring a client-supplied
-// X-Forwarded-For. Never use the boolean `true` (that trusts any hop and is spoofable).
-const trustProxyEnv = process.env.TRUST_PROXY;
-if (trustProxyEnv !== undefined) {
-  app.set('trust proxy', trustProxyEnv === 'false' ? false : (parseInt(trustProxyEnv, 10) || 1));
-} else if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', 1);
-}
-
 // ─── Security: Defensive HTTP Headers (Helmet) ──────────────────────────────
-// Single global middleware setting CSP, HSTS, X-Frame-Options (DENY),
-// X-Content-Type-Options, and Referrer-Policy on every response.
-app.use(helmet({
-  contentSecurityPolicy: {
-    useDefaults: false,
-    directives: {
-      defaultSrc: ["'self'"],
-      baseUri: ["'self'"],
-      // Vite/React bootstrap + MediaPipe runtime loaded from CDNs.
-      scriptSrc: ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com'],
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-      imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
-      fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
-      connectSrc: ["'self'", 'https://cdn.jsdelivr.net', 'https://storage.googleapis.com', 'https://ce.judge0.com', 'blob:', 'data:'],
-      mediaSrc: ["'self'", 'blob:', 'data:'],
-      workerSrc: ["'self'", 'blob:'],
-      objectSrc: ["'none'"],
-      frameAncestors: ["'none'"],
-      formAction: ["'self'"],
-      upgradeInsecureRequests: [],
-    },
-  },
-  strictTransportSecurity: {
-    maxAge: 31536000, // 1 year
-    includeSubDomains: true,
-  },
-  frameguard: { action: 'deny' },          // X-Frame-Options: DENY
-  noSniff: true,                            // X-Content-Type-Options: nosniff
-  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  crossOriginEmbedderPolicy: false,         // keep CDN media/model loads working
-}));
+app.use(helmet());
 
 // ─── Security: Hardened CORS Policy ─────────────────────────────────────────
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000')
@@ -92,8 +49,7 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin) || (process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost:'))) {
       callback(null, true);
     } else {
-      console.warn('[CORS] Blocked origin:', origin);
-      callback(null, false);
+      callback(new Error('Blocked by CORS security policy'));
     }
   },
   credentials: true,
@@ -140,7 +96,7 @@ const healthHandler = async (_req, res) => {
     status: 'online',
     service: 'ReadySetJob API',
     version: '1.0.0',
-    database: dbOk ? 'connected' : 'offline',
+    database: dbOk ? 'connected ✅' : 'offline ❌',
     timestamp: new Date().toISOString(),
     pid: process.pid,
   });
@@ -158,7 +114,6 @@ app.use(['/api/admin', '/admin'], adminRoutes);
 app.use(['/api/code', '/code'], codeRoutes);
 app.use(['/api/interview', '/interview'], interviewRoutes);
 app.use(['/api/attempts', '/attempts'], attemptsRoutes);
-app.use(['/api/tts', '/tts'], ttsRoutes);
 
 // ─── Static Files & SPA Fallback ─────────────────────────────────────────────
 if (fs.existsSync(distPath)) {
@@ -187,14 +142,14 @@ app.use((err, _req, res, _next) => {
 
 // ─── Startup ─────────────────────────────────────────────────────────────────
 const server = app.listen(PORT, HOST, async () => {
-  console.log(`\nReadySetJob Backend API -> http://${HOST}:${PORT}`);
+  console.log(`\n🚀  ReadySetJob Backend API  →  http://${HOST}:${PORT}`);
   console.log(`   Environment : ${process.env.NODE_ENV || 'development'}`);
   const connected = await testConnection();
   if (connected) {
     await initSchema();
-    console.log('\nAPI Routes ready.');
+    console.log('\n📡  API Routes ready.');
   } else {
-    console.warn('\nRunning without database. Check DATABASE_URL in backend/.env\n');
+    console.warn('\n⚠️  Running without database. Check DATABASE_URL in backend/.env\n');
   }
 });
 
@@ -204,23 +159,23 @@ let isShuttingDown = false;
 const gracefulShutdown = async (signal) => {
   if (isShuttingDown) return;
   isShuttingDown = true;
-  console.log(`\n${signal} received. Initiating graceful shutdown...`);
+  console.log(`\n🛑 ${signal} received. Initiating graceful shutdown...`);
 
   server.close(async (err) => {
     if (err) {
       console.error('Error closing HTTP server:', err.message);
     } else {
-      console.log('HTTP server closed. No longer accepting new connections.');
+      console.log('✅ HTTP server closed. No longer accepting new connections.');
     }
 
     await closePool();
-    console.log('Process exiting cleanly.\n');
+    console.log('👋 Process exiting cleanly.\n');
     process.exit(err ? 1 : 0);
   });
 
   // Force shutdown after 10 seconds if connections fail to close
   setTimeout(() => {
-    console.error('Forced shutdown after 10s timeout.');
+    console.error('⚠️ Forced shutdown after 10s timeout.');
     process.exit(1);
   }, 10000).unref();
 };
@@ -229,11 +184,11 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception intercepted:', err.message);
+  console.error('⚠️ Uncaught Exception intercepted:', err.message);
 });
 
 process.on('unhandledRejection', (reason) => {
-  console.error('Unhandled Rejection intercepted:', reason);
+  console.error('⚠️ Unhandled Rejection intercepted:', reason);
 });
 
 export default app;

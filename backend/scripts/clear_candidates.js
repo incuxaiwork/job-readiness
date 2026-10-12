@@ -1,7 +1,7 @@
 import { pool } from '../src/db/pool.js';
 
 async function clearCandidates() {
-  console.log('Clearing all candidate records from PostgreSQL database...');
+  console.log('🧹 Clearing all candidate records from PostgreSQL database...');
   try {
     const answers = await pool.query('DELETE FROM candidate_answers RETURNING id');
     console.log(`- Deleted ${answers.rowCount} rows from candidate_answers`);
@@ -33,9 +33,9 @@ async function clearCandidates() {
     const u = await pool.query("DELETE FROM users WHERE role = 'candidate' RETURNING id");
     console.log(`- Deleted ${u.rowCount} rows from users (candidate accounts)`);
 
-    console.log('All candidate records successfully deleted from PostgreSQL database.');
+    console.log('✅ All candidate records successfully deleted from PostgreSQL database.');
   } catch (err) {
-    console.error('Error clearing candidates:', err.message);
+    console.error('❌ Error clearing candidates:', err.message);
   } finally {
     await pool.end();
   }

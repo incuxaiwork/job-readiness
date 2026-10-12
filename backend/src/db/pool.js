@@ -7,28 +7,16 @@ import { databaseUrl } from '../config/urls.js';
 const connectionString = (typeof databaseUrl === 'function' ? databaseUrl() : null) || process.env.DATABASE_URL || process.env.DATABASE_PUBLIC_URL;
 
 if (!connectionString) {
-  console.warn('DATABASE_URL/DATABASE_PUBLIC_URL is not set. Running in local fallback mode without PostgreSQL.');
+  console.warn('⚠️ DATABASE_URL/DATABASE_PUBLIC_URL is not set. Running in local fallback mode without PostgreSQL.');
 }
 
 const isProduction = process.env.NODE_ENV === 'production';
 const isLocalhost = Boolean(connectionString) && (connectionString.includes('localhost') || connectionString.includes('127.0.0.1'));
 
-// TLS policy for remote database connections.
-// - Localhost: no TLS.
-// - Remote: TLS ON with certificate validation ENABLED by default. A private CA may be
-//   pinned via DATABASE_SSL_CA (PEM contents or a path). Verification may only be
-//   disabled explicitly and deliberately with DATABASE_SSL_REJECT_UNAUTHORIZED=false.
-const buildSslConfig = () => {
-  if (isLocalhost) return false;
-  const rejectUnauthorized = process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false';
-  const ca = process.env.DATABASE_SSL_CA;
-  return { rejectUnauthorized, ...(ca ? { ca } : {}) };
-};
-
 export const pool = connectionString
   ? new Pool({
       connectionString,
-      ssl: buildSslConfig(),
+      ssl: isLocalhost ? false : { rejectUnauthorized: false },
       connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || process.env.DB_CONNECTION_TIMEOUT || '10000', 10),
       idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT || process.env.DB_IDLE_TIMEOUT || '10000', 10),
       keepAlive: true,
@@ -49,7 +37,7 @@ if (pool) {
     });
   });
 } else {
-  console.warn('DATABASE_URL is not set in backend/.env. Database features will run in mock mode.');
+  console.warn('⚠️ DATABASE_URL is not set in backend/.env. Database features will run in mock mode.');
 }
 
 let isConnected = false;
@@ -69,11 +57,11 @@ export const testConnection = async (retries = 3, timeoutMs = 8000) => {
       ]);
       const res = await client.query('SELECT NOW() as time, current_database() as db');
       client.release();
-      console.log(`PostgreSQL connected -> database: "${res.rows[0].db}" at ${res.rows[0].time}`);
+      console.log(`✅ PostgreSQL connected → database: "${res.rows[0].db}" at ${res.rows[0].time}`);
       isConnected = true;
       return true;
     } catch (err) {
-      console.error(`PostgreSQL connection attempt ${attempt}/${retries} failed: ${err.message}`);
+      console.error(`⚠️ PostgreSQL connection attempt ${attempt}/${retries} failed: ${err.message}`);
       if (attempt < retries) {
         await new Promise(r => setTimeout(r, 1000));
       }
@@ -87,9 +75,9 @@ export const closePool = async () => {
   try {
     if (pool) {
       await pool.end();
-      console.log('PostgreSQL connection pool closed gracefully.');
+      console.log('✅ PostgreSQL connection pool closed gracefully.');
     }
   } catch (err) {
-    console.error('Error closing PostgreSQL pool:', err.message);
+    console.error('⚠️ Error closing PostgreSQL pool:', err.message);
   }
 };

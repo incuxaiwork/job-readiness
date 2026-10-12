@@ -100,7 +100,7 @@ const listenSSE = (urlPath, timeoutMs = 30000) => {
 };
 
 async function runStage3Tests() {
-  console.log('Starting Stage 3 Asynchronous Queue & SSE Streaming Verification...\n');
+  console.log('🧪 Starting Stage 3 Asynchronous Queue & SSE Streaming Verification...\n');
 
   // Test Case Payload: Python solution calculating sum of integers
   const sampleSubmission = {
@@ -140,7 +140,7 @@ if __name__ == '__main__':
   if (submitRes.status !== 202 || !submitRes.data?.jobId) {
     throw new Error('Phase 1 Failed: Expected HTTP 202 with jobId');
   }
-  console.log('Phase 1 Passed: Fast HTTP 202 return confirmed.\n');
+  console.log('✅ Phase 1 Passed: Fast HTTP 202 return confirmed.\n');
 
   const jobId = submitRes.data.jobId;
 
@@ -153,7 +153,7 @@ if __name__ == '__main__':
   console.log(`SSE Stream duration: ${sseDuration}ms`);
   console.log(`SSE Events Received (${sseEvents.length}):`);
   for (const ev of sseEvents) {
-    console.log(` -> status: ${ev.status}, progress: ${ev.progress}%${ev.message ? ` (${ev.message})` : ''}`);
+    console.log(`  → status: ${ev.status}, progress: ${ev.progress}%${ev.message ? ` (${ev.message})` : ''}`);
     if (ev.result) {
       console.log(`    Result Verdict: ${ev.result.evaluation?.verdict}`);
       console.log(`    Passed Tests: ${ev.result.summary?.passedTests}/${ev.result.summary?.totalTests}`);
@@ -165,7 +165,7 @@ if __name__ == '__main__':
   if (!completedEvent || !completedEvent.result?.evaluation) {
     throw new Error('Phase 2 Failed: No completed event received with valid evaluation');
   }
-  console.log('Phase 2 Passed: SSE real-time streaming confirmed.\n');
+  console.log('✅ Phase 2 Passed: SSE real-time streaming confirmed.\n');
 
   // Phase 3: Test REST Polling Endpoint
   console.log(`--- Phase 3: Verify REST Status Polling (/api/code/submissions/${jobId}/status) ---`);
@@ -175,7 +175,7 @@ if __name__ == '__main__':
   if (statusRes.status !== 200 || statusRes.data?.status !== 'completed') {
     throw new Error('Phase 3 Failed: Polling endpoint did not return completed state');
   }
-  console.log('Phase 3 Passed: REST polling fallback confirmed.\n');
+  console.log('✅ Phase 3 Passed: REST polling fallback confirmed.\n');
 
   // Phase 4: Multi-Submission Concurrency Burst (10 Simultaneous Submissions)
   console.log('--- Phase 4: High-Concurrency Burst (10 Simultaneous Submissions) ---');
@@ -192,7 +192,7 @@ if __name__ == '__main__':
 
   const all202 = burstResults.every((r) => r.status === 202 && r.data?.jobId);
   console.log(`10 Requests Enqueued in: ${burstDuration}ms (Avg ${Math.round(burstDuration / 10)}ms/req)`);
-  console.log(`All Returned HTTP 202: ${all202 ? 'YES' : 'NO'}`);
+  console.log(`All Returned HTTP 202: ${all202 ? 'YES ✅' : 'NO ❌'}`);
 
   if (!all202) {
     throw new Error('Phase 4 Failed: Some burst submissions failed to enqueue with HTTP 202');
@@ -218,12 +218,12 @@ if __name__ == '__main__':
   if (!allDone) {
     throw new Error('Phase 4 Failed: Burst jobs did not all complete within timeout');
   }
-  console.log('Phase 4 Passed: 10/10 concurrent submissions executed cleanly.\n');
+  console.log('✅ Phase 4 Passed: 10/10 concurrent submissions executed cleanly.\n');
 
-  console.log('ALL STAGE 3 TESTS PASSED! Stage 3 Asynchronous Queueing is 100% operational.');
+  console.log('🎉 ALL STAGE 3 TESTS PASSED! Stage 3 Asynchronous Queueing is 100% operational.');
 }
 
 runStage3Tests().catch((err) => {
-  console.error('Stage 3 Test Failure:', err);
+  console.error('❌ Stage 3 Test Failure:', err);
   process.exit(1);
 });

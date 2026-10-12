@@ -1,7 +1,6 @@
 import { pool, getDbStatus } from '../db/pool.js';
 import crypto from 'crypto';
 import { evaluateSubmission } from '../services/evaluationService.js';
-import { canReadCandidate } from '../middleware/ownership.js';
 import {
   fallbackSubmissions,
   getMySubmissionsFallback,
@@ -9,7 +8,6 @@ import {
   saveProctoringEventFallback,
   getProctoringEventsFallback
 } from '../mockFallback.js';
-import { serverError } from '../utils/httpError.js';
 
 // POST /api/submissions
 export const submitAssessment = async (req, res) => {
@@ -184,23 +182,11 @@ export const submitAssessment = async (req, res) => {
     }
 
     let savedSubmissionRecord = null;
-
-    // Tag the submission with the candidate's college (tenant) so college admins
-    // get scoped analytics. Fall back to the candidate profile when the token carries none.
-    let submissionCollegeId = req.user?.college_id || null;
-    if (!submissionCollegeId) {
-      const profileRes = await client.query(
-        `SELECT college_id FROM candidate_profiles WHERE id = $1 OR user_id = $1 LIMIT 1`,
-        [candidateId]
-      );
-      submissionCollegeId = profileRes.rows[0]?.college_id || null;
-    }
-
     // 3. Insert into assessment_submissions table
     const result = await client.query(
       `INSERT INTO assessment_submissions 
-       (id, candidate_id, candidate_name, candidate_email, assessment_id, assessment_title, score, accuracy, correct_count, incorrect_count, unanswered_count, time_taken, category_scores, topic_breakdown, answers, proctoring_violations, auto_submitted, auto_submit_reason, status, obtained_marks, total_marks, college_id, created_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'Completed',$19,$20,$21,NOW())
+       (id, candidate_id, candidate_name, candidate_email, assessment_id, assessment_title, score, accuracy, correct_count, incorrect_count, unanswered_count, time_taken, category_scores, topic_breakdown, answers, proctoring_violations, auto_submitted, auto_submit_reason, status, obtained_marks, total_marks, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'Completed',$19,$20,NOW())
        RETURNING *`,
       [
         id,
@@ -222,8 +208,7 @@ export const submitAssessment = async (req, res) => {
         Boolean(autoSubmitted),
         autoSubmitReason || null,
         finalObtainedMarks,
-        finalTotalMarks,
-        submissionCollegeId
+        finalTotalMarks
       ]
     );
     savedSubmissionRecord = result.rows[0];
@@ -313,7 +298,7 @@ export const submitAssessment = async (req, res) => {
       });
     }
     console.error('Submission controller error:', err.message);
-    serverError(res, err, 'submissions.controller');
+    res.status(500).json({ success: false, error: err.message });
   } finally {
     client.release();
   }
@@ -394,6 +379,7 @@ export const logProctoringEvent = async (req, res) => {
     }
     const {
       attemptId,
+      candidateId: bodyCandId,
       assessmentId,
       type, // 'NO_FACE' | 'LOOKING_AWAY' | 'MULTIPLE_FACES'
       timestamp,
@@ -404,7 +390,7 @@ export const logProctoringEvent = async (req, res) => {
       return res.status(400).json({ success: false, error: 'attemptId and type are required' });
     }
 
-    const candidateId = req.user.id;
+    const candidateId = req.user?.id || bodyCandId || null;
     const asmId = assessmentId || null;
     const eventId = `pe-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
     const eventTime = timestamp ? new Date(timestamp) : new Date();
@@ -453,26 +439,10 @@ export const getProctoringEvents = async (req, res) => {
       [attemptId]
     );
 
-    // Object-level authorization: a platform admin sees everything; a college admin
-    // sees only their college's candidates; a candidate sees only their own events.
-    let rows = result.rows;
-    if (req.user?.role !== 'admin') {
-      if (req.user?.role === 'college_admin') {
-        const allowed = [];
-        for (const row of rows) {
-          const { ok } = await canReadCandidate(req, row.candidate_id);
-          if (ok) allowed.push(row);
-        }
-        rows = allowed;
-      } else {
-        rows = rows.filter((row) => String(row.candidate_id) === String(req.user?.id));
-      }
-    }
-
     return res.status(200).json({
       success: true,
-      count: rows.length,
-      data: rows
+      count: result.rows.length,
+      data: result.rows
     });
   } catch (err) {
     console.error('Error fetching proctoring events:', err);

@@ -11,7 +11,7 @@ import {
 } from '../controllers/candidates.controller.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { requireRole } from '../middleware/rbac.js';
-import { requireSelfOrAdmin, requireCandidateReadAccess } from '../middleware/ownership.js';
+import { requireSelfOrAdmin } from '../middleware/ownership.js';
 
 const router = Router();
 
@@ -21,16 +21,16 @@ router.get('/company-eligibility/criteria', getCompanyEligibilityCriteria);
 // All candidate routes below require authentication
 router.use(authenticateToken);
 
-// Admin + college-admin roster (scoped in controller); deletion & reset stay super-admin only
-router.get('/', requireRole('admin', 'college_admin'), getAllCandidates);
+// Admin-only roster, deletion & attempt reset
+router.get('/', requireRole('admin'), getAllCandidates);
 router.delete('/:id', requireRole('admin'), deleteCandidate);
 router.post('/:id/reset-attempt', requireRole('admin'), resetCandidateAttempt);
 
-// Candidate details (owner, platform admin, or same-college admin - IDOR guarded)
-router.get('/:id', requireCandidateReadAccess, getCandidateById);
+// Candidate details (strictly accessible by profile owner or admin - IDOR guarded)
+router.get('/:id', requireSelfOrAdmin, getCandidateById);
 router.put('/:id', requireSelfOrAdmin, updateCandidate);
 router.put('/:id/academic-marks', requireSelfOrAdmin, updateAcademicMarks);
-router.get('/:id/submissions', requireCandidateReadAccess, getCandidateSubmissions);
+router.get('/:id/submissions', requireSelfOrAdmin, getCandidateSubmissions);
 
 export default router;
 

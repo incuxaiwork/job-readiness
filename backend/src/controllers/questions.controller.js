@@ -1,7 +1,6 @@
 import { pool, getDbStatus } from '../db/pool.js';
 import crypto from 'crypto';
 import { fallbackQuestions } from '../mockFallback.js';
-import { serverError } from '../utils/httpError.js';
 
 let questionsCacheAdmin = null;
 let lastAdminFetch = 0;
@@ -68,7 +67,7 @@ export const getAllQuestions = async (req, res) => {
 
     res.json(responsePayload);
   } catch (err) {
-    serverError(res, err, 'questions.controller');
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -146,7 +145,7 @@ export const createQuestion = async (req, res) => {
     );
     res.status(201).json({ success: true, data: result.rows[0] });
   } catch (err) {
-    serverError(res, err, 'questions.controller');
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -250,7 +249,7 @@ export const updateQuestion = async (req, res) => {
     res.json({ success: true, data: updatedQ });
   } catch (err) {
     await client.query('ROLLBACK');
-    serverError(res, err, 'questions.controller');
+    res.status(500).json({ error: err.message });
   } finally {
     client.release();
   }
@@ -271,7 +270,7 @@ export const deleteQuestion = async (req, res) => {
     res.json({ success: true, message: 'Question and all assessment links deleted.' });
   } catch (err) {
     await client.query('ROLLBACK');
-    serverError(res, err, 'questions.controller');
+    res.status(500).json({ error: err.message });
   } finally {
     client.release();
   }

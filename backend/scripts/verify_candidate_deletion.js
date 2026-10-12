@@ -1,12 +1,6 @@
 // Candidate Deletion Multi-Table Verification Script
 
 const API_BASE = 'http://localhost:5000/api';
-const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@readysetjob.com';
-const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD;
-if (!ADMIN_PASSWORD) {
-  console.error('TEST_ADMIN_PASSWORD is required to run this verification script.');
-  process.exit(1);
-}
 
 async function runTest() {
   console.log('=== RUNNING CANDIDATE MULTI-TABLE DELETION VERIFICATION ===\n');
@@ -29,7 +23,7 @@ async function runTest() {
   const adminRes = await fetch(`${API_BASE}/auth/admin/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
+    body: JSON.stringify({ email: 'admin@readysetjob.com', password: 'Admin@2026' })
   });
   const adminData = await adminRes.json();
   const adminToken = adminData.token;

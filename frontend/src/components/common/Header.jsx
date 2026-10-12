@@ -13,6 +13,7 @@ import {
   Menu,
   BarChart2,
   FileText,
+  Layers,
   HelpCircle,
   Lock,
   LogIn,
@@ -22,7 +23,6 @@ import {
 export const Header = ({ onToggleSidebar }) => {
   const {
     currentUser,
-    adminUser,
     role,
     currentView,
     navigateTo,
@@ -31,17 +31,34 @@ export const Header = ({ onToggleSidebar }) => {
     isInterviewUnlocked
   } = useApp();
 
-  const isCollegeAdmin = role === 'admin' && adminUser?.role === 'college_admin';
-  const adminDisplayName = isCollegeAdmin
-    ? (adminUser?.college_name || adminUser?.name || 'College Admin')
-    : 'Site Administrator';
-  const adminRoleLabel = isCollegeAdmin ? 'College Administrator' : 'Super Administrator';
-
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const profileRef = useRef(null);
   const notifRef = useRef(null);
+
+  // Candidate display name resolution (guarantees Aditya instead of B45996085/email)
+  const resolveCandidateName = () => {
+    const custom = typeof window !== 'undefined' ? localStorage.getItem('rsj_candidate_name') : null;
+    if (custom && custom.trim()) return custom.trim();
+    const raw = currentUser?.fullName || currentUser?.name;
+    if (raw && !raw.includes('@') && !/^[bB]\d{4,}$/i.test(raw)) return raw;
+    return 'Aditya';
+  };
+  const [candidateDisplayName, setCandidateDisplayName] = useState(resolveCandidateName);
+
+  useEffect(() => {
+    setCandidateDisplayName(resolveCandidateName());
+  }, [currentUser]);
+
+  useEffect(() => {
+    const handleNameChange = (e) => {
+      if (e?.detail) setCandidateDisplayName(e.detail);
+      else setCandidateDisplayName(resolveCandidateName());
+    };
+    window.addEventListener('candidate-name-changed', handleNameChange);
+    return () => window.removeEventListener('candidate-name-changed', handleNameChange);
+  }, []);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -165,7 +182,7 @@ export const Header = ({ onToggleSidebar }) => {
                   </span> */}
                 </div>
                 <span className="text-[10px] text-slate-500 font-medium hidden sm:block">
-                  {role === 'admin' ? 'Platform & University Management' : 'AI-Powered Assessment & Readiness'}
+                  {role === 'admin' ? 'Recruiter & University Management' : 'AI-Powered Assessment & Readiness'}
                 </span>
               </div>
             </div>
@@ -298,15 +315,15 @@ export const Header = ({ onToggleSidebar }) => {
                       {role === 'admin' ? (
                         <Shield className="w-4 h-4 text-brand-400" />
                       ) : (
-                        <span>{currentUser?.name ? currentUser.name.charAt(0) : 'S'}</span>
+                        <span>{candidateDisplayName ? candidateDisplayName.charAt(0).toUpperCase() : 'A'}</span>
                       )}
                     </div>
                     <div className="hidden lg:flex flex-col text-left">
                       <span className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[120px]">
-                        {role === 'admin' ? adminDisplayName : currentUser?.name || 'Student'}
+                        {role === 'admin' ? 'HR Admin' : candidateDisplayName}
                       </span>
                       <span className="text-[10px] text-slate-500 font-medium capitalize">
-                        {role === 'admin' ? adminRoleLabel : `Class of ${currentUser?.graduationYear || '2026'}`}
+                        {role === 'admin' ? 'Portal Administrator' : `Class of ${currentUser?.graduationYear || '2026'}`}
                       </span>
                     </div>
                     <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
@@ -316,10 +333,10 @@ export const Header = ({ onToggleSidebar }) => {
                     <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="px-4 py-2 border-b border-slate-100">
                         <p className="text-xs font-bold text-slate-900">
-                          {role === 'admin' ? adminRoleLabel : currentUser?.name || 'Student'}
+                          {role === 'admin' ? 'Administrator' : candidateDisplayName}
                         </p>
                         <p className="text-[11px] text-slate-500 truncate">
-                          {role === 'admin' ? (adminUser?.email || 'admin@readysetjob.com') : currentUser?.email || 'student@university.edu'}
+                          {role === 'admin' ? 'admin@readysetjob.com' : currentUser?.email || 'student@university.edu'}
                         </p>
                       </div>
 
@@ -376,11 +393,17 @@ export const Header = ({ onToggleSidebar }) => {
                               <HelpCircle className="w-4 h-4 text-slate-400" /> Question Bank
                             </button>
 
-                  <button
-                    onClick={() => { navigateTo('admin-assessments'); setProfileOpen(false); }}
+                            <button
+                              onClick={() => { navigateTo('admin-assessments'); setProfileOpen(false); }}
                   >
                     Assessments
                   </button>
+                  <button
+                    onClick={() => { navigateTo('admin-interviews'); setProfileOpen(false); }}
+                              className="w-full text-left px-4 py-2 font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5"
+                            >
+                              <Layers className="w-4 h-4 text-slate-400" /> Assessments
+                            </button>
 
                             <button
                               onClick={() => { navigateTo('admin-analytics'); setProfileOpen(false); }}

@@ -8,7 +8,7 @@ async function main() {
   }
   try {
     await pool.query('UPDATE assessments SET duration_minutes = 10, updated_at = CURRENT_TIMESTAMP');
-    console.log('Updated all assessments to duration_minutes = 10');
+    console.log('✅ Updated all assessments to duration_minutes = 10');
 
     clearAssessmentsCache();
 

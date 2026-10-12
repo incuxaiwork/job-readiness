@@ -16,15 +16,11 @@ import {
   LogOut,
   Award,
   Mic,
-  Lock,
-  Building2
+  Lock
 } from 'lucide-react';
 
 export const Sidebar = ({ isOpen, onClose }) => {
-  const { role, adminUser, currentView, navigateTo, logout, candidatesList, isInterviewUnlocked, addToast } = useApp();
-
-  const isSuperAdmin = role === 'admin' && (adminUser?.role === 'admin' || !adminUser?.role);
-  const isCollegeAdmin = role === 'admin' && adminUser?.role === 'college_admin';
+  const { role, currentView, navigateTo, logout, candidatesList, isInterviewUnlocked, addToast } = useApp();
 
   const candidateNavItems = [
     { id: 'assessments', label: 'Assessments & Tests', icon: ClipboardCheck },
@@ -40,12 +36,10 @@ export const Sidebar = ({ isOpen, onClose }) => {
 
   const adminNavItems = [
     { id: 'admin-candidates', label: 'Candidates Roster', icon: Users, badge: candidatesList ? candidatesList.length.toString() : '0' },
-    ...(!isCollegeAdmin ? [
-      { id: 'admin-questions', label: 'Question Bank', icon: Database, badge: null },
-      { id: 'admin-assessments', label: 'Assessments Wizard', icon: Layers, badge: '4' },
-    ] : []),
+    { id: 'admin-questions', label: 'Question Bank', icon: Database, badge: null },
+    { id: 'admin-assessments', label: 'Assessments Wizard', icon: Layers, badge: '4' },
+    { id: 'admin-interviews', label: 'AI Mock Interviews', icon: Mic, badge: 'Live' },
     { id: 'admin-analytics', label: 'Analytics', icon: BarChart3, badge: null },
-    ...(isSuperAdmin ? [{ id: 'admin-colleges', label: 'Colleges', icon: Building2, badge: null }] : []),
   ];
 
   // Restrict strictly by role
@@ -85,8 +79,8 @@ export const Sidebar = ({ isOpen, onClose }) => {
             }`}>
             <div className="flex items-center gap-2">
               {/* <div className={`w-2 h-2 rounded-full ${role === 'admin' ? 'bg-amber-400' : 'bg-emerald-500'} animate-pulse`} /> */}
-              <span className="text-[11px] font-bold uppercase tracking-wider truncate">
-                {isCollegeAdmin ? (adminUser?.college_name || 'College Admin') : role === 'admin' ? 'Super Administrator' : 'Student Workspace'}
+              <span className="text-[11px] font-bold uppercase tracking-wider">
+                {role === 'admin' ? 'Recruiter Admin' : 'Student Workspace'}
               </span>
             </div>
           </div>

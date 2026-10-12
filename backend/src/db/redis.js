@@ -7,7 +7,7 @@ const REDIS_URL = redisUrl();
 
 if (!REDIS_URL) {
   console.warn(
-    '[Redis] REDIS_URL / REDIS_PUBLIC_URL environment variable is not set. ' +
+    '⚠️ [Redis] REDIS_URL / REDIS_PUBLIC_URL environment variable is not set. ' +
     'Execution result caching and distributed rate-limiting will be disabled. ' +
     'Set REDIS_URL in your .env file to enable these features.'
   );
@@ -30,12 +30,12 @@ export const redisClient = createClient({
 let isRedisReady = false;
 
 redisClient.on('connect', () => {
-  console.log('[Redis] Connected to Redis instance.');
+  console.log('🔴 [Redis] Connected to Redis instance.');
 });
 
 redisClient.on('ready', () => {
   isRedisReady = true;
-  console.log('[Redis] Client ready for execution caching and distributed locking.');
+  console.log('✅ [Redis] Client ready for execution caching and distributed locking.');
 });
 
 redisClient.on('error', (err) => {
@@ -44,7 +44,7 @@ redisClient.on('error', (err) => {
   if (err.code === 'ENOTFOUND' || err.message?.includes('ENOTFOUND')) {
     // Expected when running in local development outside of Railway private VPC
   } else {
-    console.warn(`[Redis] Notice: ${err.message}`);
+    console.warn(`⚠️ [Redis] Notice: ${err.message}`);
   }
 });
 

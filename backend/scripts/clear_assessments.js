@@ -1,7 +1,7 @@
 import { pool } from '../src/db/pool.js';
 
 async function clearAssessments() {
-  console.log('Clearing dummy assessments and related database tables...');
+  console.log('🧹 Clearing dummy assessments and related database tables...');
   try {
     const attempts = await pool.query('DELETE FROM test_attempts RETURNING id');
     console.log(`- Deleted ${attempts.rowCount} rows from test_attempts`);
@@ -27,9 +27,9 @@ async function clearAssessments() {
     const asm = await pool.query('DELETE FROM assessments RETURNING id');
     console.log(`- Deleted ${asm.rowCount} rows from assessments`);
 
-    console.log('All dummy assessments and related records cleared from PostgreSQL successfully.');
+    console.log('✅ All dummy assessments and related records cleared from PostgreSQL successfully.');
   } catch (err) {
-    console.error('Error clearing assessments:', err.message);
+    console.error('❌ Error clearing assessments:', err.message);
   } finally {
     await pool.end();
   }

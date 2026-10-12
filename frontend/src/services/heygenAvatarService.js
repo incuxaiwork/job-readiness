@@ -106,13 +106,16 @@ class HeyGenAvatarService {
 
       // If mock token returned (e.g. testing mode)
       if (res.isMock) {
-        console.info('[HeyGen Service] Mock token detected. Running in mock demonstration mode.');
+        console.info('[HeyGen Service] Mock token detected. Falling back to animated avatar & browser speech.');
         this.sessionId = sessionId;
-        this.status = 'connected';
+        this.isMock = true;
+        this.avatar = null;
+        this.status = 'fallback';
         this.isConnecting = false;
-        this.setStatus('connected', 'Mock Streaming Mode Active');
+        this.setStatus('fallback', 'Mock Mode (Using Animated Avatar & Browser Voice)');
         return {
-          success: true,
+          success: false,
+          fallbackMode: true,
           isMock: true,
           token
         };
@@ -194,10 +197,9 @@ class HeyGenAvatarService {
       return;
     }
 
-    if (!this.avatar || this.status !== 'connected' && this.status !== 'speaking') {
-      console.warn('[HeyGen Service] speak() called but avatar is not connected. Calling callback immediately.');
-      onFinished?.();
-      return;
+    if (!this.avatar || (this.status !== 'connected' && this.status !== 'speaking')) {
+      console.warn('[HeyGen Service] speak() called but avatar is not connected. Throwing for TTS fallback.');
+      throw new Error('HeyGen avatar is not connected or active');
     }
 
     try {

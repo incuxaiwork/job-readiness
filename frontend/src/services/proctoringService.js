@@ -36,7 +36,7 @@ export const getFaceLandmarker = async () => {
         outputFaceBlendshapes: true,
         outputFacialTransformationMatrixes: true,
         runningMode: 'VIDEO',
-        numFaces: 2,
+        numFaces: 4,
       });
       return landmarkerInstance;
     } catch (gpuErr) {
@@ -50,7 +50,7 @@ export const getFaceLandmarker = async () => {
         outputFaceBlendshapes: true,
         outputFacialTransformationMatrixes: true,
         runningMode: 'VIDEO',
-        numFaces: 2,
+        numFaces: 4,
       });
       return landmarkerInstance;
     }

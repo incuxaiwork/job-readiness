@@ -130,7 +130,7 @@ export const DeviceCheckModal = ({ isOpen, onClose, onProceed, assessmentTitle }
       maxWidth="max-w-lg"
     >
       <div className="space-y-5 text-xs text-slate-700">
-
+        
         {/* Privacy Note */}
         <div className="p-3.5 bg-brand-50/70 border border-brand-200 rounded-2xl flex items-start gap-3">
           <ShieldCheck className="w-5 h-5 text-brand-600 flex-shrink-0 mt-0.5" />
@@ -190,7 +190,7 @@ export const DeviceCheckModal = ({ isOpen, onClose, onProceed, assessmentTitle }
               <div className="flex flex-col">
                 <span className="font-bold text-[11px]">Camera</span>
                 <span className="text-[10px] font-medium">
-                  {cameraStatus === 'active' ? 'Camera Active' : cameraStatus === 'checking' ? 'Checking...' : 'Disconnected / Denied'}
+                  {cameraStatus === 'active' ? '✓ Camera Active' : cameraStatus === 'checking' ? 'Checking...' : 'Disconnected / Denied'}
                 </span>
               </div>
             </div>
@@ -214,7 +214,7 @@ export const DeviceCheckModal = ({ isOpen, onClose, onProceed, assessmentTitle }
               <div className="flex flex-col">
                 <span className="font-bold text-[11px]">Microphone</span>
                 <span className="text-[10px] font-medium">
-                  {micStatus === 'active' ? 'Microphone Active' : micStatus === 'checking' ? 'Checking...' : 'Disconnected / Denied'}
+                  {micStatus === 'active' ? '✓ Microphone Active' : micStatus === 'checking' ? 'Checking...' : 'Disconnected / Denied'}
                 </span>
               </div>
             </div>

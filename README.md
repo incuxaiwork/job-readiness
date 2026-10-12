@@ -90,3 +90,26 @@ npm run db:migrate    # baseline + prisma migrate deploy (applies only NEW migra
 The deployed database is a persistent Railway Postgres volume; it is only wiped
 if a destructive reset command is run against it.
 
+
+
+## Interview room UI update (video-reference layout)
+
+The AI Mock Interview room has been updated to follow the supplied recording's layout:
+- Large AI interviewer video/avatar as the main stage.
+- Candidate camera shown as a picture-in-picture tile.
+- Top HUD for candidate identity, elapsed time, recording state, and proctoring warnings.
+- Question subtitle overlay on the main stage.
+- Right-side live conversation panel with interviewer prompt, current question, and the candidate's answer transcript.
+- Responsive layout: the conversation panel moves below the video on narrow screens.
+
+The update reuses the existing interview state, camera stream, speech/transcript controls, question generation, and submission/report workflow rather than replacing the interview logic. Browser camera/microphone permissions are required for live media.
+
+### Run locally
+
+From the repository root:
+1. `cd frontend`
+2. `npm ci`
+3. `npm run dev`
+4. Open the Vite URL printed in the terminal and sign in with a test account supported by your configured backend.
+
+Build check: run `npm run build` after dependencies are installed. The working environment used for this edit had an incomplete `node_modules` install, so a production build could not be confirmed here.

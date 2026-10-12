@@ -22,7 +22,8 @@ import { AdminCandidatesPage } from './pages/admin/AdminCandidatesPage';
 import { AdminQuestionBankPage } from './pages/admin/AdminQuestionBankPage';
 import { AdminAssessmentsPage } from './pages/admin/AdminAssessmentsPage';
 import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
-import { AdminCollegesPage } from './pages/admin/AdminCollegesPage';
+import { AdminInterviewsPage } from './pages/admin/AdminInterviewsPage';
+
 import { JobReadinessHero } from './pages/JobReadinessHero';
 import { ShieldAlert, Lock } from 'lucide-react';
 import { isInterviewLocked } from './utils/interviewLock';
@@ -51,22 +52,6 @@ function RequireAdmin({ children }) {
 
   if (!isAdmin) {
     return <Navigate to="/admin" state={{ from: location }} replace />;
-  }
-  return children;
-}
-
-function RequireSuperAdmin({ children }) {
-  const { role, adminUser } = useApp();
-  const location = useLocation();
-  const savedAdmin = typeof window !== 'undefined' ? localStorage.getItem('rsj_admin_user') : null;
-  const resolvedAdmin = adminUser || (savedAdmin ? (() => { try { return JSON.parse(savedAdmin); } catch { return null; } })() : null);
-  const isSuperAdmin = role === 'admin' && (resolvedAdmin?.role === 'admin' || !resolvedAdmin?.role);
-
-  if (role !== 'admin') {
-    return <Navigate to="/admin" state={{ from: location }} replace />;
-  }
-  if (!isSuperAdmin) {
-    return <Navigate to="/admin/candidates" state={{ from: location }} replace />;
   }
   return children;
 }
@@ -136,7 +121,7 @@ function AssessmentRunner() {
 // ── Distraction-free Fullscreen Interview runner (no Header, no Sidebar) ──
 function InterviewRunner() {
   return (
-    <div className="h-screen max-h-screen w-full bg-[#F8FAFC] text-slate-800 flex flex-col overflow-hidden selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen w-full bg-[#F8FAFC] text-slate-800 flex flex-col overflow-y-auto selection:bg-brand-500 selection:text-white">
       <AIMockInterviewPage />
       <ToastContainer />
     </div>
@@ -158,18 +143,8 @@ function ShellLayout({ children }) {
   );
 }
 
-// ── Interview route: locked state uses the normal shell, live interview is full-screen ──
+// ── Interview route: full-screen distraction-free interview studio (no sidebar) ──
 function InterviewRoute() {
-  const { role, adminUser, assessments, candidateSubmissions, isAssessmentCompleted } = useApp();
-  const locked = isInterviewLocked({ role, adminUser, assessments, candidateSubmissions, isAssessmentCompleted });
-
-  if (locked) {
-    return (
-      <ShellLayout>
-        <AIMockInterviewPage />
-      </ShellLayout>
-    );
-  }
   return <InterviewRunner />;
 }
 
@@ -261,26 +236,32 @@ export default function App() {
         <Route
           path="/admin/questions"
           element={
-            <RequireSuperAdmin>
+            <RequireAdmin>
               <ShellLayout>
                 <AdminQuestionBankPage />
               </ShellLayout>
-            </RequireSuperAdmin>
+            </RequireAdmin>
           }
         />
         <Route
           path="/admin/assessments"
           element={
-            <RequireSuperAdmin>
+            <RequireAdmin>
               <ShellLayout>
                 <AdminAssessmentsPage />
               </ShellLayout>
-            </RequireSuperAdmin>
+            </RequireAdmin>
           }
         />
         <Route
           path="/admin/interviews"
-          element={<Navigate to="/admin/candidates" replace />}
+          element={
+            <RequireAdmin>
+              <ShellLayout>
+                <AdminInterviewsPage />
+              </ShellLayout>
+            </RequireAdmin>
+          }
         />
         <Route
           path="/admin/analytics"
@@ -290,17 +271,6 @@ export default function App() {
                 <AdminAnalyticsPage />
               </ShellLayout>
             </RequireAdmin>
-          }
-        />
-
-        <Route
-          path="/admin/colleges"
-          element={
-            <RequireSuperAdmin>
-              <ShellLayout>
-                <AdminCollegesPage />
-              </ShellLayout>
-            </RequireSuperAdmin>
           }
         />
 

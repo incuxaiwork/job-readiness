@@ -12,7 +12,7 @@ import {
   subscribeJobEvents
 } from '../queues/submissionQueue.js';
 import { pool } from '../db/pool.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { optionalAuthToken } from '../middleware/auth.js';
 import { redisClient, isRedisAvailable } from '../db/redis.js';
 
 const router = express.Router();
@@ -217,17 +217,16 @@ router.get('/languages', (_req, res) => {
 });
 
 // GET /api/code/runs/logs (Recent audit logs)
-router.get('/runs/logs', authenticateToken, (req, res) => {
+router.get('/runs/logs', optionalAuthToken, (req, res) => {
   const key = getClientKey(req);
-  const isAdmin = req.user?.role === 'admin';
   const userLogs = executionAuditLogs
-    .filter((log) => (isAdmin ? true : log.clientKey === key))
+    .filter(log => !req.user?.role !== 'admin' ? log.clientKey === key : true)
     .slice(-50);
   res.json({ success: true, logs: userLogs });
 });
 
 // POST /api/code/run & POST /code/run
-router.post('/run', authenticateToken, async (req, res) => {
+router.post('/run', optionalAuthToken, async (req, res) => {
   const clientKey = getClientKey(req);
 
   // 1. Global concurrency cap — protect Judge0/Piston from exam-burst saturation
@@ -384,7 +383,7 @@ router.post('/run', authenticateToken, async (req, res) => {
 });
 
 // POST /api/code/submit & POST /code/submit (Asynchronous submission via BullMQ / Queue)
-router.post('/submit', authenticateToken, async (req, res) => {
+router.post('/submit', optionalAuthToken, async (req, res) => {
   const clientKey = getClientKey(req);
 
   // 1. Global concurrency cap — protect Judge0/Piston from exam-burst saturation
@@ -463,14 +462,11 @@ router.post('/submit', authenticateToken, async (req, res) => {
 });
 
 // GET /api/code/submissions/:jobId/stream (Real-time SSE status streaming)
-router.get('/submissions/:jobId/stream', authenticateToken, async (req, res) => {
+router.get('/submissions/:jobId/stream', async (req, res) => {
   const { jobId } = req.params;
   const job = await getSubmissionJob(jobId);
   if (!job) {
     return res.status(404).json({ success: false, error: 'Submission job not found.' });
-  }
-  if (req.user?.role !== 'admin' && job.clientKey && String(job.clientKey) !== String(req.user?.id)) {
-    return res.status(403).json({ success: false, error: 'Access denied.' });
   }
 
   res.setHeader('Content-Type', 'text/event-stream');
@@ -518,14 +514,11 @@ router.get('/submissions/:jobId/stream', authenticateToken, async (req, res) => 
 });
 
 // GET /api/code/submissions/:jobId/status (REST polling fallback endpoint)
-router.get('/submissions/:jobId/status', authenticateToken, async (req, res) => {
+router.get('/submissions/:jobId/status', async (req, res) => {
   const { jobId } = req.params;
   const job = await getSubmissionJob(jobId);
   if (!job) {
     return res.status(404).json({ success: false, error: 'Submission job not found.' });
-  }
-  if (req.user?.role !== 'admin' && job.clientKey && String(job.clientKey) !== String(req.user?.id)) {
-    return res.status(403).json({ success: false, error: 'Access denied.' });
   }
 
   res.json({

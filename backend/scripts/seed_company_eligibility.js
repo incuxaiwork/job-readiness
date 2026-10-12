@@ -98,12 +98,12 @@ export async function seedCompanyEligibility() {
     }
 
     const { rows } = await client.query('SELECT COUNT(*) as count FROM company_eligibility_criteria;');
-    console.log(`Successfully seeded company_eligibility_criteria! Total rows in table: ${rows[0].count}`);
+    console.log(`✅ Successfully seeded company_eligibility_criteria! Total rows in table: ${rows[0].count}`);
 
     const sample = await client.query('SELECT company, role, tenth_percentage, graduation_percentage, technical_cutoff, coding_cutoff, overall_readiness_cutoff FROM company_eligibility_criteria ORDER BY company, role LIMIT 5;');
     console.log('Sample rows:', sample.rows);
   } catch (err) {
-    console.error('Error seeding company eligibility:', err);
+    console.error('❌ Error seeding company eligibility:', err);
     throw err;
   } finally {
     client.release();
