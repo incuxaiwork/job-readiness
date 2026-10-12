@@ -42,12 +42,12 @@ const run = async () => {
       console.log(stmt);
     } else {
       await pool.query(stmt);
-      console.log(`✅ RLS enabled on public.${tablename}${force ? ' (FORCE)' : ''}`);
+      console.log(`RLS enabled on public.${tablename}${force ? ' (FORCE)' : ''}`);
     }
   }
 
   if (!dryRun && force) {
-    console.warn('⚠️  FORCE ROW LEVEL SECURITY is on: the application role must now be granted explicit policies or it will lose access.');
+    console.warn('FORCE ROW LEVEL SECURITY is on: the application role must now be granted explicit policies or it will lose access.');
   }
 
   await pool.end();

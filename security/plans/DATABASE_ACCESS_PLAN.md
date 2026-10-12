@@ -3,7 +3,7 @@
 ## Changes
 
 - `backend/src/db/pool.js` — replace `ssl: { rejectUnauthorized: false }` with a
-  `buildSslConfig()` helper: localhost → no TLS; remote → TLS with
+  `buildSslConfig()` helper: localhost -> no TLS; remote -> TLS with
   `rejectUnauthorized: true` by default, optional CA pinning via `DATABASE_SSL_CA`,
   explicit opt-out only via `DATABASE_SSL_REJECT_UNAUTHORIZED=false`.
 - `backend/.env.example` — document `DATABASE_SSL_REJECT_UNAUTHORIZED` (default

@@ -129,6 +129,6 @@ const run = async () => {
 };
 
 run().catch((err) => {
-  console.error('❌ College migration failed:', err.message);
+  console.error('College migration failed:', err.message);
   process.exit(1);
 });

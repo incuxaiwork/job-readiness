@@ -33,8 +33,8 @@ export default function ScoreOverview({ student }) {
     : 0;
 
   const categoryEntries = Object.entries(currentPercents);
-  const bestCategoryEntry = categoryEntries.length > 0 
-    ? [...categoryEntries].sort((a, b) => b[1] - a[1])[0] 
+  const bestCategoryEntry = categoryEntries.length > 0
+    ? [...categoryEntries].sort((a, b) => b[1] - a[1])[0]
     : ['Technical', 0];
   const bestCategoryName = bestCategoryEntry[0].charAt(0).toUpperCase() + bestCategoryEntry[0].slice(1);
   const bestCategoryScore = bestCategoryEntry[1];
@@ -103,7 +103,7 @@ function StatCard({ label, value, change, color, subtitle }) {
       {subtitle && <p className="text-xs text-slate-500 mt-1">({subtitle})</p>}
       {change !== null && (
         <p className={`text-xs font-bold mt-2 ${change >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-          {change >= 0 ? '↑' : '↓'} {Math.abs(change)}% from last attempt
+          {change >= 0 ? '+' : '-'} {Math.abs(change)}% from last attempt
         </p>
       )}
     </div>

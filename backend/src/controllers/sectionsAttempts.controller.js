@@ -38,7 +38,7 @@ const QUESTION_SELECT = `
 `;
 
 const fetchSectionQuestions = async (assessmentId, sectionId, includeAnswer) => {
-  // sectionId present → scope by section; null/undefined → whole assessment (implicit section)
+  // sectionId present -> scope by section; null/undefined -> whole assessment (implicit section)
   const params = [sectionId || assessmentId];
   const where = sectionId ? 'aq.section_id = $1' : 'aq.assessment_id = $1';
   const res = await pool.query(
@@ -317,7 +317,7 @@ export const startAssessmentAttempt = async (req, res) => {
       [candidateId, assessmentId]
     );
 
-    // Completed attempt → single-attempt policy blocks re-entry
+    // Completed attempt -> single-attempt policy blocks re-entry
     if (existingRes.rows.length > 0 && existingRes.rows[0].status === 'Completed') {
       await client.query('ROLLBACK');
       return res.status(403).json({

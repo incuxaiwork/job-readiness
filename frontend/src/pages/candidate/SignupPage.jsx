@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { api } from '../../services/api';
 import { useApp } from '../../context/AppContext';
 import {
   BrainCircuit,
@@ -13,7 +14,9 @@ import {
   Mail,
   User,
   Phone,
-  Building2,
+  Search,
+  ChevronDown,
+  Check,
   GraduationCap,
   Globe,
   MapPin,
@@ -86,6 +89,7 @@ export const SignupPage = () => {
     email: '',
     phoneNo: '',
     collegeName: '',
+    collegeId: '',
     branch: '',
     specialization: '',
     country: 'India',
@@ -110,6 +114,55 @@ export const SignupPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Dynamic college picker (tenants onboarded by the platform)
+  const [colleges, setColleges] = useState([]);
+  const [collegesLoading, setCollegesLoading] = useState(true);
+  const [collegeSearch, setCollegeSearch] = useState('');
+  const [showCollegeMenu, setShowCollegeMenu] = useState(false);
+  const [selectedCollege, setSelectedCollege] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await api.auth.colleges();
+        if (!active) return;
+        const list = res?.ok && Array.isArray(res.data) ? res.data : [];
+        setColleges(list);
+      } catch {
+        if (active) setColleges([]);
+      } finally {
+        if (active) setCollegesLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  const normalizedCollegeSearch = collegeSearch.trim().toLowerCase();
+  const filteredColleges = normalizedCollegeSearch
+    ? colleges.filter((c) =>
+        String(c.name || '').toLowerCase().includes(normalizedCollegeSearch) ||
+        String(c.code || '').toLowerCase().includes(normalizedCollegeSearch))
+    : colleges;
+
+  const handleCollegeType = (value) => {
+    setCollegeSearch(value);
+    setShowCollegeMenu(true);
+    setSelectedCollege(null);
+    setFormData(prev => ({ ...prev, collegeName: value, collegeId: '' }));
+    if (errors.collegeName || errors.collegeId) {
+      setErrors(prev => ({ ...prev, collegeName: undefined, collegeId: undefined }));
+    }
+  };
+
+  const handleCollegeSelect = (college) => {
+    setSelectedCollege(college);
+    setCollegeSearch(college.name);
+    setShowCollegeMenu(false);
+    setFormData(prev => ({ ...prev, collegeName: college.name, collegeId: college.id }));
+    setErrors(prev => ({ ...prev, collegeName: undefined, collegeId: undefined }));
+  };
 
   // Real-time field validation
   const validateField = (field, value) => {
@@ -221,7 +274,7 @@ export const SignupPage = () => {
     if (!formData.phoneNo.trim() || !INDIAN_MOBILE_REGEX.test(cleanMobile)) {
       newErrors.phoneNo = 'Valid 10-digit Indian mobile starting with 6,7,8,9 required';
     }
-    if (!formData.collegeName.trim()) newErrors.collegeName = 'College name is required';
+    if (!formData.collegeId) newErrors.collegeName = 'Please select your college from the list';
     if (!formData.branch.trim()) newErrors.branch = 'Branch is required';
     if (!formData.specialization.trim()) newErrors.specialization = 'Specialization is required';
     if (!formData.state.trim()) newErrors.state = 'State is required';
@@ -310,6 +363,8 @@ export const SignupPage = () => {
         phoneNo: cleanMobile,
         college: formData.collegeName.trim(),
         collegeName: formData.collegeName.trim(),
+        collegeId: formData.collegeId,
+        college_id: formData.collegeId,
         branch: formData.branch,
         specialization: formData.specialization,
         country: formData.country || 'India',
@@ -563,22 +618,68 @@ export const SignupPage = () => {
                 {/* 4. College Name */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    4. College Name <span className="text-rose-500">*</span>
+                    4. College <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
-                    <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type="text"
                       name="collegeName"
-                      value={formData.collegeName}
-                      onChange={handleChange}
-                      placeholder="Enter College Name"
-                      className={`w-full pl-10 pr-4 py-2.5 bg-white border text-sm text-slate-900 placeholder-slate-400 rounded-xl outline-none transition-all ${
+                      value={collegeSearch}
+                      onChange={(e) => handleCollegeType(e.target.value)}
+                      onFocus={() => setShowCollegeMenu(true)}
+                      onBlur={() => setTimeout(() => setShowCollegeMenu(false), 150)}
+                      placeholder={collegesLoading ? 'Loading colleges...' : 'Search college by name or code'}
+                      autoComplete="off"
+                      className={`w-full pl-10 pr-9 py-2.5 bg-white border text-sm text-slate-900 placeholder-slate-400 rounded-xl outline-none transition-all ${
                         errors.collegeName ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-slate-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20'
                       }`}
                     />
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    {showCollegeMenu && (
+                      <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl">
+                        {collegesLoading ? (
+                          <div className="px-4 py-3 text-sm text-slate-400">Loading colleges...</div>
+                        ) : filteredColleges.length === 0 ? (
+                          <div className="px-4 py-3 text-sm text-slate-400">
+                            {colleges.length === 0 ? 'No colleges are available yet. Please contact the platform team.' : 'No college matches your search.'}
+                          </div>
+                        ) : (
+                          filteredColleges.map((c) => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => handleCollegeSelect(c)}
+                              className="w-full text-left px-4 py-2.5 hover:bg-brand-50 flex items-center justify-between gap-3 transition-colors"
+                            >
+                              <span className="min-w-0">
+                                <span className="block text-sm font-semibold text-slate-800 truncate">{c.name}</span>
+                                {(c.city || c.state) && (
+                                  <span className="block text-[11px] text-slate-400 truncate">
+                                    {[c.city, c.state].filter(Boolean).join(', ')}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="flex items-center gap-2 shrink-0">
+                                {c.code && (
+                                  <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-bold uppercase">{c.code}</span>
+                                )}
+                                {selectedCollege?.id === c.id && <Check className="w-4 h-4 text-brand-600" />}
+                              </span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {errors.collegeName && <p className="mt-1 text-xs text-rose-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.collegeName}</p>}
+                  {errors.collegeName ? (
+                    <p className="mt-1 text-xs text-rose-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.collegeName}</p>
+                  ) : selectedCollege ? (
+                    <p className="mt-1 text-[11px] text-emerald-600 flex items-center gap-1"><Check className="w-3 h-3" />Linked to {selectedCollege.name}{selectedCollege.code ? ` (${selectedCollege.code})` : ''}</p>
+                  ) : (
+                    <p className="mt-1 text-[11px] text-slate-400">Search by college name or code, then select from the list.</p>
+                  )}
                 </div>
               </div>
 

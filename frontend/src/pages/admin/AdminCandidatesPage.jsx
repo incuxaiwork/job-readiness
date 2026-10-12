@@ -90,7 +90,7 @@ export const AdminCandidatesPage = () => {
     const candEmail = (cand.email || '').toLowerCase();
     const candId = cand.id;
 
-    let matched = allInterviewSessions.find(s => 
+    let matched = allInterviewSessions.find(s =>
       (s.userId && s.userId === candId) ||
       (s.candidateEmail && s.candidateEmail.toLowerCase() === candEmail)
     );
@@ -246,7 +246,7 @@ export const AdminCandidatesPage = () => {
 
   return (
     <div className="space-y-8 pb-16">
-      
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -275,7 +275,7 @@ export const AdminCandidatesPage = () => {
       {/* SEARCH & FILTERS BAR */}
       <div className="bg-white rounded-2xl border border-slate-200/90 shadow-card p-4 sm:p-5 space-y-4">
         <div className="flex flex-col md:flex-row items-center gap-3">
-          
+
           <div className="relative flex-1 w-full">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
@@ -457,7 +457,7 @@ export const AdminCandidatesPage = () => {
           subtitle={`Candidate ID: ${viewCandidate.id} • Complete Enrolled Details & Assessment Performance`}
         >
           <div className="space-y-5 text-xs">
-            
+
             {/* 1. Personal & Contact Details */}
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
               <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
@@ -514,7 +514,7 @@ export const AdminCandidatesPage = () => {
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                     : 'bg-rose-50 text-rose-700 border-rose-200'
                 }`}>
-                  {(viewCandidate.backlogs ?? 0) === 0 ? '✓ 0 Backlogs (Cleared)' : `${viewCandidate.backlogs} Active Backlog(s)`}
+                  {(viewCandidate.backlogs ?? 0) === 0 ? '0 Backlogs (Cleared)' : `${viewCandidate.backlogs} Active Backlog(s)`}
                 </span>
               </div>
 
@@ -1036,7 +1036,7 @@ export const AdminCandidatesPage = () => {
                 onChange={(e) => setSelectedUnlockAssessment(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
               >
-                <option value="all">🌟 All Assessments (Full Retake Reset)</option>
+                <option value="all">All Assessments (Full Retake Reset)</option>
                 {(assessments || []).map(asm => (
                   <option key={asm.id} value={asm.id}>
                     {asm.title} ({asm.category || 'Assessment'})

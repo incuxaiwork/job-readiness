@@ -15,7 +15,7 @@ argument as a **candidate id** and compares it to `req.user.id` / looks up the
 candidate's college — but the route param is a **test attempt id**, not a candidate id.
 Consequences:
 - A candidate could not read their own proctoring events (their `user.id` never equals
-  an attempt id) → functional bug.
+  an attempt id) -> functional bug.
 - The controller's query `WHERE attempt_id = $1 OR candidate_id = $1` was reachable by a
   candidate only when passing **their own user id** in the attemptId slot — so no cross-
   tenant read in practice, but the guard did not actually validate attempt ownership.
@@ -33,12 +33,12 @@ which queries `WHERE ta.id = $1 AND ta.candidate_id = $2`. `saveAnswer`,
 404 when the attempt is not owned. Auth and ownership are separate checks.
 
 ### 3. Candidate resource ownership is enforced (PASS)
-- `GET /candidates/:id` / `/:id/submissions` → `requireCandidateReadAccess`
+- `GET /candidates/:id` / `/:id/submissions` -> `requireCandidateReadAccess`
   (`ownership.js:28-43,77-89`) + a controller-level college check for college admins
   (`candidates.controller.js:166`).
-- `PUT /candidates/:id` and `/:id/academic-marks` → `requireSelfOrAdmin`
+- `PUT /candidates/:id` and `/:id/academic-marks` -> `requireSelfOrAdmin`
   (`ownership.js:49-70`).
-- `DELETE /candidates/:id` and `POST /:id/reset-attempt` → `requireRole('admin')`
+- `DELETE /candidates/:id` and `POST /:id/reset-attempt` -> `requireRole('admin')`
   (platform super-admin only).
 - List endpoints scope by tenant via `resolveCollegeScope` (`collegeScope.js`): a college
   admin is always locked to `user.college_id`; `collegeId` supplied by the client cannot

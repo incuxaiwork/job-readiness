@@ -54,16 +54,16 @@ rename it); add `college_admin`.
 
 | Capability | candidate | `college_admin` | super-admin (`admin`) |
 |---|---|---|---|
-| Take assessments | ✅ | — | — |
-| Analytics (own college) | — | ✅ scoped | ✅ all / filterable |
-| Candidate roster | own record | ✅ own college (read-only) | ✅ all |
-| Candidate PII / detail | own | ✅ own college (full PII) | ✅ all |
-| Delete candidate / reset attempt | — | ❌ read-only | ✅ all |
-| Results export (CSV) | own | ✅ own college | ✅ all |
-| Question Bank authoring | — | ❌ | ✅ |
-| Assessment creation | — | ❌ | ✅ |
-| AI Mock Interviews admin | — | ❌ | ✅ |
-| Onboard colleges / issue credentials | — | ❌ | ✅ |
+| Take assessments | | — | — |
+| Analytics (own college) | — | scoped | all / filterable |
+| Candidate roster | own record | own college (read-only) | all |
+| Candidate PII / detail | own | own college (full PII) | all |
+| Delete candidate / reset attempt | — | read-only | all |
+| Results export (CSV) | own | own college | all |
+| Question Bank authoring | — | | |
+| Assessment creation | — | | |
+| AI Mock Interviews admin | — | | |
+| Onboard colleges / issue credentials | — | | |
 
 > **Decided:** college admins are **read-only** across candidate records (view
 > analytics, roster, full PII and export; no reset/delete). Delete and reset-attempt
@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS colleges (
   id            VARCHAR(64) PRIMARY KEY,
   name          VARCHAR(255) NOT NULL,
   code          VARCHAR(32) UNIQUE,          -- short slug, e.g. "rvce"
-  domain        VARCHAR(128),                -- e.g. "rvce.edu.in" → auto-assign at signup
+  domain VARCHAR(128), -- e.g. "rvce.edu.in" -> auto-assign at signup
   city          VARCHAR(128),
   state         VARCHAR(128),
   contact_name  VARCHAR(255),
@@ -122,7 +122,7 @@ CREATE INDEX IF NOT EXISTS idx_submissions_college      ON assessment_submission
 > the distinct list and merge near-duplicates before/after backfill. Provide a
 > `--dry-run` that prints the mapping.
 
-### 4.4 Candidate → college linking (signup by college code)
+### 4.4 Candidate -> college linking (signup by college code)
 
 **Decided: students link to a college by entering the college `code` at signup.**
 
@@ -133,7 +133,7 @@ CREATE INDEX IF NOT EXISTS idx_submissions_college      ON assessment_submission
   - if provided: look up `colleges WHERE LOWER(code)=LOWER($1) AND status='active'`;
     on match set `users.college_id` and `candidate_profiles.college_id`, and keep the
     legacy `candidate_profiles.college` text synced to `colleges.name`;
-    on no match → return a validation error (reject, don't silently drop).
+    on no match -> return a validation error (reject, don't silently drop).
   - if blank: allow an **unlinked** student (super-admin can fix later). Decide
     whether to require it for the college-drive flow.
 - Frontend `SignupPage.jsx`: add a "College code" field (with inline validation).
@@ -217,7 +217,7 @@ bank, assessments, interviews).
 | POST | `/api/admin/colleges` | create a college |
 | PATCH | `/api/admin/colleges/:id` | edit / suspend |
 | GET | `/api/admin/colleges/:id/admins` | list college admins |
-| POST | `/api/admin/colleges/:id/admins` | create credential → returns one-time password |
+| POST | `/api/admin/colleges/:id/admins` | create credential -> returns one-time password |
 | PATCH | `/api/admin/colleges/:id/admins/:userId` | reset password / activate / deactivate |
 
 ### 7.2 Staff (`requireRole('admin','college_admin')`, scoped per §6)
@@ -245,7 +245,7 @@ coding, status, submitted_at`.
 | Area | Change |
 |---|---|
 | `App.jsx` `RequireAdmin` (`:51-57`) | rename/extend to `RequireStaff` — allow `admin` **and** `college_admin`; add a super-admin-only guard for `/admin/colleges`, `/admin/questions`, `/admin/assessments`, `/admin/interviews` |
-| `AdminLoginPage.jsx` | after login, route by role: `admin → /admin/dashboard`, `college_admin → /admin/analytics` |
+| `AdminLoginPage.jsx` | after login, route by role: `admin -> /admin/dashboard`, `college_admin -> /admin/analytics` |
 | `AppContext.jsx` (`:943-957`) | persist `rsj_admin_user` including `{ role, college_id, college_name }`; expose `isCollegeAdmin` |
 | `Sidebar.jsx` (`:38-42`) | college-admin nav = **Analytics, Candidates, Results/Export**; hide Question Bank / Assessments / Interviews; add **Colleges** for super-admin |
 | New `pages/admin/AdminCollegesPage.jsx` | list + create colleges; manage college-admin credentials (one-time password modal) |

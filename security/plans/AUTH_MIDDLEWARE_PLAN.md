@@ -36,8 +36,8 @@ After implementation, ALL of these must be true:
 
 ## Manual verification (for the human)
 
-- `curl -X POST /api/code/run` with no `Authorization` header → expect 401.
+- `curl -X POST /api/code/run` with no `Authorization` header -> expect 401.
 - Log in as candidate A, submit code, then with candidate B's token request
-  `/api/code/submissions/<A's jobId>/status` → expect 403.
-- `curl /api/interview/session/<id>` with no token → expect 401.
+  `/api/code/submissions/<A's jobId>/status` -> expect 403.
+- `curl /api/interview/session/<id>` with no token -> expect 401.
 - Confirm the interview and code-runner pages still work when logged in.

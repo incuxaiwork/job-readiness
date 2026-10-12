@@ -15,7 +15,7 @@
 After implementation, ALL of these must be true:
 
 - [x] No `^` or `~` in `backend/package.json` / `frontend/package.json` dependencies
-- [x] `npm audit` counts reduced (backend 9→4, frontend 16→15)
+- [x] `npm audit` counts reduced (backend 9->4, frontend 16->15)
 - [x] Remaining backend advisories are build-time-only (Prisma CLI), on no runtime path
 - [x] Critical `tar` advisory confirmed non-exploitable (optional `canvas` not installed)
 - [x] `npm ls --depth=0` yields a valid tree; frontend lint passes

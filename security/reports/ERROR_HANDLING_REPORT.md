@@ -77,7 +77,7 @@ app.use((err, _req, res, _next) => {
 ## Verification (implemented)
 
 - `grep -rnE "error:\s*err\.message|error:\s*err\b|message:\s*err\.message|details:\s*err" backend/src`
-  → no matches.
+  -> no matches.
 - 38 call sites now use `serverError(res, err, <context>)`.
 - `serverError` logs `err.stack` server-side and responds with `Internal server error.`
 - `node --check` passes on all seven controllers and the helper.

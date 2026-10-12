@@ -32,5 +32,5 @@ Nothing — the attack surface does not exist in this application.
 ## Verification (implemented)
 
 - `grep -rniE "stripe|payment_intent|invoice\\.payment|webhook|razorpay|paypal" backend/src frontend/src`
-  → no matches.
+  -> no matches.
 - No payment SDK in either `package.json`.

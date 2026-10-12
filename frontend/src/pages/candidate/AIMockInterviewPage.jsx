@@ -1902,7 +1902,7 @@ export const AIMockInterviewPage = () => {
                 <div className="flex flex-wrap gap-2">
                   {skillGaps.matchedCore.map((skill, i) => (
                     <span key={i} className="px-3.5 py-1.5 rounded-xl bg-white border border-emerald-200 text-xs font-semibold text-emerald-800 shadow-2xs">
-                      ✓ {skill}
+                      {skill}
                     </span>
                   ))}
                 </div>
@@ -2414,7 +2414,7 @@ export const AIMockInterviewPage = () => {
                     onClick={handleProceedToRoom}
                     className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm sm:text-base shadow-md shadow-brand-600/20 transition-all hover:scale-[1.005] cursor-pointer font-sans"
                   >
-                    <span>Proceed to Live AI Interview Room →</span>
+                    <span>Proceed to Live AI Interview Room -></span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                   {isInterviewCompleted && (
@@ -2458,7 +2458,7 @@ export const AIMockInterviewPage = () => {
                   className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm sm:text-base shadow-md shadow-brand-600/20 transition-all hover:scale-[1.005] cursor-pointer font-sans"
                 >
                   <Upload className="w-4 h-4" />
-                  <span>Upload Resume to Calibrate & Proceed →</span>
+                  <span>Upload Resume to Calibrate & Proceed -></span>
                 </button>
               </div>
             )}
@@ -2614,7 +2614,7 @@ export const AIMockInterviewPage = () => {
                   }`}
               >
                 <Video className="w-3 h-3" />
-                <span>{isTestingCamera ? 'Cam: Active ✓' : 'Test Cam'}</span>
+                <span>{isTestingCamera ? 'Cam: Active' : 'Test Cam'}</span>
               </button>
             )}
 
@@ -3025,10 +3025,10 @@ export const AIMockInterviewPage = () => {
                 </span>
                 <h3 className="text-lg font-black tracking-tight text-white">
                   {proctoringModal.isFinal
-                    ? '🛑 Interview Closed & Auto-Submitted'
+                    ? 'Interview Closed & Auto-Submitted'
                     : proctoringModal.count === 2
-                      ? '🚨 FINAL WARNING (2 of 2)'
-                      : `⚠️ Warning 1 of 2`}
+                      ? 'FINAL WARNING (2 of 2)'
+                      : `Warning 1 of 2`}
                 </h3>
               </div>
             </div>

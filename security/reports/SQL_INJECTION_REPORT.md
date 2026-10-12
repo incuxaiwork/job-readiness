@@ -77,8 +77,8 @@ would reintroduce the class.
 
 ## Verification (implemented)
 
-- `grep -rnE "query\(.*\\\$\{" backend/src` → no matches.
-- `grep -rniE "queryRaw|executeRaw|queryRawUnsafe|executeRawUnsafe" backend/src` → no
+- `grep -rnE "query\(.*\\\$\{" backend/src` -> no matches.
+- `grep -rniE "queryRaw|executeRaw|queryRawUnsafe|executeRawUnsafe" backend/src` -> no
   matches.
 - All `${…}` occurrences in controllers are `$${params.length}` placeholder indices,
   allowlisted column names, or the fixed numeric `INTERVAL` map.

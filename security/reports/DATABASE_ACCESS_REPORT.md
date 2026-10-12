@@ -40,7 +40,7 @@ credentials yield full control of every table with no second layer of protection
 
 ### 4. No least-privilege application role (MEDIUM)
 No `CREATE ROLE`, `GRANT`, or `REVOKE` statements exist in the schema or migrations. The
-app runs as the database owner/superuser, so a SQL-injection or SSRF→DB pivot would have
+app runs as the database owner/superuser, so a SQL-injection or SSRF->DB pivot would have
 unrestricted privileges (schema changes, `COPY`, file access where enabled).
 
 ### 5. Direct DB access is centralized (PASS)

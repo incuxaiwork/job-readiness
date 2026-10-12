@@ -84,10 +84,30 @@ const refreshCookieOpts = () => ({
   path: "/api/auth",
 });
 
+// GET /api/auth/colleges  (public — powers the student signup picker)
+// Returns only active colleges, and only the fields the picker needs.
+export const listPublicColleges = async (_req, res) => {
+  if (!pool || !getDbStatus()) {
+    return res.json({ success: true, data: [] });
+  }
+  try {
+    const result = await pool.query(
+      `SELECT id, name, code, city, state
+       FROM colleges
+       WHERE status = 'active'
+       ORDER BY name ASC`
+    );
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    console.error("listPublicColleges error:", err.message);
+    res.json({ success: true, data: [] });
+  }
+};
+
 // POST /api/auth/register
 export const register = async (req, res) => {
   const {
-    name, fullName, email, mobile, phoneNo, college, collegeName,
+    name, fullName, email, mobile, phoneNo, college, collegeName, collegeId,
     degree, branch, specialization, country = "India",
     state, city, graduationYear = 2026, experienceLevel = "Fresher",
     tenthSchool, tenthMarks, twelfthCollege, twelfthDiplomaMarks,
@@ -98,7 +118,8 @@ export const register = async (req, res) => {
   const candidateName         = (name || fullName || "").trim();
   const candidateEmail        = (email || "").trim().toLowerCase();
   const rawMobile             = (mobile || phoneNo || "").trim();
-  const candidateCollege      = (college || collegeName || "").trim();
+  let   candidateCollege      = (college || collegeName || "").trim();
+  const candidateCollegeId    = (collegeId || req.body.college_id || "").trim();
   const candidateBranch       = (branch || "").trim();
   const candidateSpecialization = (specialization || "").trim();
   const candidateCountry      = (country || "India").trim();
@@ -130,10 +151,28 @@ export const register = async (req, res) => {
     return res.status(400).json({ success: false, error: "State is required." });
   if (!candidateCity)
     return res.status(400).json({ success: false, error: "City is required." });
+  if (!candidateCollegeId)
+    return res.status(400).json({ success: false, error: "Please select your college from the list." });
 
   // Password strength validation
   const pwErr = validatePassword(password);
   if (pwErr) return res.status(400).json({ success: false, error: pwErr });
+
+  // Resolve the selected college (tenant). Students must register under an onboarded, active college.
+  let resolvedCollegeId = candidateCollegeId;
+  if (pool && getDbStatus()) {
+    const collegeRes = await pool.query(
+      "SELECT id, name, status FROM colleges WHERE id = $1",
+      [candidateCollegeId]
+    );
+    const college = collegeRes.rows[0];
+    if (!college)
+      return res.status(400).json({ success: false, error: "Selected college could not be found. Please choose from the list." });
+    if (college.status !== "active")
+      return res.status(403).json({ success: false, error: "The selected college is not currently accepting registrations." });
+    resolvedCollegeId = college.id;
+    candidateCollege = college.name;
+  }
 
   // Fast fallback mode when PostgreSQL pool is not active or DB is offline
   if (!pool || !getDbStatus()) {
@@ -144,6 +183,8 @@ export const register = async (req, res) => {
       email: candidateEmail,
       mobile: cleanMobile,
       college: candidateCollege,
+      collegeId: resolvedCollegeId,
+      college_id: resolvedCollegeId,
       degree: degree || "B.Tech",
       branch: candidateBranch,
       specialization: candidateSpecialization,
@@ -195,14 +236,16 @@ export const register = async (req, res) => {
     const hash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
     await client.query(
-      "INSERT INTO users (id, name, email, password_hash, role, status) VALUES ($1, $2, $3, $4, 'candidate', 'active')",
-      [id, candidateName, candidateEmail, hash]
+      "INSERT INTO users (id, name, email, password_hash, role, status, college_id) VALUES ($1, $2, $3, $4, 'candidate', 'active', $5)",
+      [id, candidateName, candidateEmail, hash, resolvedCollegeId]
     );
     await client.query(
       `INSERT INTO candidate_profiles
-        (id, user_id, name, email, mobile, college, degree, branch, specialization, country, state, city, graduation_year, experience_level, tenth_school, tenth_marks, twelfth_college, twelfth_diploma_marks, graduation_percentage, cgpa, backlogs)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+        (id, user_id, name, email, mobile, college, degree, branch, specialization, country, state, city, graduation_year, experience_level, tenth_school, tenth_marks, twelfth_college, twelfth_diploma_marks, graduation_percentage, cgpa, backlogs, college_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
        ON CONFLICT (id) DO UPDATE SET
+         college = EXCLUDED.college,
+         college_id = EXCLUDED.college_id,
          tenth_school = EXCLUDED.tenth_school,
          tenth_marks = EXCLUDED.tenth_marks,
          twelfth_college = EXCLUDED.twelfth_college,
@@ -216,7 +259,7 @@ export const register = async (req, res) => {
        candidateGraduationYear, experienceLevel,
        candidateTenthSchool, candidateTenthMarks,
        candidateTwelfthCollege, candidateTwelfthMarks,
-       candidateCgpa, candidateCgpa, candidateBacklogs]
+       candidateCgpa, candidateCgpa, candidateBacklogs, resolvedCollegeId]
     );
     await client.query(
       `INSERT INTO candidates (id, experience_level, readiness_status, tenth_marks, twelfth_diploma_marks, graduation_percentage, backlogs)
@@ -239,7 +282,7 @@ export const register = async (req, res) => {
 
     const candidate = {
       id, name: candidateName, email: candidateEmail, mobile: cleanMobile,
-      college: candidateCollege, degree: degree || "B.Tech", branch: candidateBranch,
+      college: candidateCollege, collegeId: resolvedCollegeId, college_id: resolvedCollegeId, degree: degree || "B.Tech", branch: candidateBranch,
       specialization: candidateSpecialization, country: candidateCountry,
       state: candidateState, city: candidateCity,
       graduationYear: candidateGraduationYear, graduation_year: candidateGraduationYear,
@@ -265,7 +308,7 @@ export const register = async (req, res) => {
     const id = "cand-" + Date.now();
     const candidate = {
       id, name: candidateName, email: candidateEmail, mobile: cleanMobile,
-      college: candidateCollege, degree: degree || "B.Tech", branch: candidateBranch,
+      college: candidateCollege, collegeId: resolvedCollegeId, college_id: resolvedCollegeId, degree: degree || "B.Tech", branch: candidateBranch,
       specialization: candidateSpecialization, country: candidateCountry,
       state: candidateState, city: candidateCity,
       graduationYear: candidateGraduationYear, graduation_year: candidateGraduationYear,

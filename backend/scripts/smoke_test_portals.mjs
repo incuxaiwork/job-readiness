@@ -11,7 +11,7 @@ const COLLEGE_ARG = process.argv[2] || null;
 
 let pass = 0, fail = 0;
 const check = (name, cond, extra = '') => {
-  console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}${extra ? '  → ' + extra : ''}`);
+  console.log(`${cond ? 'PASS' : 'FAIL'} ${name}${extra ? ' -> ' + extra : ''}`);
   cond ? pass++ : fail++;
 };
 
@@ -35,7 +35,7 @@ const main = async () => {
   check('super-admin login (correct)', r.status === 200 && r.data?.admin?.role === 'admin', `status=${r.status} role=${r.data?.admin?.role}`);
 
   r = await call('POST', '/auth/admin/login', { body: { email: SUPER_EMAIL, password: 'wrong-pass' } });
-  check('super-admin login (wrong pw → 401)', r.status === 401, `status=${r.status}`);
+  check('super-admin login (wrong pw -> 401)', r.status === 401, `status=${r.status}`);
 
   const superStats = await call('GET', '/admin/stats', { token: superToken });
   const allCandidates = superStats.data?.stats?.totalCandidates ?? superStats.data?.totalCandidates;
@@ -67,10 +67,10 @@ const main = async () => {
   check('college-admin login carries college', r.data?.admin?.college_id === target.id && !!r.data?.admin?.college_name, `college=${r.data?.admin?.college_name}`);
 
   r = await call('POST', '/auth/admin/login', { body: { email: DEMO_EMAIL, password: 'wrong-pass' } });
-  check('college-admin login (wrong pw → 401)', r.status === 401, `status=${r.status}`);
+  check('college-admin login (wrong pw -> 401)', r.status === 401, `status=${r.status}`);
 
   r = await call('POST', '/auth/admin/login', { body: { email: DEMO_EMAIL, password: SUPER_PW } });
-  check('college-admin + master password (→ 401)', r.status === 401, `status=${r.status}`);
+  check('college-admin + master password (-> 401)', r.status === 401, `status=${r.status}`);
 
   console.log('\n=== TENANT SCOPING (college-admin) ===');
   const collegeStats = await call('GET', '/admin/stats', { token: collegeToken });
@@ -89,14 +89,14 @@ const main = async () => {
 
   console.log('\n=== SUPER-ADMIN-ONLY GUARDS ===');
   r = await call('GET', '/admin/colleges', { token: collegeToken });
-  check('college-admin /admin/colleges → 403', r.status === 403, `status=${r.status}`);
+  check('college-admin /admin/colleges -> 403', r.status === 403, `status=${r.status}`);
 
   const targetId = (rosterRows[0]?.id || rosterRows[0]?.user_id);
   if (targetId) {
     r = await call('DELETE', `/candidates/${targetId}`, { token: collegeToken });
-    check('college-admin DELETE candidate → 403', r.status === 403, `status=${r.status} target=${targetId}`);
+    check('college-admin DELETE candidate -> 403', r.status === 403, `status=${r.status} target=${targetId}`);
     r = await call('GET', `/candidates/${targetId}`, { token: collegeToken });
-    check('college-admin GET same-college candidate → 200', r.status === 200, `status=${r.status}`);
+    check('college-admin GET same-college candidate -> 200', r.status === 200, `status=${r.status}`);
   } else {
     check('college-admin read-only delete test', false, 'no candidate id found');
   }

@@ -3,7 +3,7 @@ import { clearAssessmentsCache } from '../src/controllers/assessments.controller
 
 async function main() {
   await pool.query('UPDATE assessments SET duration_minutes = 60, updated_at = CURRENT_TIMESTAMP');
-  console.log('✅ Updated all assessments to duration_minutes = 60');
+  console.log('Updated all assessments to duration_minutes = 60');
 
   clearAssessmentsCache();
 

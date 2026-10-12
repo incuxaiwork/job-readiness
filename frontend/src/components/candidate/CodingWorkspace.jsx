@@ -40,9 +40,9 @@ def solve():
     input_data = sys.stdin.read().split()
     if not input_data:
         return
-    
+
     # Write your solution logic here
-    
+
 
 if __name__ == '__main__':
     solve()
@@ -74,7 +74,7 @@ int main() {
     cin.tie(NULL);
 
     // Read input and write your solution logic here
-    
+
 
     return 0;
 }
@@ -87,7 +87,7 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
 
         // Read input and write your solution logic here
-        
+
 
         scanner.close();
     }
@@ -459,9 +459,9 @@ export const CodingWorkspace = ({
         setSubmissionHistory(prev => [submissionEntry, ...prev]);
 
         if (evalRes.passed) {
-          if (addToast) addToast(`🎉 Accepted! All ${evalRes.totalTests} testcases passed (including all hidden tests)! Score: ${evalRes.score}%`, 'success');
+          if (addToast) addToast(`Accepted! All ${evalRes.totalTests} testcases passed (including all hidden tests)! Score: ${evalRes.score}%`, 'success');
         } else if (summary.hiddenTotal > 0 && summary.samplePassed === summary.sampleTotal && summary.hiddenPassed < summary.hiddenTotal) {
-          if (addToast) addToast(`⚠️ Passed sample test cases, but failed ${summary.hiddenTotal - summary.hiddenPassed} hidden testcase(s). Check edge cases!`, 'warning');
+          if (addToast) addToast(`Passed sample test cases, but failed ${summary.hiddenTotal - summary.hiddenPassed} hidden testcase(s). Check edge cases!`, 'warning');
         } else {
           if (addToast) addToast(`${evalRes.verdict}: ${evalRes.passedTests}/${evalRes.totalTests} testcases passed.`, 'warning');
         }
@@ -540,7 +540,7 @@ export const CodingWorkspace = ({
         ? 'fixed inset-0 z-50 bg-[#1a1a1a] text-zinc-100 p-3 h-screen overflow-hidden'
         : 'w-full rounded-2xl overflow-hidden border border-zinc-700/80 bg-[#1a1a1a] text-zinc-100 shadow-xl'
     }`}>
-      
+
       {/* 1. LEETCODE TOP HEADER BAR */}
       <header className="px-4 py-2.5 bg-[#262626] border-b border-zinc-800 flex flex-wrap items-center justify-between gap-3 text-xs">
         {/* Left: Problem Title & Status */}
@@ -616,10 +616,10 @@ export const CodingWorkspace = ({
       <div className={`grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden ${
         isFullscreen ? 'flex-1 h-[calc(100vh-100px)]' : 'min-h-[580px]'
       }`}>
-        
+
         {/* LEFT PANE (5 cols): Description / Editorial / Submissions */}
         <div className="lg:col-span-5 bg-[#1e1e1e] border-r border-zinc-800 flex flex-col overflow-hidden">
-          
+
           {/* Left Navigation Tabs */}
           <div className="px-3 pt-2 bg-[#262626] border-b border-zinc-800 flex items-center gap-1 text-xs">
             <button
@@ -667,7 +667,7 @@ export const CodingWorkspace = ({
           {/* Tab 1: Description Panel */}
           {leftTab === 'description' && (
             <div className="p-5 overflow-y-auto flex-1 space-y-6 text-sm text-zinc-300 leading-relaxed">
-              
+
               {/* Problem Title & Meta Header */}
               <div className="space-y-2">
                 <h1 className="text-lg sm:text-xl font-extrabold text-zinc-100 tracking-tight">
@@ -835,7 +835,7 @@ export const CodingWorkspace = ({
 
         {/* RIGHT PANE (7 cols): Language Bar, Monaco Editor & Testcase Console */}
         <div className="lg:col-span-7 bg-[#1a1a1a] flex flex-col overflow-hidden">
-          
+
           {/* Editor Language & Settings Topbar */}
           <div className="px-4 py-2 bg-[#262626] border-b border-zinc-800 flex items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2">
@@ -898,7 +898,7 @@ export const CodingWorkspace = ({
           {/* 3. LEETCODE BOTTOM TESTCASE / RESULT CONSOLE DRAWER */}
           {isConsoleOpen && (
             <div className="bg-[#202020] border-t border-zinc-800 flex flex-col h-[230px] overflow-hidden">
-              
+
               {/* Console Tabs */}
               <div className="px-3 pt-1.5 bg-[#262626] border-b border-zinc-800 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-1">

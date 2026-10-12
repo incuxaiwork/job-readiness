@@ -3,7 +3,7 @@ import { clearAssessmentsCache } from '../src/controllers/assessments.controller
 import { clearQuestionsCache } from '../src/controllers/questions.controller.js';
 
 async function seedAllUniqueQuestionsAndAssessments() {
-  console.log('🚀 Synchronizing all unique questions and assessments into PostgreSQL (jobrecipe)...');
+  console.log('Synchronizing all unique questions and assessments into PostgreSQL (jobrecipe)...');
 
   // 1. Ensure topics
   const topics = [
@@ -553,7 +553,7 @@ async function seedAllUniqueQuestionsAndAssessments() {
       ]
     );
   }
-  console.log(`✅ Upserted ${questions.length} unique questions.`);
+  console.log(`Upserted ${questions.length} unique questions.`);
 
   // 4. Define Assessments with full questions linked
   const techQuestionIds = questions.filter(q => q.category === 'Technical').map(q => q.id);
@@ -686,12 +686,12 @@ async function seedAllUniqueQuestionsAndAssessments() {
         );
       }
     }
-    console.log(`✅ Assessment ${asm.id} updated with ${asm.questionIds.length} linked questions.`);
+    console.log(`Assessment ${asm.id} updated with ${asm.questionIds.length} linked questions.`);
   }
 
   clearAssessmentsCache();
   clearQuestionsCache();
-  console.log('🎉 Successfully synchronized all questions and assessments to database!');
+  console.log('Successfully synchronized all questions and assessments to database!');
   await pool.end();
 }
 

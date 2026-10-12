@@ -140,10 +140,10 @@ const initBullMQ = () => {
     bullEvents.on('error', () => {});
 
     useBull = true;
-    console.log('⚡ [BullMQ] Distributed submission queue initialized.');
+    console.log('[BullMQ] Distributed submission queue initialized.');
   } catch (err) {
     useBull = false;
-    console.log('ℹ️  [SubmissionQueue] Operating in high-performance In-Memory asynchronous mode.');
+    console.log('[SubmissionQueue] Operating in high-performance In-Memory asynchronous mode.');
   }
 };
 

@@ -280,7 +280,7 @@ function CompanyCard({ eligibility, tierColors, tierLabels, status }) {
                   <span className="text-rose-600 font-bold">{gap.note}</span>
                 ) : (
                   <span className="text-rose-600 font-bold">
-                    Need +{gap.deficit}% ({gap.current}% → {gap.required}%)
+                    Need +{gap.deficit}% ({gap.current}% -> {gap.required}%)
                   </span>
                 )}
               </div>

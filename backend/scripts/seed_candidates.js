@@ -123,7 +123,7 @@ async function seedCandidates() {
       }
     });
 
-    console.log(`✅ Candidate seeded: ${c.email} / ${defaultPassword}`);
+    console.log(`Candidate seeded: ${c.email} / ${defaultPassword}`);
   }
 
   // Also update peravishnuvardhanreddy2@gmail.com passwordHash to support Password@123 if needed
@@ -135,7 +135,7 @@ async function seedCandidates() {
       where: { email: 'peravishnuvardhanreddy2@gmail.com' },
       data: { passwordHash }
     });
-    console.log('✅ Updated peravishnuvardhanreddy2@gmail.com with Password@123 support');
+    console.log('Updated peravishnuvardhanreddy2@gmail.com with Password@123 support');
   }
 
   console.log('Candidate seeding finished.');

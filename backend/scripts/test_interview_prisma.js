@@ -75,7 +75,7 @@ async function test() {
 
   // Clean up test session
   await prisma.interviewSession.delete({ where: { id: session.id } });
-  console.log('✅ Test session cleaned up successfully.');
+  console.log('Test session cleaned up successfully.');
 }
 
 test()

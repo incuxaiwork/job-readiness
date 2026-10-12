@@ -205,6 +205,7 @@ export const api = {
   },
 
   auth: {
+    colleges:   ()     => request("GET",  "/auth/colleges"),
     register:   (body) => request("POST", "/auth/register",     body),
     login:      (body) => request("POST", "/auth/login",        body),
     adminLogin: (body) => request("POST", "/auth/admin/login",  body),

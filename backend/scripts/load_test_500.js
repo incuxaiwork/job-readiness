@@ -6,7 +6,7 @@ const TARGET_URL = process.env.TEST_TARGET || 'http://localhost:5000';
 const CONCURRENT_USERS = 500;
 
 console.log(`=============================================================`);
-console.log(`🚀 INCUX_JOBREADINESS 500 VIRTUAL USERS SCALABILITY LOAD TEST`);
+console.log(`INCUX_JOBREADINESS 500 VIRTUAL USERS SCALABILITY LOAD TEST`);
 console.log(`=============================================================`);
 console.log(`Target Host        : ${TARGET_URL}`);
 console.log(`Concurrent Users   : ${CONCURRENT_USERS} VUs`);
@@ -98,7 +98,7 @@ function calculateStats(results, durationSec) {
 }
 
 async function runScenario1() {
-  console.log(`📌 Scenario 1: Health & API Index Check (500 Concurrent VUs)`);
+  console.log(`Scenario 1: Health & API Index Check (500 Concurrent VUs)`);
   const startTime = Date.now();
   const promises = Array.from({ length: CONCURRENT_USERS }).map(() => makeRequest('GET', '/api/health'));
   const results = await Promise.all(promises);
@@ -107,7 +107,7 @@ async function runScenario1() {
 }
 
 async function runScenario2() {
-  console.log(`\n📌 Scenario 2: High-Concurrency Read Operations (500 Concurrent VUs)`);
+  console.log(`\nScenario 2: High-Concurrency Read Operations (500 Concurrent VUs)`);
   console.log(`   500 VUs fetching Question Bank, Assessments & Candidate Directory simultaneously...`);
   const startTime = Date.now();
   const endpoints = ['/api/questions', '/api/assessments', '/api/candidates'];
@@ -120,7 +120,7 @@ async function runScenario2() {
 }
 
 async function runScenario3() {
-  console.log(`\n📌 Scenario 3: High-Concurrency Write Operations (500 Concurrent VUs)`);
+  console.log(`\nScenario 3: High-Concurrency Write Operations (500 Concurrent VUs)`);
   console.log(`   500 VUs submitting assessment attempts simultaneously into assessment_submissions table...`);
   const startTime = Date.now();
   const promises = Array.from({ length: CONCURRENT_USERS }).map((_, idx) => {
@@ -148,7 +148,7 @@ async function runScenario3() {
 }
 
 async function runScenario4() {
-  console.log(`\n📌 Scenario 4: End-to-End Candidate Journey (500 Concurrent VUs)`);
+  console.log(`\nScenario 4: End-to-End Candidate Journey (500 Concurrent VUs)`);
   console.log(`   500 VUs executing Candidate Registration -> Take Test -> Submit -> Roster Check...`);
   const startTime = Date.now();
   const promises = Array.from({ length: CONCURRENT_USERS }).map(async (_, idx) => {
@@ -209,11 +209,11 @@ async function main() {
     console.log('Scenario 4 Results (End-to-End Workflow Load):', JSON.stringify(s4, null, 2));
 
     console.log(`\n=============================================================`);
-    console.log(`✅ ALL 500 VIRTUAL USERS LOAD TEST SCENARIOS COMPLETED`);
+    console.log(`ALL 500 VIRTUAL USERS LOAD TEST SCENARIOS COMPLETED`);
     console.log(`=============================================================`);
     process.exit(0);
   } catch (err) {
-    console.error('❌ Load test error:', err);
+    console.error('Load test error:', err);
     process.exit(1);
   }
 }

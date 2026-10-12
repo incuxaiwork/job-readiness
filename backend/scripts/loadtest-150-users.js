@@ -133,7 +133,7 @@ if __name__ == '__main__': solve()`,
 
 async function run150UserLoadTest() {
   console.log('===============================================================');
-  console.log(`🚀 READYSETJOB: 150-CANDIDATE EXAM SUBMISSION CONCURRENCY BENCHMARK`);
+  console.log(`READYSETJOB: 150-CANDIDATE EXAM SUBMISSION CONCURRENCY BENCHMARK`);
   console.log(`Target: ${TOTAL_USERS} Simultaneous Candidates Submitting Code`);
   console.log(`Timestamp: ${new Date().toISOString()}`);
   console.log('===============================================================\n');
@@ -191,9 +191,9 @@ async function run150UserLoadTest() {
   console.log(`Max Gateway Response Time : ${maxEnqueue}ms`);
 
   if (successful202s.length !== TOTAL_USERS) {
-    console.error('⚠️ Notice: Some submissions were not accepted with HTTP 202.');
+    console.error('Notice: Some submissions were not accepted with HTTP 202.');
   } else {
-    console.log(`✅ 100% of 150 candidates received immediate HTTP 202 Accepted! Gateway did not drop a single request.\n`);
+    console.log(`100% of 150 candidates received immediate HTTP 202 Accepted! Gateway did not drop a single request.\n`);
   }
 
   // ─── Phase 2: Asynchronous Queue Drainage & Evaluation Tracking ─────────────
@@ -298,7 +298,7 @@ async function run150UserLoadTest() {
   console.log(`504 Gateway Timeouts  : 0 (Zero timeouts)`);
 
   console.log('\n===============================================================');
-  console.log(`🎯 VERDICT: The platform successfully handled 150 simultaneous candidates!`);
+  console.log(`VERDICT: The platform successfully handled 150 simultaneous candidates!`);
   console.log('===============================================================');
 }
 

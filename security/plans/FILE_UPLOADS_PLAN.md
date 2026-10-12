@@ -21,5 +21,5 @@ After implementation, ALL of these must be true:
 ## Manual verification (for the human)
 
 - Confirm no route accepts `multipart/form-data`
-  (`curl -F file=@x http://localhost:5000/api/questions` → 401/400, never a file handler).
+  (`curl -F file=@x http://localhost:5000/api/questions` -> 401/400, never a file handler).
 - If a file-upload feature is added later, re-run this category against the new endpoint.

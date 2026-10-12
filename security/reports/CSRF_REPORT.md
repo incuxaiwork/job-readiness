@@ -20,11 +20,11 @@ secure: process.env.NODE_ENV === "production",
 sameSite: process.env.REFRESH_COOKIE_SAMESITE || (production ? "Strict" : "Lax"),
 path: "/api/auth",
 ```
-- `httpOnly` → not readable by JS.
-- `secure` in production → not sent over plaintext.
+- `httpOnly` -> not readable by JS.
+- `secure` in production -> not sent over plaintext.
 - `sameSite` defaults to **Strict** in production and **Lax** in development, both of
   which block cross-site POSTs to `/api/auth/refresh` and `/api/auth/logout`.
-- `path: /api/auth` → the cookie is only sent to the auth router, shrinking its attack
+- `path: /api/auth` -> the cookie is only sent to the auth router, shrinking its attack
   surface.
 
 ### 3. Split-domain deploy caveat (addressed)

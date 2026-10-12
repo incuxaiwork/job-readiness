@@ -34,6 +34,6 @@ After implementation, ALL of these must be true:
 ## Manual verification (for the human)
 
 - Log in as candidate A, generate proctoring events for A's attempt, then request
-  `/api/submissions/proctoring-events/<A attemptId>` as A → expect A's events only.
-- Repeat with candidate B's token and A's attemptId → expect an empty list (403/empty).
+  `/api/submissions/proctoring-events/<A attemptId>` as A -> expect A's events only.
+- Repeat with candidate B's token and A's attemptId -> expect an empty list (403/empty).
 - Log in as a college admin and confirm only that college's events are returned.

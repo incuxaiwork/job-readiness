@@ -45,7 +45,7 @@ function calculatePercentiles(latencies) {
 
 async function runVerification() {
   console.log('===============================================================');
-  console.log('🧪 ReadySetJob Scalability & Optimization Acceptance Test Suite');
+  console.log('ReadySetJob Scalability & Optimization Acceptance Test Suite');
   console.log('===============================================================');
   console.log(`Target: ${TARGET_URL}`);
   console.log(`Time  : ${new Date().toISOString()}\n`);
@@ -57,9 +57,9 @@ async function runVerification() {
     totalTests++;
     if (condition) {
       passedTests++;
-      console.log(`  ✅ [PASS] ${testName}`);
+      console.log(` [PASS] ${testName}`);
     } else {
-      console.error(`  ❌ [FAIL] ${testName} ${details ? `(${details})` : ''}`);
+      console.error(` [FAIL] ${testName} ${details ? `(${details})` : ''}`);
     }
   }
 
@@ -172,12 +172,12 @@ async function runVerification() {
   );
 
   assert(subRes.status === 201 && subRes.data?.success === true, 'Assessment submitted successfully (201 Created)');
-  
+
   // Backend authoritative calculation: 2 correct out of 4 total = 50%
   const expectedScore = Math.round((2 / testSet.length) * 100);
   const recordedScore = subRes.data?.data?.score;
   const recordedCorrect = subRes.data?.data?.correct_count;
-  
+
   assert(recordedScore === expectedScore, `Authoritative backend score calculated: ${recordedScore}% (Expected: ${expectedScore}%, Client spoofed 100% was ignored)`, `Recorded: ${recordedScore}`);
   assert(recordedCorrect === 2, `Authoritative correct count: ${recordedCorrect} (Expected: 2)`);
 
@@ -226,14 +226,14 @@ async function runVerification() {
   assert(successfulOrRateLimited, 'All concurrent responses are either 200 OK or 429 Too Many Requests');
 
   console.log('\n===============================================================');
-  console.log(`📊 Test Summary: ${passedTests} / ${totalTests} tests passed (${Math.round((passedTests / totalTests) * 100)}%)`);
+  console.log(`Test Summary: ${passedTests} / ${totalTests} tests passed (${Math.round((passedTests / totalTests) * 100)}%)`);
   console.log('===============================================================\n');
 
   if (passedTests === totalTests) {
-    console.log('🎉 All acceptance criteria verified successfully!');
+    console.log('All acceptance criteria verified successfully!');
     process.exit(0);
   } else {
-    console.error('⚠️ Some acceptance criteria failed.');
+    console.error('Some acceptance criteria failed.');
     process.exit(1);
   }
 }

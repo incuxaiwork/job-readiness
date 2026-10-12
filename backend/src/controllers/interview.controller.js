@@ -210,7 +210,7 @@ export const getLatestSession = async (req, res) => {
       userId = requester.id; // candidates: always scoped to themselves
     }
 
-    // Scoped query: admin unfiltered → any; everyone else → own id or guest-only
+    // Scoped query: admin unfiltered -> any; everyone else -> own id or guest-only
     const whereClause = userId ? { userId } : (isAdmin ? {} : { userId: null });
 
     let session = null;
@@ -1100,7 +1100,7 @@ export const updateInterviewSettings = async (req, res) => {
     };
 
     fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(updated, null, 2), 'utf8');
-    console.log('✅ Updated interview settings:', updated);
+    console.log('Updated interview settings:', updated);
     return res.json({ success: true, settings: updated });
   } catch (err) {
     console.error('Error updating interview settings:', err);

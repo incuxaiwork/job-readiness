@@ -16,17 +16,17 @@ in-memory otherwise) and `backend/src/index.js:93-97` binds them:
 | `submissionLimiter` | 10 min | 40 |
 
 All return **429** with a JSON body. Login is additionally protected by a Redis-backed
-per-account lockout (`rateLimiter.js:60-96`): 10 failed attempts / 15 min →
-`isAccountLockedOut` → 429 in `loginCandidate`/`loginAdmin` (auth.controller.js:303, 517).
+per-account lockout (`rateLimiter.js:60-96`): 10 failed attempts / 15 min ->
+`isAccountLockedOut` -> 429 in `loginCandidate`/`loginAdmin` (auth.controller.js:303, 517).
 There is no password-reset endpoint (password resets are an admin/CLI operation), so
 "password reset must be rate limited" is N/A.
 
-### 2. No `trust proxy` configuration → limiters mis-identify clients (MEDIUM) — FIXED
+### 2. No `trust proxy` configuration -> limiters mis-identify clients (MEDIUM) — FIXED
 `grep` for `trust proxy` in `backend/src` returns nothing. Express therefore uses the
 **socket remote address** for `req.ip`. On the production Railway deploy the app sits
 behind a TLS-terminating reverse proxy, so every request appears to originate from the
 proxy's IP:
-- All users share a single rate-limit bucket → `loginLimiter` (30/15 min) and
+- All users share a single rate-limit bucket -> `loginLimiter` (30/15 min) and
   `apiLimiter` lock out *everyone* after a small burst, and the per-IP control no longer
   isolates abusers.
 - `express-rate-limit@8` also emits `ERR_ERL_UNEXPECTED_X_FORWARDED_FOR` validation

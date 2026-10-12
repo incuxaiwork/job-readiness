@@ -140,7 +140,7 @@ const healthHandler = async (_req, res) => {
     status: 'online',
     service: 'ReadySetJob API',
     version: '1.0.0',
-    database: dbOk ? 'connected ✅' : 'offline ❌',
+    database: dbOk ? 'connected' : 'offline',
     timestamp: new Date().toISOString(),
     pid: process.pid,
   });
@@ -187,14 +187,14 @@ app.use((err, _req, res, _next) => {
 
 // ─── Startup ─────────────────────────────────────────────────────────────────
 const server = app.listen(PORT, HOST, async () => {
-  console.log(`\n🚀  ReadySetJob Backend API  →  http://${HOST}:${PORT}`);
+  console.log(`\nReadySetJob Backend API -> http://${HOST}:${PORT}`);
   console.log(`   Environment : ${process.env.NODE_ENV || 'development'}`);
   const connected = await testConnection();
   if (connected) {
     await initSchema();
-    console.log('\n📡  API Routes ready.');
+    console.log('\nAPI Routes ready.');
   } else {
-    console.warn('\n⚠️  Running without database. Check DATABASE_URL in backend/.env\n');
+    console.warn('\nRunning without database. Check DATABASE_URL in backend/.env\n');
   }
 });
 
@@ -204,23 +204,23 @@ let isShuttingDown = false;
 const gracefulShutdown = async (signal) => {
   if (isShuttingDown) return;
   isShuttingDown = true;
-  console.log(`\n🛑 ${signal} received. Initiating graceful shutdown...`);
+  console.log(`\n${signal} received. Initiating graceful shutdown...`);
 
   server.close(async (err) => {
     if (err) {
       console.error('Error closing HTTP server:', err.message);
     } else {
-      console.log('✅ HTTP server closed. No longer accepting new connections.');
+      console.log('HTTP server closed. No longer accepting new connections.');
     }
 
     await closePool();
-    console.log('👋 Process exiting cleanly.\n');
+    console.log('Process exiting cleanly.\n');
     process.exit(err ? 1 : 0);
   });
 
   // Force shutdown after 10 seconds if connections fail to close
   setTimeout(() => {
-    console.error('⚠️ Forced shutdown after 10s timeout.');
+    console.error('Forced shutdown after 10s timeout.');
     process.exit(1);
   }, 10000).unref();
 };
@@ -229,11 +229,11 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 process.on('uncaughtException', (err) => {
-  console.error('⚠️ Uncaught Exception intercepted:', err.message);
+  console.error('Uncaught Exception intercepted:', err.message);
 });
 
 process.on('unhandledRejection', (reason) => {
-  console.error('⚠️ Unhandled Rejection intercepted:', reason);
+  console.error('Unhandled Rejection intercepted:', reason);
 });
 
 export default app;

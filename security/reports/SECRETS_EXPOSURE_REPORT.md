@@ -91,7 +91,7 @@ contain placeholders only.
 - `.env.example` files hold placeholders only.
 - `test_txt` (live creds) is gitignored.
 - The emergency-password code is at least gated on the master list rather than a
-  blanket "DB down → allow any login".
+  blanket "DB down -> allow any login".
 
 ## Recommendations (priority order)
 
@@ -121,13 +121,13 @@ While fixing the above, two more hardcoded-credential backdoors were found and r
 
 All plan goals verified on 2026-10-12:
 
-- `git ls-files .env` → empty.
+- `git ls-files .env` -> empty.
 - `git grep` for `incuxai_readysetjob_secret_key|Admin@2026|Admin@123|Vishnu@18|sk_live_|sk_test_|AKIA`
-  across `backend/` and `frontend/` → no matches.
+  across `backend/` and `frontend/` -> no matches.
 - `frontend/` has no secret behind a `VITE_`/`NEXT_PUBLIC_`/`REACT_APP_` prefix.
 - New `backend/src/config/secrets.js` throws `JWT_SECRET is not set (or is too short)…`
   when the env var is empty, and loads the 68-char secret when present.
-- `isMasterPassword('Admin@2026')` → `false` by default; only true for values supplied
+- `isMasterPassword('Admin@2026')` -> `false` by default; only true for values supplied
   via `EMERGENCY_ADMIN_PASSWORDS`.
 - `REFRESH_SECRET === JWT_SECRET + '_refresh'`.
 - `node --check` passes on all changed files.

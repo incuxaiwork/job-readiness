@@ -689,7 +689,7 @@ export default function CandidateAnalyticsPage() {
                           );
                         })}
                         <option value="ALL_CUMULATIVE">
-                          📊 All Modules Cumulative ({cumulativeMetrics.obtained}/{cumulativeMetrics.total} Marks • {cumulativeMetrics.score}%)
+                          All Modules Cumulative ({cumulativeMetrics.obtained}/{cumulativeMetrics.total} Marks • {cumulativeMetrics.score}%)
                         </option>
                       </select>
                     </div>

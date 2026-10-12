@@ -63,6 +63,36 @@ export const isCodingQuestion = (q) => {
     hasTemplates;
 };
 
+// Unified assessment is built from per-section question counts.
+const SECTION_DEFS = [
+  { key: 'coding', label: 'Coding', category: 'Coding' },
+  { key: 'aptitude', label: 'Aptitude', category: 'Aptitude' },
+  { key: 'reasoning', label: 'Reasoning', category: 'Reasoning' },
+  { key: 'technical', label: 'Technical', category: 'Technical' },
+  { key: 'verbal', label: 'Verbal', category: 'Verbal' }
+];
+
+const DEFAULT_SECTION_COUNTS = { coding: 3, aptitude: 4, reasoning: 4, technical: 5, verbal: 4 };
+
+const sumSectionCounts = (counts) =>
+  Object.values(counts || {}).reduce((sum, n) => sum + (Number(n) || 0), 0);
+
+const sectionOfQuestion = (q) => {
+  if (!q) return null;
+  if (isCodingQuestion(q)) return 'coding';
+  const cat = (q.category || '').trim().toLowerCase();
+  return SECTION_DEFS.some((s) => s.key === cat) ? cat : null;
+};
+
+const deriveSectionCounts = (ids, questionBank) => {
+  const counts = { coding: 0, aptitude: 0, reasoning: 0, technical: 0, verbal: 0 };
+  (ids || []).forEach((id) => {
+    const key = sectionOfQuestion(questionBank.find((q) => q.id === id));
+    if (key) counts[key] += 1;
+  });
+  return counts;
+};
+
 export const AdminAssessmentsPage = () => {
   const {
     assessments,
@@ -82,7 +112,6 @@ export const AdminAssessmentsPage = () => {
   const [previewAsm, setPreviewAsm] = useState(null);
   const [sectionsAsm, setSectionsAsm] = useState(null);
   const [editingAsmId, setEditingAsmId] = useState(null);
-  const [step2CategoryFilter, setStep2CategoryFilter] = useState('all');
 
   // Wizard state — a single unified assessment may mix coding + MCQ questions
   const [newAssessment, setNewAssessment] = useState({
@@ -93,7 +122,8 @@ export const AdminAssessmentsPage = () => {
     durationMinutes: 60,
     passingScore: 60,
     selectedQuestionIds: [],
-    totalQuestions: 10,
+    totalQuestions: sumSectionCounts(DEFAULT_SECTION_COUNTS),
+    sectionCounts: { ...DEFAULT_SECTION_COUNTS },
     tags: ['Coding', 'MCQ', 'Full Assessment']
   });
 
@@ -139,16 +169,22 @@ export const AdminAssessmentsPage = () => {
     };
   }, [assessments]);
 
+  // How many questions are available in the bank for each section
+  const sectionAvailability = useMemo(() => {
+    const out = {};
+    SECTION_DEFS.forEach((sec) => {
+      out[sec.key] = sec.key === 'coding'
+        ? questionBank.filter(isCodingQuestion).length
+        : questionBank.filter((q) =>
+            !isCodingQuestion(q) &&
+            (q.category || '').trim().toLowerCase() === sec.category.toLowerCase()).length;
+    });
+    return out;
+  }, [questionBank]);
+
   // Open the single unified wizard — one assessment may contain coding + MCQ
   const handleOpenUnifiedWizard = () => {
     setEditingAsmId(null);
-    const codingQs = questionBank.filter(isCodingQuestion);
-    const mcqQs = questionBank.filter(q => !isCodingQuestion(q));
-    const codingPick = Math.min(codingQs.length, 3);
-    const initialIds = [
-      ...codingQs.slice(0, codingPick).map(q => q.id),
-      ...mcqQs.slice(0, Math.max(0, 10 - codingPick)).map(q => q.id)
-    ];
     setNewAssessment({
       title: 'Comprehensive Job Readiness Assessment',
       category: 'Full',
@@ -156,11 +192,11 @@ export const AdminAssessmentsPage = () => {
       difficulty: 'Medium',
       durationMinutes: 60,
       passingScore: 60,
-      selectedQuestionIds: initialIds,
-      totalQuestions: initialIds.length || 10,
+      selectedQuestionIds: [],
+      totalQuestions: sumSectionCounts(DEFAULT_SECTION_COUNTS),
+      sectionCounts: { ...DEFAULT_SECTION_COUNTS },
       tags: ['Coding', 'MCQ', 'Full Assessment']
     });
-    setStep2CategoryFilter('all');
     setWizardStep(1);
     setIsWizardOpen(true);
   };
@@ -213,21 +249,21 @@ export const AdminAssessmentsPage = () => {
     }
   };
 
-  const handleAutoSelectRandomQuestions = () => {
-    const category = (newAssessment.category || 'Technical').trim();
-    const targetCount = Number(newAssessment.totalQuestions) || 10;
-
-    // Deduplicate question bank by ID and statement
-    const uniquePoolMap = new Map();
-    questionBank.forEach(q => {
-      if (q && q.id && q.question) {
-        const key = `${q.id}-${q.question.trim().toLowerCase()}`;
-        if (!uniquePoolMap.has(key)) {
-          uniquePoolMap.set(key, q);
-        }
-      }
+  const handleSectionCountChange = (sectionKey, value) => {
+    const n = Math.max(0, parseInt(value, 10) || 0);
+    setNewAssessment(prev => {
+      const sectionCounts = { ...prev.sectionCounts, [sectionKey]: n };
+      return {
+        ...prev,
+        sectionCounts,
+        totalQuestions: sumSectionCounts(sectionCounts),
+        selectedQuestionIds: []
+      };
     });
-    const cleanBank = Array.from(uniquePoolMap.values());
+  };
+
+  const handleAutoSelectBySections = (force = false) => {
+    if (!force && newAssessment.selectedQuestionIds.length > 0) return;
 
     const shuffle = (arr) => {
       const p = [...arr];
@@ -238,91 +274,51 @@ export const AdminAssessmentsPage = () => {
       return p;
     };
 
-    // Unified Full track: blend coding challenges with objective MCQs
-    if (category.toLowerCase() === 'full' || isFullTrack) {
-      const codingPool = cleanBank.filter(isCodingQuestion);
-      const mcqPool = cleanBank.filter(q => !isCodingQuestion(q));
-      const codingPick = Math.min(codingPool.length, Math.max(1, Math.round(targetCount * 0.3)));
-      const mcqPick = Math.max(0, targetCount - codingPick);
-      const picked = [
-        ...shuffle(codingPool).slice(0, codingPick),
-        ...shuffle(mcqPool).slice(0, mcqPick)
-      ];
-      if (picked.length < targetCount) {
-        const remaining = cleanBank.filter(q => !picked.some(p => p.id === q.id));
-        picked.push(...shuffle(remaining).slice(0, targetCount - picked.length));
+    const uniquePoolMap = new Map();
+    questionBank.forEach(q => {
+      if (q && q.id && q.question) {
+        const key = `${q.id}-${q.question.trim().toLowerCase()}`;
+        if (!uniquePoolMap.has(key)) uniquePoolMap.set(key, q);
       }
-      const fullIds = Array.from(new Set(picked.map(q => q.id)));
+    });
+    const cleanBank = Array.from(uniquePoolMap.values());
 
-      if (fullIds.length === 0) {
-        addToast('No questions available in the bank. Add or upload questions first.', 'error');
-        return;
-      }
+    const counts = newAssessment.sectionCounts || DEFAULT_SECTION_COUNTS;
+    const picked = [];
+    const shortfalls = [];
 
-      setNewAssessment(prev => ({ ...prev, selectedQuestionIds: fullIds }));
-      addToast(`Auto-selected ${fullIds.length} mixed questions (coding + MCQ) from the bank!`, 'success');
+    SECTION_DEFS.forEach(sec => {
+      const want = Number(counts[sec.key]) || 0;
+      if (want <= 0) return;
+      const pool = sec.key === 'coding'
+        ? cleanBank.filter(isCodingQuestion)
+        : cleanBank.filter(q => !isCodingQuestion(q) && (q.category || '').trim().toLowerCase() === sec.category.toLowerCase());
+      const take = Math.min(pool.length, want);
+      if (take < want) shortfalls.push(`${sec.label}: wanted ${want}, only ${pool.length} available`);
+      picked.push(...shuffle(pool).slice(0, take));
+    });
+
+    const ids = Array.from(new Set(picked.map(q => q.id)));
+
+    if (ids.length === 0) {
+      addToast('No questions available in the bank. Add or upload questions first.', 'error');
       return;
     }
 
-    const isMix = ['All', 'Full Length', 'All Mix', 'All Mix (Combined)'].some(m => m.toLowerCase() === category.toLowerCase());
+    setNewAssessment(prev => ({ ...prev, selectedQuestionIds: ids }));
 
-    let available = [];
-    if (category.toLowerCase() === 'coding') {
-      available = cleanBank.filter(isCodingQuestion);
-    } else if (isMix) {
-      // All Mix: strictly non-coding objective MCQs across all 4 pillars
-      available = cleanBank.filter(q => !isCodingQuestion(q));
+    if (shortfalls.length > 0) {
+      addToast(`Auto-selected ${ids.length} questions. Short on - ${shortfalls.join('; ')}.`, 'warning');
     } else {
-      // Sectional MCQs: Strictly only questions of this category AND NOT coding questions
-      available = cleanBank.filter(q =>
-        (q.category && q.category.trim().toLowerCase() === category.toLowerCase()) &&
-        !isCodingQuestion(q)
-      );
+      addToast(`Auto-selected ${ids.length} questions across ${SECTION_DEFS.filter(s => Number(counts[s.key]) > 0).length} sections!`, 'success');
     }
+  };
 
-    if (available.length === 0) {
-      addToast(`No questions available in database for category "${category}". Please upload or add ${category} questions to the bank first.`, 'error');
-      return;
+  const goToWizardStep = (num) => {
+    if (num === 2 && newAssessment.selectedQuestionIds.length === 0) {
+      handleAutoSelectBySections();
     }
-
-    let selectedIds = [];
-
-    if (isMix) {
-      // Balanced mix across 4 objective MCQ categories (Aptitude, Reasoning, Technical, Verbal)
-      const categories = ['Aptitude', 'Reasoning', 'Technical', 'Verbal'];
-      const perCat = Math.max(1, Math.floor(targetCount / categories.length));
-      const mixPool = [];
-
-      categories.forEach(c => {
-        const catQList = cleanBank.filter(q => (q.category || '').trim().toLowerCase() === c.toLowerCase() && !isCodingQuestion(q));
-        const shuffledCat = [...catQList].sort(() => 0.5 - Math.random());
-        mixPool.push(...shuffledCat.slice(0, perCat));
-      });
-
-      if (mixPool.length < targetCount) {
-        const remaining = cleanBank.filter(q => !mixPool.some(m => m.id === q.id) && !isCodingQuestion(q));
-        const shuffledRem = [...remaining].sort(() => 0.5 - Math.random());
-        mixPool.push(...shuffledRem.slice(0, targetCount - mixPool.length));
-      }
-
-      selectedIds = Array.from(new Set(mixPool.map(q => q.id)));
-    } else {
-      // Single category Fisher-Yates shuffle
-      const pool = [...available];
-      for (let i = pool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [pool[i], pool[j]] = [pool[j], pool[i]];
-      }
-      const numToPick = Math.min(targetCount, pool.length);
-      selectedIds = Array.from(new Set(pool.slice(0, numToPick).map(q => q.id)));
-    }
-
-    setNewAssessment(prev => ({
-      ...prev,
-      selectedQuestionIds: selectedIds
-    }));
-
-    addToast(`Auto-selected ${selectedIds.length} ${category === 'Coding' ? 'coding challenges' : `${category} MCQ questions`} from database!`, 'success');
+    setWizardStep(num);
   };
 
   const handleToggleQuestionSelection = (id) => {
@@ -375,6 +371,7 @@ export const AdminAssessmentsPage = () => {
       passingScore: Number(asm.passingScore) || 65,
       selectedQuestionIds: sanitizedIds,
       totalQuestions: Number(asm.totalQuestions) || sanitizedIds.length || 15,
+      sectionCounts: deriveSectionCounts(sanitizedIds, questionBank),
       tags: asm.tags || ['DSA', 'Algorithms']
     });
     setWizardStep(1);
@@ -436,7 +433,7 @@ export const AdminAssessmentsPage = () => {
 
   return (
     <div className="space-y-8 pb-16">
-      
+
       {/* HEADER WITH SINGLE UNIFIED CREATION BUTTON */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
@@ -663,7 +660,7 @@ export const AdminAssessmentsPage = () => {
         maxWidth="max-w-3xl"
       >
         <div className="space-y-6 text-xs">
-          
+
           {/* Wizard Step Progress Bar */}
           <div className="flex items-center justify-between border-b border-slate-100 pb-3 overflow-x-auto gap-2">
             {steps.map((s) => (
@@ -676,7 +673,7 @@ export const AdminAssessmentsPage = () => {
                     ? 'text-emerald-600 font-medium'
                     : 'text-slate-400'
                 }`}
-                onClick={() => setWizardStep(s.num)}
+                onClick={() => goToWizardStep(s.num)}
               >
                 <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
                   wizardStep === s.num
@@ -685,7 +682,7 @@ export const AdminAssessmentsPage = () => {
                     ? 'bg-emerald-100 text-emerald-700'
                     : 'bg-slate-100 text-slate-500'
                 }`}>
-                  {wizardStep > s.num ? '✓' : s.num}
+                  {wizardStep > s.num ? '' : s.num}
                 </span>
                 <span className="hidden sm:inline text-[11px]">{s.name}</span>
               </div>
@@ -695,7 +692,7 @@ export const AdminAssessmentsPage = () => {
           {/* STEP 1: TRACK & BASIC DETAILS */}
           {wizardStep === 1 && (
             <div className="space-y-5">
-              
+
               {/* UNIFIED ASSESSMENT BANNER */}
               <div className="p-4 bg-gradient-to-r from-indigo-50 to-brand-50 border border-brand-200 rounded-2xl flex items-start gap-3">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-brand-600 text-white flex items-center justify-center flex-shrink-0">
@@ -704,7 +701,7 @@ export const AdminAssessmentsPage = () => {
                 <div>
                   <h4 className="font-extrabold text-slate-900 text-xs">Unified Assessment — Coding + MCQ</h4>
                   <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
-                    This assessment can mix hands-on coding challenges with objective MCQs from any pillar (Aptitude, Reasoning, Technical, Verbal). Pick questions freely in the next step — candidates will be routed per question type automatically.
+                    This assessment can mix hands-on coding challenges with objective MCQs from any pillar (Aptitude, Reasoning, Technical, Verbal). Set how many questions to draw from each section below — the next step auto-picks them from the bank. Candidates are routed per question type automatically.
                   </p>
                 </div>
               </div>
@@ -722,34 +719,47 @@ export const AdminAssessmentsPage = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Target Questions Count *</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="100"
-                      value={newAssessment.totalQuestions}
-                      onChange={(e) => setNewAssessment({ ...newAssessment, totalQuestions: Number(e.target.value) })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 rounded-xl border border-slate-200 outline-none font-bold text-slate-900"
-                    />
-                    <span className="text-[10px] text-slate-400 mt-1 block">
-                      {isCodingTrack ? 'Recommended: 2 to 4 coding challenges' : 'Recommended: 15 to 30 questions'}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block font-bold text-slate-700">Questions Per Section *</label>
+                    <span className="text-[11px] font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded-md">
+                      {sumSectionCounts(newAssessment.sectionCounts)} total
                     </span>
                   </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Target Difficulty</label>
-                    <select
-                      value={newAssessment.difficulty}
-                      onChange={(e) => setNewAssessment({ ...newAssessment, difficulty: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 rounded-xl border border-slate-200 outline-none font-bold text-slate-800"
-                    >
-                      <option value="Easy">Easy (Foundation)</option>
-                      <option value="Medium">Medium (Industry Standard)</option>
-                      <option value="Hard">Hard (Competitive / Senior)</option>
-                    </select>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    {SECTION_DEFS.map(sec => (
+                      <div key={sec.key} className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">{sec.label}</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max={sectionAvailability[sec.key] || 0}
+                          value={newAssessment.sectionCounts?.[sec.key] ?? 0}
+                          onChange={(e) => handleSectionCountChange(sec.key, e.target.value)}
+                          className="w-full px-2 py-1.5 bg-white rounded-lg border border-slate-200 outline-none font-bold text-slate-900 text-sm"
+                        />
+                        <span className="text-[10px] text-slate-400 mt-1 block">
+                          {sectionAvailability[sec.key] || 0} in bank
+                        </span>
+                      </div>
+                    ))}
                   </div>
+                  <span className="text-[10px] text-slate-400 mt-1.5 block">
+                    The next step auto-picks this many questions per section. Coding = hands-on challenges; the rest = objective MCQs.
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Target Difficulty</label>
+                  <select
+                    value={newAssessment.difficulty}
+                    onChange={(e) => setNewAssessment({ ...newAssessment, difficulty: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 rounded-xl border border-slate-200 outline-none font-bold text-slate-800"
+                  >
+                    <option value="Easy">Easy (Foundation)</option>
+                    <option value="Medium">Medium (Industry Standard)</option>
+                    <option value="Hard">Hard (Competitive / Senior)</option>
+                  </select>
                 </div>
 
                 <div>
@@ -766,216 +776,48 @@ export const AdminAssessmentsPage = () => {
             </div>
           )}
 
-          {/* STEP 2: QUESTIONS ASSIGNMENT */}
+          {/* STEP 2: AUTO-PICKED QUESTIONS */}
           {wizardStep === 2 && (() => {
-            const activeCategory = newAssessment.category || 'Technical';
-            const catQuestionsInDb = isCodingTrack
-              ? questionBank.filter(isCodingQuestion)
-              : isFullTrack
-              ? questionBank
-              : isAllMixTrack
-              ? questionBank.filter(q => !isCodingQuestion(q))
-              : questionBank.filter(q => (q.category || '').trim().toLowerCase() === activeCategory.toLowerCase() && !isCodingQuestion(q));
-
-            const filteredBank = questionBank.filter(q => {
-              if (isCodingTrack) return isCodingQuestion(q);
-
-              if (isFullTrack) {
-                if (step2CategoryFilter === 'all') return true;
-                if (step2CategoryFilter === 'coding') return isCodingQuestion(q);
-                if (isCodingQuestion(q)) return false;
-                return (q.category || '').trim().toLowerCase() === step2CategoryFilter.toLowerCase();
-              }
-
-              // Sectional and All-Mix tracks strictly exclude all coding questions
-              if (isCodingQuestion(q)) return false;
-
-              if (isSectionalTrack) {
-                return (q.category || '').trim().toLowerCase() === activeCategory.toLowerCase();
-              }
-              // All Mix: optional sub-filter across the 4 objective MCQ pillars
-              if (step2CategoryFilter !== 'all') {
-                return (q.category || '').trim().toLowerCase() === step2CategoryFilter.toLowerCase();
-              }
-              return true;
-            });
+            const selected = newAssessment.selectedQuestionIds
+              .map(id => questionBank.find(q => q.id === id))
+              .filter(Boolean);
+            const grouped = SECTION_DEFS.map(sec => ({
+              sec,
+              items: selected.filter(q => sectionOfQuestion(q) === sec.key)
+            }));
+            const needed = sumSectionCounts(newAssessment.sectionCounts);
 
             return (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <h3 className="text-sm font-bold text-slate-900">
-                    2. Question Assignment & Problem Selection
+                    2. Auto-Picked Questions
                   </h3>
-                  <span className={`font-bold text-xs px-2.5 py-1 rounded-md border ${
-                    isCodingTrack
-                      ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                      : 'bg-brand-50 text-brand-600 border-brand-200'
-                  }`}>
-                    {newAssessment.selectedQuestionIds.length} Questions Selected
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`font-bold text-xs px-2.5 py-1 rounded-md border ${
+                      selected.length === needed
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                    }`}>
+                      {selected.length} / {needed} Selected
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleAutoSelectBySections(true)}
+                      className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-brand-600 hover:from-indigo-700 hover:to-brand-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Re-Pick Questions</span>
+                    </button>
+                  </div>
                 </div>
 
-                {/* DIFFERENTIATED TRACK BANNER */}
-                {isFullTrack ? (
-                  <div className="p-4 bg-gradient-to-r from-indigo-50/80 to-brand-50/80 border border-brand-200 rounded-2xl space-y-3">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-brand-700" />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                              Full Assessment — Coding + MCQ Repository
-                            </h4>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-200 text-brand-800">
-                              {catQuestionsInDb.length} Available in DB
-                            </span>
-                          </div>
-                          <span className="text-[11px] text-slate-600">
-                            Pick any mix of coding challenges and objective MCQs across all pillars
-                          </span>
-                        </div>
-                      </div>
+                <div className="p-4 bg-gradient-to-r from-indigo-50/80 to-brand-50/80 border border-brand-200 rounded-2xl">
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    Questions were auto-picked per section from the bank using the counts set in step 1. Use Re-Pick to draw a fresh random set, remove any question below, or upload your own via Excel.
+                  </p>
+                </div>
 
-                      <button
-                        type="button"
-                        onClick={handleAutoSelectRandomQuestions}
-                        className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-brand-600 hover:from-indigo-700 hover:to-brand-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5"
-                      >
-                        <Sparkles className="w-4 h-4" />
-                        <span>Auto-Pick {newAssessment.totalQuestions} Mixed Questions</span>
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-1 pt-1 border-t border-brand-200/60 overflow-x-auto">
-                      {[
-                        { id: 'all', label: 'All' },
-                        { id: 'coding', label: 'Coding' },
-                        { id: 'aptitude', label: 'Aptitude' },
-                        { id: 'reasoning', label: 'Reasoning' },
-                        { id: 'technical', label: 'Technical' },
-                        { id: 'verbal', label: 'Verbal' }
-                      ].map(f => (
-                        <button
-                          key={f.id}
-                          type="button"
-                          onClick={() => setStep2CategoryFilter(f.id)}
-                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all whitespace-nowrap ${
-                            step2CategoryFilter === f.id
-                              ? 'bg-slate-900 text-white'
-                              : 'bg-white/80 text-slate-700 hover:bg-slate-100'
-                          }`}
-                        >
-                          {f.id}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : isCodingTrack ? (
-                  <div className="p-4 bg-indigo-50/80 border border-indigo-200 rounded-2xl flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md">
-                        <Code2 className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-xs font-bold text-indigo-950 uppercase tracking-wider">
-                            Interactive Coding Challenges Repository
-                          </h4>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-200 text-indigo-800">
-                            {catQuestionsInDb.length} Available in DB
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-indigo-700/90 mt-0.5 max-w-xl">
-                          Only interactive coding challenges with compiler test runner configurations (Python, JS, C++, Java) are shown.
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleAutoSelectRandomQuestions}
-                      className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 shrink-0"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      <span>Auto-Pick {newAssessment.totalQuestions} Challenges</span>
-                    </button>
-                  </div>
-                ) : isSectionalTrack ? (
-                  <div className="p-4 bg-brand-50/80 border border-brand-200 rounded-2xl flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center shrink-0 shadow-md">
-                        <BookOpen className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-xs font-bold text-brand-950 uppercase tracking-wider">
-                            {activeCategory} Objective Question Bank
-                          </h4>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-200 text-brand-800">
-                            {catQuestionsInDb.length} Available in DB
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-brand-700/90 mt-0.5 max-w-xl">
-                          Displaying multiple choice questions exclusively from the <strong>{activeCategory}</strong> skill pillar.
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleAutoSelectRandomQuestions}
-                      className="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 shrink-0"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      <span>Auto-Pick {newAssessment.totalQuestions} Questions</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-2xl space-y-3">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-emerald-700" />
-                        <div>
-                          <h4 className="text-xs font-bold text-emerald-950 uppercase tracking-wider">
-                            Multi-Pillar All-Mix Assessment Questions
-                          </h4>
-                          <span className="text-[11px] text-emerald-700">
-                            Blended objective MCQs across Aptitude, Reasoning, Technical, and Verbal
-                          </span>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleAutoSelectRandomQuestions}
-                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5"
-                      >
-                        <Sparkles className="w-4 h-4" />
-                        <span>Auto-Pick Balanced MCQ Mix</span>
-                      </button>
-                    </div>
-
-                    {/* All Mix Sub-Filter Tabs: Strictly non-coding MCQ pillars */}
-                    <div className="flex items-center gap-1 pt-1 border-t border-emerald-200/60 overflow-x-auto">
-                      {['all', 'aptitude', 'reasoning', 'technical', 'verbal'].map(f => (
-                        <button
-                          key={f}
-                          type="button"
-                          onClick={() => setStep2CategoryFilter(f)}
-                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${
-                            step2CategoryFilter === f
-                              ? 'bg-emerald-700 text-white'
-                              : 'bg-white/80 text-emerald-800 hover:bg-emerald-100'
-                          }`}
-                        >
-                          {f === 'all' ? 'All MCQs' : f}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* EXCEL UPLOAD BANNER */}
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-xs text-slate-700 font-bold">
                     <Upload className="w-4 h-4 text-brand-600" />
@@ -998,87 +840,59 @@ export const AdminAssessmentsPage = () => {
                   </div>
                 </div>
 
-                {/* QUESTIONS LIST */}
-                <div className="max-h-72 overflow-y-auto space-y-2 divide-y divide-slate-100 pr-1">
-                  {filteredBank.map((q) => {
-                    const isSelected = newAssessment.selectedQuestionIds.includes(q.id);
-                    const isQCode = isCodingQuestion(q);
-                    let testCasesCount = 0;
-                    if (q.testCases?.length) testCasesCount = q.testCases.length;
-                    else if (q.test_cases) {
-                      try {
-                        const parsed = typeof q.test_cases === 'string' ? JSON.parse(q.test_cases) : q.test_cases;
-                        testCasesCount = parsed.length || 0;
-                      } catch (e) {}
-                    }
-
+                <div className="max-h-80 overflow-y-auto space-y-4 pr-1">
+                  {grouped.map(({ sec, items }) => {
+                    const want = Number(newAssessment.sectionCounts?.[sec.key]) || 0;
+                    if (want === 0 && items.length === 0) return null;
                     return (
-                      <div
-                        key={q.id}
-                        onClick={() => handleToggleQuestionSelection(q.id)}
-                        className={`p-3.5 rounded-xl border cursor-pointer flex items-center justify-between transition-all ${
-                          isSelected
-                            ? isQCode
-                              ? 'bg-indigo-50/80 border-indigo-400 shadow-2xs'
-                              : 'bg-brand-50/80 border-brand-400 shadow-2xs'
-                            : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100/80'
-                        }`}
-                      >
-                        <div className="space-y-1 max-w-[85%]">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-900 line-clamp-1 text-xs">{q.question}</span>
-                            {isQCode ? (
-                              <span className="px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 font-extrabold text-[9px] flex items-center gap-1 shrink-0 border border-indigo-200">
-                                <Code2 className="w-3 h-3" />
-                                Coding
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-bold text-[9px] shrink-0">
-                                MCQ
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
-                            <span className="font-bold text-slate-700">{q.category}</span>
-                            <span>•</span>
-                            <span>{q.topic || 'General'}</span>
-                            <span>•</span>
-                            <span className={`font-semibold ${
-                              q.difficulty === 'Easy' ? 'text-emerald-600' : q.difficulty === 'Hard' ? 'text-rose-600' : 'text-amber-600'
-                            }`}>{q.difficulty}</span>
-
-                            {isQCode ? (
-                              <>
-                                <span>•</span>
-                                <span className="font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-200">
-                                  {testCasesCount > 0 ? `${testCasesCount} Test Cases` : 'Standard Test Runner'}
-                                </span>
-                                <span>•</span>
-                                <span className="text-slate-400">Python, JS, C++, Java</span>
-                              </>
-                            ) : (
-                              <>
-                                <span>•</span>
-                                <span className="font-medium text-slate-600">
-                                  {Array.isArray(q.options) ? `${q.options.length} Options` : '4 Options'}
-                                </span>
-                                <span>•</span>
-                                <span className="font-semibold text-emerald-700">
-                                  Key: {q.correctAnswer || q.correct_answer || 'A'}
-                                </span>
-                              </>
-                            )}
-                          </div>
+                      <div key={sec.key} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700">{sec.label}</h4>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            items.length >= want ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            {items.length} / {want}
+                          </span>
                         </div>
-
-                        <div className={`w-5 h-5 rounded-md flex items-center justify-center font-bold text-xs shrink-0 ${
-                          isSelected
-                            ? isQCode ? 'bg-indigo-600 text-white' : 'bg-brand-600 text-white'
-                            : 'border border-slate-300 bg-white'
-                        }`}>
-                          {isSelected ? '✓' : ''}
-                        </div>
+                        {items.length === 0 ? (
+                          <div className="p-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 text-[11px] text-slate-500">
+                            No questions picked for this section.
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {items.map(q => {
+                              const isQCode = isCodingQuestion(q);
+                              return (
+                                <div
+                                  key={q.id}
+                                  className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex items-center justify-between transition-all"
+                                >
+                                  <div className="space-y-1 max-w-[85%]">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-bold text-slate-900 line-clamp-1 text-xs">{q.question}</span>
+                                      {isQCode ? (
+                                        <span className="px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 font-extrabold text-[9px] shrink-0 border border-indigo-200">Coding</span>
+                                      ) : (
+                                        <span className="px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-bold text-[9px] shrink-0">MCQ</span>
+                                      )}
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
+                                      <span className="font-bold text-slate-700">{q.category}</span>
+                                      <span className="font-medium">{q.difficulty}</span>
+                                    </div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleQuestionSelection(q.id)}
+                                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-all shrink-0"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1199,11 +1013,11 @@ export const AdminAssessmentsPage = () => {
                   isCodingTrack ? 'bg-indigo-50 border-indigo-200 text-indigo-800' : isFullTrack ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-brand-50 border-brand-200 text-brand-800'
                 }`}>
                   {isCodingTrack ? (
-                    <span>💡 <strong>Coding Assessment Recommendation</strong>: Algorithmic problems typically require 15 to 20 minutes each. For {newAssessment.totalQuestions} questions, 45 to 60 minutes provides an optimal testing window.</span>
+                    <span><strong>Coding Assessment Recommendation</strong>: Algorithmic problems typically require 15 to 20 minutes each. For {newAssessment.totalQuestions} questions, 45 to 60 minutes provides an optimal testing window.</span>
                   ) : isFullTrack ? (
-                    <span>💡 <strong>Full Assessment Recommendation</strong>: This assessment mixes coding challenges (~15-20 min each) with objective MCQs (~1 min each). For {newAssessment.totalQuestions} questions, 60 to 90 minutes is a realistic window.</span>
+                    <span><strong>Full Assessment Recommendation</strong>: This assessment mixes coding challenges (~15-20 min each) with objective MCQs (~1 min each). For {newAssessment.totalQuestions} questions, 60 to 90 minutes is a realistic window.</span>
                   ) : (
-                    <span>💡 <strong>MCQ Assessment Recommendation</strong>: Objective questions typically require 1 to 1.5 minutes per question. For {newAssessment.totalQuestions} questions, 25 to 35 minutes is standard.</span>
+                    <span><strong>MCQ Assessment Recommendation</strong>: Objective questions typically require 1 to 1.5 minutes per question. For {newAssessment.totalQuestions} questions, 25 to 35 minutes is standard.</span>
                   )}
                 </div>
               </div>
@@ -1296,11 +1110,11 @@ export const AdminAssessmentsPage = () => {
 
                 <div className="pt-2 border-t border-slate-200 text-[11px] text-slate-500">
                   {isCodingTrack ? (
-                    <span className="text-indigo-700 font-semibold">✓ Interactive Monaco IDE, multi-language sandbox, and confidential testcase grader enabled.</span>
+                    <span className="text-indigo-700 font-semibold">Interactive Monaco IDE, multi-language sandbox, and confidential testcase grader enabled.</span>
                   ) : isFullTrack ? (
-                    <span className="text-emerald-700 font-semibold">✓ Mixed engine: coding questions open the Monaco sandbox; MCQ questions get randomization, review palette, and instant scoring.</span>
+                    <span className="text-emerald-700 font-semibold">Mixed engine: coding questions open the Monaco sandbox; MCQ questions get randomization, review palette, and instant scoring.</span>
                   ) : (
-                    <span className="text-brand-700 font-semibold">✓ Objective MCQ question randomization, review palette, and instant scoring enabled.</span>
+                    <span className="text-brand-700 font-semibold">Objective MCQ question randomization, review palette, and instant scoring enabled.</span>
                   )}
                 </div>
               </div>
@@ -1337,7 +1151,7 @@ export const AdminAssessmentsPage = () => {
             {wizardStep < 7 ? (
               <button
                 type="button"
-                onClick={() => setWizardStep(prev => prev + 1)}
+                onClick={() => goToWizardStep(Math.min(7, wizardStep + 1))}
                 className={`px-5 py-2 text-white rounded-xl font-bold flex items-center gap-1.5 shadow-xs ${
                   isCodingTrack ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-brand-600 hover:bg-brand-700'
                 }`}

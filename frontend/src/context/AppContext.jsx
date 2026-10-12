@@ -368,7 +368,7 @@ export const AppProvider = ({ children }) => {
     const validateSession = async () => {
       const token = localStorage.getItem('rsj_token');
       if (!token) {
-        // No token but a stored session remains → stale; clear it so an authenticated shell isn't rendered.
+        // No token but a stored session remains -> stale; clear it so an authenticated shell isn't rendered.
         if (localStorage.getItem('rsj_admin_user') || localStorage.getItem('rsj_user')) {
           api.clearToken();
           setCurrentUser(null);
@@ -504,8 +504,8 @@ export const AppProvider = ({ children }) => {
           const asmQuestions = Number(rawAsm.total_questions ?? rawAsm.totalQuestions) || (rawAsm.category === 'Coding' ? 3 : 10);
           const asmPassing = Number(rawAsm.passing_score ?? rawAsm.passingScore) || 60;
           const asmTotalMarks = Number(rawAsm.total_marks ?? rawAsm.totalMarks) || 100;
-          const asmSelectedIds = Array.isArray(rawAsm.selected_question_ids) 
-            ? rawAsm.selected_question_ids 
+          const asmSelectedIds = Array.isArray(rawAsm.selected_question_ids)
+            ? rawAsm.selected_question_ids
             : (Array.isArray(rawAsm.selectedQuestionIds) ? rawAsm.selectedQuestionIds : []);
 
           const asm = {
@@ -811,6 +811,8 @@ export const AppProvider = ({ children }) => {
         phoneNo: formData.mobile || formData.phoneNo,
         college: formData.college || formData.collegeName,
         collegeName: formData.college || formData.collegeName,
+        collegeId: formData.collegeId || formData.college_id,
+        college_id: formData.collegeId || formData.college_id,
         degree: formData.degree || 'B.Tech',
         branch: formData.branch,
         specialization: formData.specialization,
@@ -1628,7 +1630,7 @@ export const AppProvider = ({ children }) => {
 
     // Ensure candidateSubmissions has this assessment marked Completed
     setCandidateSubmissions(prev => {
-      const exists = prev.some(s => 
+      const exists = prev.some(s =>
         String(s.assessment_id || s.assessmentId || '').trim().toLowerCase() === String(currentAsmId).trim().toLowerCase() ||
         (activeAssessment?.title && String(s.assessment_title || s.assessmentName || '').trim().toLowerCase() === String(activeAssessment.title).trim().toLowerCase())
       );

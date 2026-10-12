@@ -13,13 +13,13 @@ this deployment.
 | Package | Severity | Path | Exposure |
 |---|---|---|---|
 | `prisma` | high | direct dependency (CLI/tooling) | Dev/build only — runs `prisma generate`/`migrate`, not in the request path |
-| `@prisma/config` | high | `prisma` → `@prisma/config` | Build-time config loader |
-| `deepmerge-ts` | high | `@prisma/config` → `deepmerge-ts` | Build-time |
-| `mysql2` | high | `prisma` → `mysql2` | Prisma CLI's optional MySQL driver; the app uses `pg`, never MySQL |
+| `@prisma/config` | high | `prisma` -> `@prisma/config` | Build-time config loader |
+| `deepmerge-ts` | high | `@prisma/config` -> `deepmerge-ts` | Build-time |
+| `mysql2` | high | `prisma` -> `mysql2` | Prisma CLI's optional MySQL driver; the app uses `pg`, never MySQL |
 
-The application's runtime data path is `express` → `pg` → PostgreSQL. None of the four
+The application's runtime data path is `express` -> `pg` -> PostgreSQL. None of the four
 packages are reached while serving HTTP requests, and none process attacker-controlled
-network input. A `npm audit fix --force` would downgrade `prisma` 7.10.0 → 6.x (breaking);
+network input. A `npm audit fix --force` would downgrade `prisma` 7.10.0 -> 6.x (breaking);
 not applied. Tracked as an accepted, non-exploitable build-time risk pending an upstream
 Prisma patch.
 
@@ -50,7 +50,7 @@ Prisma patch.
 
 ### 4. Frontend — critical `tar` is NOT installed (non-exploitable)
 `tar` (critical, GHSA-23hp-3jrh-7fpw) is pulled in via the **optional** native dep
-`canvas` → `@mapbox/node-pre-gyp` → `tar`. Neither `canvas` nor `tar` is present in
+`canvas` -> `@mapbox/node-pre-gyp` -> `tar`. Neither `canvas` nor `tar` is present in
 `frontend/node_modules` (verified: `tar NOT installed`, `canvas NOT installed`), so the
 advisory has no reachable code and does not affect the build or the shipped bundle. It
 appears only because it is recorded in `package-lock.json` as an optional edge.
@@ -66,8 +66,8 @@ appears only because it is recorded in `package-lock.json` as an optional edge.
 
 ## What's already secure
 
-- 12 vulnerabilities were removed via non-breaking `npm audit fix` (backend 9→4,
-  frontend 16→15); the prior `proxy-addr` critical is gone.
+- 12 vulnerabilities were removed via non-breaking `npm audit fix` (backend 9->4,
+  frontend 16->15); the prior `proxy-addr` critical is gone.
 - All direct dependencies are now **pinned to exact versions** (no `^`/`~`) in both
   `package.json` files; lockfiles are committed.
 - The critical `tar` advisory is non-exploitable here (optional `canvas` not installed).
@@ -87,7 +87,7 @@ appears only because it is recorded in `package-lock.json` as an optional edge.
 
 ## Verification (implemented)
 
-- `npm audit` (before → after): backend 9 → 4; frontend 16 → 15.
+- `npm audit` (before -> after): backend 9 -> 4; frontend 16 -> 15.
 - `npm install --package-lock-only --ignore-scripts` re-synced both lockfiles to the
   pinned versions; `npm ls --depth=0` shows a valid tree.
 - `frontend` lint (`oxlint`) passes (0 errors).

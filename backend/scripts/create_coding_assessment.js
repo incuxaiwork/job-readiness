@@ -42,7 +42,7 @@ async function main() {
       );
     }
   }
-  console.log('✅ Created Software Engineering Coding Assessment (asm-coding-mastery) with 3 coding challenges');
+  console.log('Created Software Engineering Coding Assessment (asm-coding-mastery) with 3 coding challenges');
   process.exit(0);
 }
 

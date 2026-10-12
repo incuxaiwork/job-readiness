@@ -20,7 +20,7 @@ async function request(url, options = {}) {
 }
 
 async function runVerification() {
-  console.log('🧪 Starting End-to-End Verification: Admin Reset Assessment Attempt / Allow Retake...\n');
+  console.log('Starting End-to-End Verification: Admin Reset Assessment Attempt / Allow Retake...\n');
 
   const testEmail = `retake_test_${Date.now()}@example.com`;
   const testPassword = 'Password@123';
@@ -30,7 +30,7 @@ async function runVerification() {
 
   try {
     // 1. Register candidate
-    console.log(`1️⃣ Registering test candidate: ${testEmail}`);
+    console.log(`1 Registering test candidate: ${testEmail}`);
     const regRes = await request(`${BASE_URL}/auth/register`, {
       method: 'POST',
       body: {
@@ -50,10 +50,10 @@ async function runVerification() {
     if (!regRes.ok) throw new Error(`Registration failed: ${JSON.stringify(regRes.data)}`);
     candidateToken = regRes.data.token;
     candidateId = regRes.data.candidate.id;
-    console.log(`   ✅ Candidate registered! ID: ${candidateId}`);
+    console.log(` Candidate registered! ID: ${candidateId}`);
 
     // 2. First Submission
-    console.log(`\n2️⃣ Candidate submits Assessment 'asm-1' (First attempt)`);
+    console.log(`\n2 Candidate submits Assessment 'asm-1' (First attempt)`);
     const sub1 = await request(`${BASE_URL}/submissions`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${candidateToken}` },
@@ -69,10 +69,10 @@ async function runVerification() {
       }
     });
     if (!sub1.ok) throw new Error(`First submission failed: ${JSON.stringify(sub1.data)}`);
-    console.log(`   ✅ Submission 1 successful! Status: ${sub1.status}`);
+    console.log(` Submission 1 successful! Status: ${sub1.status}`);
 
     // 3. Second Submission (Should be BLOCKED)
-    console.log(`\n3️⃣ Candidate attempts second submission for 'asm-1' without admin reset`);
+    console.log(`\n3 Candidate attempts second submission for 'asm-1' without admin reset`);
     const sub2 = await request(`${BASE_URL}/submissions`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${candidateToken}` },
@@ -84,26 +84,26 @@ async function runVerification() {
       }
     });
     if (sub2.status === 403) {
-      console.log(`   ✅ BLOCKED as expected (HTTP 403): "${sub2.data.error}"`);
+      console.log(` BLOCKED as expected (HTTP 403): "${sub2.data.error}"`);
     } else {
-      throw new Error(`❌ FAILURE: Second submission should have been blocked with 403, got ${sub2.status}: ${JSON.stringify(sub2.data)}`);
+      throw new Error(`FAILURE: Second submission should have been blocked with 403, got ${sub2.status}: ${JSON.stringify(sub2.data)}`);
     }
 
     // 4. Non-admin reset attempt (Should be BLOCKED)
-    console.log(`\n4️⃣ Non-admin tries to reset attempt`);
+    console.log(`\n4 Non-admin tries to reset attempt`);
     const nonAdminReset = await request(`${BASE_URL}/candidates/${candidateId}/reset-attempt`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${candidateToken}` },
       body: { assessmentId: 'asm-1' }
     });
     if (nonAdminReset.status === 403) {
-      console.log(`   ✅ RBAC check passed: Non-admin blocked with HTTP 403: "${nonAdminReset.data.error}"`);
+      console.log(` RBAC check passed: Non-admin blocked with HTTP 403: "${nonAdminReset.data.error}"`);
     } else {
-      throw new Error(`❌ FAILURE: Non-admin should NOT be allowed to reset attempts, got ${nonAdminReset.status}`);
+      throw new Error(`FAILURE: Non-admin should NOT be allowed to reset attempts, got ${nonAdminReset.status}`);
     }
 
     // 5. Admin logs in and resets candidate attempt
-    console.log(`\n5️⃣ Admin logs in and performs reset`);
+    console.log(`\n5 Admin logs in and performs reset`);
     const adminLoginRes = await request(`${BASE_URL}/auth/admin/login`, {
       method: 'POST',
       body: {
@@ -113,7 +113,7 @@ async function runVerification() {
     });
     if (!adminLoginRes.ok) throw new Error(`Admin login failed: ${JSON.stringify(adminLoginRes.data)}`);
     adminToken = adminLoginRes.data.token;
-    console.log(`   ✅ Admin logged in.`);
+    console.log(` Admin logged in.`);
 
     const resetRes = await request(`${BASE_URL}/candidates/${candidateId}/reset-attempt`, {
       method: 'POST',
@@ -121,10 +121,10 @@ async function runVerification() {
       body: { assessmentId: 'asm-1' }
     });
     if (!resetRes.ok) throw new Error(`Admin reset failed: ${JSON.stringify(resetRes.data)}`);
-    console.log(`   ✅ Admin reset response:`, resetRes.data);
+    console.log(` Admin reset response:`, resetRes.data);
 
     // 6. Candidate takes assessment again after admin reset (Should SUCCEED)
-    console.log(`\n6️⃣ Candidate submits Assessment 'asm-1' after admin reset`);
+    console.log(`\n6 Candidate submits Assessment 'asm-1' after admin reset`);
     const sub3 = await request(`${BASE_URL}/submissions`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${candidateToken}` },
@@ -140,11 +140,11 @@ async function runVerification() {
       }
     });
     if (!sub3.ok) throw new Error(`Retake submission failed: ${JSON.stringify(sub3.data)}`);
-    console.log(`   ✅ Retake submission succeeded with HTTP ${sub3.status}! Score: ${sub3.data.data?.score}`);
+    console.log(` Retake submission succeeded with HTTP ${sub3.status}! Score: ${sub3.data.data?.score}`);
 
-    console.log('\n🎉 ALL VERIFICATION TESTS PASSED SUCCESSFULLY! 🎯');
+    console.log('\nALL VERIFICATION TESTS PASSED SUCCESSFULLY!');
   } catch (err) {
-    console.error('❌ Verification failed:', err.message);
+    console.error('Verification failed:', err.message);
     process.exit(1);
   }
 }

@@ -34,14 +34,14 @@ def main():
     input_data = sys.stdin.read().split()
     if not input_data:
         return
-    
+
     # N = number of elements
     n = int(input_data[0])
     # nums = array elements
     nums = [int(x) for x in input_data[1:n+1]]
-    
+
     # TODO: Write your code here to calculate and print the sum of array elements
-    
+
 
 if __name__ == '__main__':
     main()
@@ -95,15 +95,15 @@ public class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         if (!scanner.hasNextInt()) return;
-        
+
         int n = scanner.nextInt();
         long[] nums = new long[n];
         for (int i = 0; i < n; i++) {
             nums[i] = scanner.nextLong();
         }
-        
+
         // TODO: Write your code here to calculate and print the sum of array elements
-        
+
         scanner.close();
     }
 }
@@ -147,10 +147,10 @@ def main():
     s = sys.stdin.read().strip()
     if not s:
         return
-    
+
     # TODO: Write your code here to check if 's' is a case-insensitive palindrome
     # Print 'true' or 'false'
-    
+
 
 if __name__ == '__main__':
     main()
@@ -196,9 +196,9 @@ public class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         if (!scanner.hasNext()) return;
-        
+
         String s = scanner.next();
-        
+
         // TODO: Write your code here to check if 's' is a case-insensitive palindrome
         // Print 'true' or 'false'
 
@@ -246,10 +246,10 @@ def main():
     if not input_text:
         return
     n = int(input_text)
-    
+
     # TODO: Write your code here to compute the factorial of N
     # Print the result to standard output
-    
+
 
 if __name__ == '__main__':
     main()
@@ -295,9 +295,9 @@ public class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         if (!scanner.hasNextInt()) return;
-        
+
         int n = scanner.nextInt();
-        
+
         // TODO: Write your code here to compute the factorial of N
         // Print the result to standard output
 
@@ -348,7 +348,7 @@ async function seed() {
         JSON.stringify(q.test_cases)
       ]
     );
-    console.log(`✅ Seeded coding question: ${q.id} (${q.topic})`);
+    console.log(`Seeded coding question: ${q.id} (${q.topic})`);
   }
 
   // Also attach coding questions to an assessment so candidates can take it!
@@ -376,10 +376,10 @@ async function seed() {
         ]
       );
     }
-    console.log(`✅ Linked coding questions to assessment: ${asmRes.rows[0].title} (${asmId})`);
+    console.log(`Linked coding questions to assessment: ${asmRes.rows[0].title} (${asmId})`);
   }
 
-  console.log('🎉 Seeding completed successfully.');
+  console.log('Seeding completed successfully.');
   process.exit(0);
 }
 

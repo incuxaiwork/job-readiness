@@ -155,8 +155,8 @@ export const AdminInterviewsPage = () => {
         if (data.success && addToast) {
           addToast(
             nextLocked
-              ? '🔒 AI Mock Interviews are now LOCKED for candidates.'
-              : '🔓 AI Mock Interviews are now UNLOCKED & active.',
+              ? 'AI Mock Interviews are now LOCKED for candidates.'
+              : 'AI Mock Interviews are now UNLOCKED & active.',
             nextLocked ? 'warning' : 'success'
           );
         }

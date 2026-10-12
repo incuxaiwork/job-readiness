@@ -14,12 +14,12 @@ goals are therefore not applicable.
 ### 2. Files are parsed entirely in the browser (INFO / dependency risk)
 Two features accept files, and in both the bytes never leave the client:
 - **Excel/CSV question import** — `frontend/src/utils/excelParser.js:11`
-  (`file.arrayBuffer()` → `XLSX.read`). The parsed JSON is POSTed to the normal
+  (`file.arrayBuffer()` -> `XLSX.read`). The parsed JSON is POSTed to the normal
   `POST /api/questions` JSON endpoint (`AdminQuestionBankPage.jsx:291-302`,
   `AdminAssessmentsPage.jsx:169`). The `accept=".xlsx,.xls,.csv"` attribute is UX-only;
   the server receives already-structured JSON and validates it as ordinary request data.
 - **Resume upload for the AI mock interview / ATS** — `frontend/src/utils/resumeParser.js`
-  (`file.arrayBuffer()` → `pdfjs-dist` `getDocument`). Parsed text stays in the browser
+  (`file.arrayBuffer()` -> `pdfjs-dist` `getDocument`). Parsed text stays in the browser
   and is used to build the session; no file is transmitted.
 
 Because parsing happens on the uploader's own machine, a malicious file can only attack
@@ -61,6 +61,6 @@ an unpatched upstream parser.
 
 ## Verification (implemented)
 
-- `grep -rniE "multer|formidable|busboy|multipart|upload" backend/src` → no matches.
+- `grep -rniE "multer|formidable|busboy|multipart|upload" backend/src` -> no matches.
 - `package.json` (both) contains no upload middleware.
 - File-parsing call sites confirmed to use `file.arrayBuffer()` client-side and POST JSON.

@@ -318,7 +318,7 @@ export const AdminQuestionBankPage = () => {
 
   return (
     <div className="space-y-8 pb-16">
-      
+
       {/* 1. BREADCRUMB HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -375,7 +375,7 @@ export const AdminQuestionBankPage = () => {
               }}
               className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
             >
-              ⬅ Back
+              Back
             </button>
           )}
           <button
@@ -445,7 +445,7 @@ export const AdminQuestionBankPage = () => {
                     {stats.topics.length > 0 ? (
                       stats.topics.map((t, idx) => (
                         <span key={idx} className="text-[10px] font-semibold bg-white/90 px-2 py-0.5 rounded-md border border-slate-200 text-slate-700">
-                          📁 {t}
+                          {t}
                         </span>
                       ))
                     ) : (
@@ -461,10 +461,10 @@ export const AdminQuestionBankPage = () => {
 
       {/* 2. QUESTIONS SECTION (DIRECTLY DISPLAYED FOR SELECTED FOLDER) */}
       <div className="space-y-4">
-        
+
         {/* SEARCH & FILTERS BAR */}
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-card p-4 space-y-3">
-          
+
           {/* Active Folder Indicator & Topic Pills */}
           {selectedCategory !== 'All' && (
             <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200/80 mb-1">
@@ -509,7 +509,7 @@ export const AdminQuestionBankPage = () => {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            
+
             {/* Search */}
             <div className="relative lg:col-span-2">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -593,7 +593,7 @@ export const AdminQuestionBankPage = () => {
                               {isCodingQ && <Code2 className="w-4 h-4 text-indigo-600 flex-shrink-0" />}
                               <span>{q.question}</span>
                             </div>
-                            
+
                             {/* Render Options or Coding summary */}
                             {isCodingQ ? (
                               <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px]">
@@ -711,7 +711,7 @@ export const AdminQuestionBankPage = () => {
         maxWidth="max-w-3xl"
       >
         <form onSubmit={handleCreateQuestion} className="space-y-4 text-xs">
-          
+
           {/* Unique Question ID Badge */}
           <div className="p-3 bg-brand-50/80 border border-brand-200 rounded-xl flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-bold text-brand-900">

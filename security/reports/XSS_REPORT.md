@@ -64,5 +64,5 @@ is ever introduced (mitigated by CSP, but not eliminated by `'unsafe-inline'`).
 ## Verification (implemented)
 
 - `grep -rniE "dangerouslySetInnerHTML|innerHTML|v-html|document.write|eval\\(|new Function"`
-  across `frontend/src` → no matches.
+  across `frontend/src` -> no matches.
 - Backend has no HTML-response path or request-derived templating.

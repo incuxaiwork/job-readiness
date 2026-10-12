@@ -184,11 +184,23 @@ export const submitAssessment = async (req, res) => {
     }
 
     let savedSubmissionRecord = null;
+
+    // Tag the submission with the candidate's college (tenant) so college admins
+    // get scoped analytics. Fall back to the candidate profile when the token carries none.
+    let submissionCollegeId = req.user?.college_id || null;
+    if (!submissionCollegeId) {
+      const profileRes = await client.query(
+        `SELECT college_id FROM candidate_profiles WHERE id = $1 OR user_id = $1 LIMIT 1`,
+        [candidateId]
+      );
+      submissionCollegeId = profileRes.rows[0]?.college_id || null;
+    }
+
     // 3. Insert into assessment_submissions table
     const result = await client.query(
       `INSERT INTO assessment_submissions 
-       (id, candidate_id, candidate_name, candidate_email, assessment_id, assessment_title, score, accuracy, correct_count, incorrect_count, unanswered_count, time_taken, category_scores, topic_breakdown, answers, proctoring_violations, auto_submitted, auto_submit_reason, status, obtained_marks, total_marks, created_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'Completed',$19,$20,NOW())
+       (id, candidate_id, candidate_name, candidate_email, assessment_id, assessment_title, score, accuracy, correct_count, incorrect_count, unanswered_count, time_taken, category_scores, topic_breakdown, answers, proctoring_violations, auto_submitted, auto_submit_reason, status, obtained_marks, total_marks, college_id, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'Completed',$19,$20,$21,NOW())
        RETURNING *`,
       [
         id,
@@ -210,7 +222,8 @@ export const submitAssessment = async (req, res) => {
         Boolean(autoSubmitted),
         autoSubmitReason || null,
         finalObtainedMarks,
-        finalTotalMarks
+        finalTotalMarks,
+        submissionCollegeId
       ]
     );
     savedSubmissionRecord = result.rows[0];

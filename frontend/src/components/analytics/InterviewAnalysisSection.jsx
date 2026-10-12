@@ -378,7 +378,7 @@ export default function InterviewAnalysisSection({ sessionId: initialSessionId }
                   key={i}
                   className="px-3.5 py-1.5 rounded-xl bg-white border border-emerald-200 text-xs font-semibold text-emerald-800 shadow-2xs font-sans"
                 >
-                  ✓ {skill}
+                  {skill}
                 </span>
               ))}
             </div>

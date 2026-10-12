@@ -28,7 +28,7 @@ After implementation, ALL of these must be true:
 ## Manual verification (for the human)
 
 - From a different origin (e.g. a local HTML page), `fetch('https://api…/api/auth/refresh', {method:'POST', credentials:'include'})`
-  → expect it to be blocked (403) / not to affect the session.
-- Confirm normal login → refresh → logout still works from the app origin.
+  -> expect it to be blocked (403) / not to affect the session.
+- Confirm normal login -> refresh -> logout still works from the app origin.
 - If using a split-domain deploy (`SameSite=None`), also confirm login works and consider
   extending `originGuard` to the login routes.

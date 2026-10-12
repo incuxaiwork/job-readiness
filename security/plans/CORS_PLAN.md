@@ -26,7 +26,7 @@ After implementation, ALL of these must be true:
 ## Manual verification (for the human)
 
 - With the server running, `curl -sI -H 'Origin: https://evil.example' http://localhost:5000/api/health`
-  → no `Access-Control-Allow-Origin` header.
+  -> no `Access-Control-Allow-Origin` header.
 - `curl -sI -H 'Origin: http://localhost:5173' http://localhost:5000/api/health`
-  → `Access-Control-Allow-Origin: http://localhost:5173` and
+  -> `Access-Control-Allow-Origin: http://localhost:5173` and
   `Access-Control-Allow-Credentials: true`.

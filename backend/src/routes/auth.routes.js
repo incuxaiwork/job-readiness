@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { register, loginCandidate, loginAdmin, getMe, logout, refreshToken } from "../controllers/auth.controller.js";
+import { register, loginCandidate, loginAdmin, getMe, logout, refreshToken, listPublicColleges } from "../controllers/auth.controller.js";
 import { authenticateToken } from "../middleware/auth.js";
 import { originGuard } from "../middleware/originGuard.js";
 import { loginLimiter, registerLimiter } from "../middleware/rateLimiter.js";
 
 const router = Router();
 
+router.get("/colleges", listPublicColleges);
 router.post("/register",      registerLimiter, register);
 router.post("/login",         loginLimiter,    loginCandidate);
 router.post("/admin/login",   loginLimiter,    loginAdmin);
