@@ -3,6 +3,11 @@ import path from 'path';
 import crypto from 'crypto';
 import prisma from '../db/prisma.js';
 import { canReadCandidate } from '../middleware/ownership.js';
+import {
+  createStreamingToken,
+  getAvatarConfig,
+  releaseStreamingSession
+} from '../services/heygenService.js';
 
 /**
  * Interview session ownership: a session belongs to a candidate user. Access is
@@ -1105,5 +1110,68 @@ export const updateInterviewSettings = async (req, res) => {
   } catch (err) {
     console.error('Error updating interview settings:', err);
     return res.status(500).json({ success: false, error: 'Failed to update settings' });
+  }
+};
+
+/**
+ * POST /api/interview/avatar/token
+ * Generate a short-lived HeyGen streaming session token securely on the backend.
+ * The permanent HeyGen API key is never exposed to the client.
+ */
+export const createAvatarToken = async (req, res) => {
+  try {
+    const userId = req.user?.id || 'guest';
+    const { sessionId, allowMock = false } = req.body || {};
+
+    if (sessionId) {
+      const existing = memorySessions.get(sessionId);
+      if (existing?.userId && await sessionAccessDenied(req, existing.userId)) {
+        return res.status(403).json({ success: false, error: 'Forbidden' });
+      }
+    }
+
+    const result = await createStreamingToken({
+      userId,
+      sessionId: sessionId || `session_${Date.now()}`,
+      allowMock
+    });
+
+    return res.json(result);
+  } catch (error) {
+    console.error('Error creating avatar token:', error);
+    return res.status(500).json({
+      success: false,
+      fallbackMode: true,
+      error: 'Failed to create streaming avatar token. The interview will proceed in animated avatar mode.'
+    });
+  }
+};
+
+/**
+ * GET /api/interview/avatar/config
+ * Retrieve public avatar configuration and curated interviewer presets.
+ */
+export const getAvatarSettings = async (_req, res) => {
+  try {
+    const config = getAvatarConfig();
+    return res.json({ success: true, config });
+  } catch (error) {
+    console.error('Error fetching avatar config:', error);
+    return res.status(500).json({ success: false, error: 'Failed to retrieve avatar configuration' });
+  }
+};
+
+/**
+ * POST /api/interview/avatar/release
+ * Inform the backend that an avatar streaming session has ended so tracking
+ * resources can be freed.
+ */
+export const releaseAvatarSession = async (req, res) => {
+  try {
+    const { sessionId } = req.body || {};
+    if (sessionId) releaseStreamingSession(sessionId);
+    return res.json({ success: true });
+  } catch (error) {
+    return res.json({ success: true });
   }
 };

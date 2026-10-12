@@ -270,6 +270,19 @@ export const api = {
     getProctoringEvents: (attemptId) => request("GET",  "/submissions/proctoring-events/" + encodeURIComponent(attemptId)),
   },
 
+  interview: {
+    createSession:        (body)            => request("POST", "/interview/session", body),
+    getSession:           (id)              => request("GET",  "/interview/session/" + id),
+    getQuestions:         (id)              => request("GET",  "/interview/session/" + id + "/questions"),
+    saveAnswer:           (questionId, body)=> request("POST", "/interview/question/" + questionId + "/answer", body),
+    saveTelemetry:        (id, body)        => request("POST", "/interview/session/" + id + "/telemetry", body),
+    completeSession:      (id, body)        => request("POST", "/interview/session/" + id + "/complete", body),
+    getAnalysis:          (id)              => request("GET",  "/interview/session/" + id + "/analysis"),
+    getAvatarToken:       (body)            => request("POST", "/interview/avatar/token", body),
+    getAvatarConfig:      ()                => request("GET",  "/interview/avatar/config"),
+    releaseAvatarSession: (body)            => request("POST", "/interview/avatar/release", body),
+  },
+
   admin: {
     stats:     ()           => request("GET", "/admin/stats"),
     analytics: (params = {}) => {

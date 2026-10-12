@@ -10,6 +10,8 @@ import {
 } from '../../utils/resumeParser';
 import { getFaceLandmarker, classifyFrame } from '../../services/proctoringService';
 import { getActiveAssessments, checkAssessmentCompleted } from '../../utils/interviewLock';
+import { heygenAvatarService } from '../../services/heygenAvatarService';
+import { HeyGenStreamingAvatar } from '../../components/interview/HeyGenStreamingAvatar';
 import {
   Volume2,
   Video,
@@ -120,111 +122,6 @@ function MiniScoreRing({ score, size = 64 }) {
   );
 }
 
-// ── Interactive AI Video Cam (Living AI Avatar) ──
-function DrArvindSwamiVideoCam({
-  isSpeaking,
-  agentState = 'IDLE',
-}) {
-  const isListening = agentState === 'LISTENING';
-  const isProcessing = agentState === 'PROCESSING';
-
-  const [tick, setTick] = useState(0);
-
-  // Micro-life continuous animation loop (breathing, subtle organic pulse)
-  useEffect(() => {
-    let frameId;
-    let counter = 0;
-    const loop = () => {
-      counter += 1;
-      setTick(counter);
-      frameId = requestAnimationFrame(loop);
-    };
-    frameId = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frameId);
-  }, []);
-
-  const [nodOffset, setNodOffset] = useState(0);
-
-  // Natural human attentive nodding simulation while listening to candidate
-  useEffect(() => {
-    let nodTimer;
-    if (isListening) {
-      const scheduleNod = () => {
-        nodTimer = setTimeout(() => {
-          let start = Date.now();
-          const nodAnim = () => {
-            const elapsed = Date.now() - start;
-            if (elapsed < 1100) {
-              const progress = elapsed / 1100;
-              const dip = Math.sin(progress * Math.PI) * 2.8;
-              setNodOffset(dip);
-              requestAnimationFrame(nodAnim);
-            } else {
-              setNodOffset(0);
-              scheduleNod();
-            }
-          };
-          requestAnimationFrame(nodAnim);
-        }, 5000 + Math.random() * 4000);
-      };
-      scheduleNod();
-    } else {
-      setNodOffset(0);
-    }
-    return () => clearTimeout(nodTimer);
-  }, [isListening]);
-
-  // Derived micro-motions based on agent state
-  const breatheY = Math.sin(tick * 0.04) * 1.4;
-  const breatheScale = 1 + Math.sin(tick * 0.04) * 0.004;
-
-  // Attentive listening posture: slight zoom, gentle tilt, attentive nod
-  const listeningScale = isListening ? 1.022 : 1.0;
-  const listeningTilt = isListening ? 1.1 : 0;
-  const listeningNodY = isListening ? Math.sin(tick * 0.07) * 1.5 : 0;
-
-  return (
-    <div className="relative w-full h-full min-h-0 bg-slate-950 flex items-center justify-center overflow-hidden rounded-xl sm:rounded-2xl select-none group">
-      {/* Studio Ambient Vignette & Edge Glow */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/35 pointer-events-none z-10" />
-
-      {/* State-Specific Lighting Halos */}
-      {isListening && (
-        <div className="absolute inset-0 bg-radial from-emerald-500/10 via-transparent to-transparent pointer-events-none z-10 animate-pulse" />
-      )}
-      {isSpeaking && (
-        <div className="absolute inset-0 bg-radial from-cyan-500/10 via-transparent to-transparent pointer-events-none z-10" />
-      )}
-      {isProcessing && (
-        <div className="absolute inset-0 bg-radial from-amber-500/10 via-transparent to-transparent pointer-events-none z-10 animate-pulse" />
-      )}
-
-      {/* Video Cam Broadcast Framing with Natural Micro-Life Motion */}
-      <div
-        className="relative h-full aspect-[890/1024] max-w-full max-h-full flex items-center justify-center transition-transform duration-150 ease-out"
-        style={{
-          transform: `translateY(${breatheY + listeningNodY + nodOffset}px) scale(${breatheScale * listeningScale}) rotate(${listeningTilt}deg)`,
-        }}
-      >
-        <img
-          src="/avatars/interviewer_primary.jpg?v=7"
-          alt="AI Avatar"
-          className="w-full h-full object-cover filter brightness-[0.99] contrast-[1.02] select-none rounded-lg"
-        />
-      </div>
-
-      {/* Video Streaming Scanline Overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none z-15 opacity-[0.025]"
-        style={{
-          backgroundImage: 'linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px)',
-          backgroundSize: '100% 3px',
-        }}
-      />
-    </div>
-  );
-}
-
 export const AIMockInterviewPage = () => {
   const navigate = useNavigate();
   const { navigateTo, currentUser, role, adminUser, candidateSubmissions, assessments, isAssessmentCompleted, addToast, startAssessment, isInterviewUnlocked } = useApp();
@@ -324,6 +221,12 @@ export const AIMockInterviewPage = () => {
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [sessionActive, setSessionActive] = useState(false);
   const [sessionId, setSessionId] = useState(null);
+  const [heyGenModePreferred] = useState(() => {
+    try {
+      const saved = localStorage.getItem('rsj_avatar_mode');
+      return saved ? saved !== 'animated_only' : true;
+    } catch { return true; }
+  });
   const [isProcessing, setIsProcessing] = useState(false);
   const [isReportReady, setIsReportReady] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -437,6 +340,7 @@ export const AIMockInterviewPage = () => {
           if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
           if (telemetryIntervalRef.current) clearInterval(telemetryIntervalRef.current);
           stopAudioNoiseMonitoring();
+          heygenAvatarService.stopSession().catch(() => {});
           if (isRecording && recognitionRef.current) {
             recognitionRef.current.stop();
             setIsRecording(false);
@@ -1110,6 +1014,20 @@ export const AIMockInterviewPage = () => {
       elevenLabsSourceRef.current = null;
     }
 
+    // 1. HeyGen Interactive Avatar native speech (primary when a live stream is connected)
+    if (heyGenModePreferred && (heygenAvatarService.status === 'connected' || heygenAvatarService.status === 'speaking')) {
+      setIsAISpeaking(true);
+      try {
+        await heygenAvatarService.speak(cleanText, () => {
+          setIsAISpeaking(false);
+          onFinished?.();
+        });
+        return;
+      } catch (err) {
+        console.warn('HeyGen avatar speech notice, falling back to TTS:', err);
+      }
+    }
+
     const ttsEndpoint = (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.startsWith('http'))
       ? `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/tts/speak`
       : '/api/tts/speak';
@@ -1305,6 +1223,7 @@ export const AIMockInterviewPage = () => {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     if (telemetryIntervalRef.current) clearInterval(telemetryIntervalRef.current);
     stopAudioNoiseMonitoring();
+    heygenAvatarService.stopSession().catch(() => {});
     setSessionActive(false);
     stopCamera();
     setIsProcessing(true);
@@ -2697,11 +2616,16 @@ export const AIMockInterviewPage = () => {
               </div>
             </div>
 
-            {/* AI Avatar Video Cam Feed */}
+            {/* AI Avatar Video Cam Feed (HeyGen live stream with animated fallback) */}
             <div className="p-2 sm:p-2.5 bg-slate-100/50 flex-1 min-h-0 flex items-center justify-center overflow-hidden">
-              <DrArvindSwamiVideoCam
+              <HeyGenStreamingAvatar
                 isSpeaking={isAISpeaking}
                 agentState={agentState}
+                sessionId={sessionId}
+                isLiveStreamPreferred={heyGenModePreferred}
+                onSpeechEnd={() => {
+                  setIsAISpeaking(false);
+                }}
               />
             </div>
           </div>

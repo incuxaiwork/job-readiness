@@ -11,7 +11,10 @@ import {
   analyzeFrame,
   getAdminSessions,
   getInterviewSettings,
-  updateInterviewSettings
+  updateInterviewSettings,
+  createAvatarToken,
+  getAvatarSettings,
+  releaseAvatarSession
 } from '../controllers/interview.controller.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { requireRole } from '../middleware/rbac.js';
@@ -40,6 +43,11 @@ router.get('/session/:id/analysis', getSessionAnalysis);
 
 // Question answer endpoint
 router.post('/question/:id/answer', saveQuestionAnswer);
+
+// HeyGen streaming AI avatar endpoints (token is minted server-side; key never leaves backend)
+router.post('/avatar/token', createAvatarToken);
+router.get('/avatar/config', getAvatarSettings);
+router.post('/avatar/release', releaseAvatarSession);
 
 // Real-time frame processing
 router.post('/analyze-frame', analyzeFrame);

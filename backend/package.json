@@ -17,6 +17,8 @@
     "colleges:migrate:dry": "node scripts/migrate_colleges.js --dry-run",
     "db:rls": "node scripts/enable_rls.js",
     "test:portals": "node scripts/smoke_test_portals.mjs",
+    "test:heygen": "node scripts/test_heygen_integration.js",
+    "test:load600": "node scripts/load_test_heygen_600.js",
     "postinstall": "prisma generate"
   },
   "engines": {
