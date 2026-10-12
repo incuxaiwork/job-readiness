@@ -349,6 +349,7 @@ export const AIMockInterviewPage = () => {
             recognitionRef.current.stop();
             setIsRecording(false);
           }
+          stopSarvamRecording();
           setSessionActive(false);
           stopCamera();
           setProctoringModal(null);
@@ -442,6 +443,11 @@ export const AIMockInterviewPage = () => {
   const canvasRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const recognitionRef = useRef(null);
+  // Sarvam STT fallback (used when the Web Speech API is unavailable/fails)
+  const sttEngineRef = useRef('browser'); // 'browser' | 'sarvam'
+  const sarvamRecorderRef = useRef(null);
+  const sarvamStreamRef = useRef(null);
+  const sarvamSegmentTimerRef = useRef(null);
   const timerIntervalRef = useRef(null);
   const telemetryIntervalRef = useRef(null);
   const qStartTimeRef = useRef(Date.now());
@@ -1197,12 +1203,133 @@ export const AIMockInterviewPage = () => {
   const playQuestionTTS = (text, onFinished) => speakAI(text, onFinished);
 
   // ── Speech-to-Text (STT) Capture Engine (High Speed & Continuous Precision) ──
-  const startSpeechRecognition = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
+  // Provider: browser Web Speech API first (free, live interim results, lowest
+  // latency); if it is unavailable (e.g. Firefox) or fails, fall back to Sarvam
+  // (Saaras) via the backend proxy at /api/stt/transcribe.
+  const sttEndpoint = (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.startsWith('http'))
+    ? `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/stt/transcribe`
+    : '/api/stt/transcribe';
+
+  const sttAuthHeaders = (contentType) => {
+    const token = localStorage.getItem('rsj_token') || localStorage.getItem('token');
+    return { ...(contentType ? { 'Content-Type': contentType } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+  };
+
+  const appendTranscript = (text) => {
+    const chunk = (text || '').trim();
+    if (!chunk) return;
+    accumulatedTranscriptRef.current = `${accumulatedTranscriptRef.current} ${chunk}`.replace(/\s+/g, ' ').trim();
+    setCompanionText(accumulatedTranscriptRef.current);
+    lastCandidateSpokeTimeRef.current = Date.now();
+  };
+
+  const transcribeSegment = async (blob) => {
+    if (!blob || blob.size === 0) return;
+    try {
+      const url = `${sttEndpoint}?language_code=${encodeURIComponent(sttLang || 'en-IN')}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: sttAuthHeaders(blob.type || 'audio/webm'),
+        body: blob,
+      });
+      if (!res.ok) {
+        console.warn('Sarvam STT unavailable, status:', res.status);
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      if (data?.transcript) appendTranscript(data.transcript);
+    } catch (err) {
+      console.warn('Sarvam STT notice:', err.message);
+    }
+  };
+
+  const stopSarvamRecording = () => {
+    if (sarvamSegmentTimerRef.current) {
+      clearTimeout(sarvamSegmentTimerRef.current);
+      sarvamSegmentTimerRef.current = null;
+    }
+    const recorder = sarvamRecorderRef.current;
+    sarvamRecorderRef.current = null;
+    if (recorder && recorder.state !== 'inactive') {
+      try { recorder.stop(); } catch { }
+    }
+    if (sarvamStreamRef.current) {
+      sarvamStreamRef.current.getTracks().forEach((t) => t.stop());
+      sarvamStreamRef.current = null;
+    }
+    if (sttEngineRef.current === 'sarvam') setIsRecording(false);
+  };
+
+  const startSarvamRecording = async () => {
+    if (sttEngineRef.current === 'sarvam' && sarvamRecorderRef.current) return;
+    const MediaRecorder = window.MediaRecorder;
+    if (!MediaRecorder || !navigator.mediaDevices?.getUserMedia) {
       setIsRecording(true);
       return;
     }
+
+    sttEngineRef.current = 'sarvam';
+    try {
+      // Reuse the camera stream's audio track when present to avoid a second prompt.
+      let stream = mediaStreamRef.current;
+      if (!stream || stream.getAudioTracks().length === 0) {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        sarvamStreamRef.current = stream;
+      }
+
+      const SEGMENT_MS = 6000;
+      const preferred = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
+      const mimeType = preferred.find((t) => MediaRecorder.isTypeSupported?.(t)) || '';
+
+      const beginSegment = () => {
+        if (sttEngineRef.current !== 'sarvam') return;
+        let recorder;
+        try {
+          recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+        } catch {
+          recorder = new MediaRecorder(stream);
+        }
+
+        const chunks = [];
+        recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+        recorder.onstop = () => {
+          const blob = new Blob(chunks, { type: recorder.mimeType || mimeType || 'audio/webm' });
+          transcribeSegment(blob);
+          if (sttEngineRef.current === 'sarvam') beginSegment();
+        };
+
+        try {
+          recorder.start();
+        } catch (err) {
+          console.warn('Recorder start notice:', err.message);
+          return;
+        }
+        sarvamRecorderRef.current = recorder;
+        setIsRecording(true);
+
+        // Rotate segments so transcripts stream in near-real-time.
+        sarvamSegmentTimerRef.current = setTimeout(() => {
+          if (recorder.state !== 'inactive') {
+            try { recorder.stop(); } catch { }
+          }
+        }, SEGMENT_MS);
+      };
+
+      beginSegment();
+    } catch (err) {
+      console.warn('Microphone unavailable for speech recognition:', err.message);
+      setIsRecording(true);
+    }
+  };
+
+  const startSpeechRecognition = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      // No Web Speech API (e.g. Firefox) — use the Sarvam fallback engine.
+      startSarvamRecording();
+      return;
+    }
+    sttEngineRef.current = 'browser';
 
     try {
       if (recognitionRef.current) {
@@ -1251,9 +1378,18 @@ export const AIMockInterviewPage = () => {
 
       recognition.onerror = (e) => {
         console.warn('STT notice:', e?.error);
+        // Fatal errors (unsupported browser, blocked service, capture failure):
+        // switch to the Sarvam fallback engine so the candidate is still heard.
+        const fatal = ['not-allowed', 'service-not-allowed', 'audio-capture', 'network', 'language-not-supported'];
+        if (fatal.includes(e?.error) && sttEngineRef.current === 'browser') {
+          try { recognition.abort(); } catch { }
+          startSarvamRecording();
+        }
       };
 
       recognition.onend = () => {
+        // If we've switched to the Sarvam engine, do not restart the browser engine.
+        if (sttEngineRef.current === 'sarvam') return;
         // Auto-reconnect with zero lag if still in LISTENING state
         if (agentStateRef.current === 'LISTENING') {
           try {
@@ -1283,6 +1419,8 @@ export const AIMockInterviewPage = () => {
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch { }
     }
+    stopSarvamRecording();
+    sttEngineRef.current = 'browser';
     setIsRecording(false);
   };
 
@@ -1314,6 +1452,7 @@ export const AIMockInterviewPage = () => {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     if (telemetryIntervalRef.current) clearInterval(telemetryIntervalRef.current);
     stopAudioNoiseMonitoring();
+    stopSpeechRecognition();
     heygenAvatarService.stopSession().catch(() => {});
     setSessionActive(false);
     stopCamera();
@@ -2716,11 +2855,9 @@ export const AIMockInterviewPage = () => {
                       ? 'ring-amber-400/70'
                       : 'ring-white/10'
                   }`}>
-                  <img
-                    src="/avatars/interviewer_primary.jpg?v=7"
-                    alt="AI Interviewer"
-                    className="w-full h-full object-cover select-none"
-                  />
+                  <span className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-200 font-bold text-2xl sm:text-3xl select-none tracking-wide">
+                    AI
+                  </span>
                 </div>
                 {isAISpeaking && (
                   <span className="absolute inset-0 rounded-full ring-4 ring-cyan-400/40 animate-ping pointer-events-none" />

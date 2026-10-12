@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { Readable } from 'stream';
 import { authenticateToken } from '../middleware/auth.js';
+import { isSarvamConfigured, synthesizeSpeech } from '../services/sarvamService.js';
 
 const router = Router();
 
@@ -11,23 +12,37 @@ const MAX_TEXT_LEN = 1200;
 /**
  * POST /api/tts/speak
  *
- * Server-side proxy for ElevenLabs text-to-speech. The API key lives ONLY in the
- * server environment (ELEVENLABS_API_KEY) and is never shipped to the browser.
- * Returns an audio/mpeg stream. When no key is configured the route responds 503
- * so the frontend can fall back to the browser Web Speech API.
+ * Server-side text-to-speech proxy. Provider keys live ONLY in the server
+ * environment and are never shipped to the browser. Sarvam (Bulbul) is the
+ * primary engine; ElevenLabs is used when Sarvam is not configured or fails.
+ * Responds 503 when no provider is available so the frontend can fall back to
+ * the browser Web Speech API.
  */
 router.post('/speak', authenticateToken, async (req, res) => {
-  const apiKey = process.env.ELEVENLABS_API_KEY;
-  if (!apiKey) {
-    return res.status(503).json({ success: false, error: 'Text-to-speech is not configured.' });
-  }
-
   const { text, voiceId } = req.body || {};
   if (typeof text !== 'string' || text.trim() === '') {
     return res.status(400).json({ success: false, error: 'text is required.' });
   }
   if (text.length > MAX_TEXT_LEN) {
     return res.status(400).json({ success: false, error: 'text is too long.' });
+  }
+
+  // 1. Sarvam Bulbul (primary)
+  if (isSarvamConfigured()) {
+    try {
+      const { audio, contentType } = await synthesizeSpeech(text);
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'no-store');
+      return res.end(audio);
+    } catch (err) {
+      console.warn('[TTS] Sarvam synthesis failed, trying fallback:', err.message);
+    }
+  }
+
+  // 2. ElevenLabs (fallback)
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey) {
+    return res.status(503).json({ success: false, error: 'Text-to-speech is not configured.' });
   }
 
   // Strict voice-id allowlist to prevent URL/path injection into the upstream URL.
