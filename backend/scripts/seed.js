@@ -5,24 +5,19 @@ import { initSchema } from '../src/db/schema.js';
 import bcrypt from 'bcryptjs';
 
 const runSeed = async () => {
-  console.log('Starting comprehensive 19-table database seed...');
+  console.log('🌱 Starting comprehensive 19-table database seed...');
   await initSchema();
 
   // 1. Seed Admin User
-  const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@readysetjob.com';
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
-  if (!adminPassword) {
-    throw new Error('SEED_ADMIN_PASSWORD is required to seed the admin user (no default password is provided).');
-  }
-  const adminHash = await bcrypt.hash(adminPassword, 10);
+  const adminHash = await bcrypt.hash('Admin@2026', 10);
 
   await pool.query(`
     INSERT INTO users (id, email, password_hash, role, name, status)
-    VALUES
-      ('admin-1', $2, $1, 'admin', 'HR Administrator', 'active')
+    VALUES 
+      ('admin-1', 'admin@readysetjob.com', $1, 'admin', 'HR Administrator', 'active')
     ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash;
-  `, [adminHash, adminEmail]);
-  console.log('1. Admin User seeded (Candidate seeding skipped).');
+  `, [adminHash]);
+  console.log('✅ 1. Admin User seeded (Candidate seeding skipped).');
 
   // 3. Seed Topics
   await pool.query(`
@@ -35,7 +30,7 @@ const runSeed = async () => {
       ('top-5', 'Logical Reasoning', 'Reasoning', 'Puzzles, Series, Syllogisms, Critical Thinking', 'active')
     ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
   `);
-  console.log('3. Topics seeded.');
+  console.log('✅ 3. Topics seeded.');
 
   // 4. Seed Skills
   await pool.query(`
@@ -49,16 +44,16 @@ const runSeed = async () => {
       ('sk-6', 'Code Quality & Debugging', 'Technical', 'Clean code practices and edge-case handling', 'active')
     ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
   `);
-  console.log('4. Skills seeded.');
+  console.log('✅ 4. Skills seeded.');
 
   // 5. Seed Questions (Skipped - clean state for user uploaded questions)
-  console.log('5. Questions skipped (clean state for uploaded questions).');
+  console.log('✅ 5. Questions skipped (clean state for uploaded questions).');
 
   // 7. Seed Question Skills Mapping (Skipped)
-  console.log('7. Question Skills skipped.');
+  console.log('✅ 7. Question Skills skipped.');
 
   // 8. Seed Assessments (Cleared - no dummy assessments)
-  console.log('8. Assessments skipped (clean state).');
+  console.log('✅ 8. Assessments skipped (clean state).');
 
   // 11. Seed Companies
   await pool.query(`
@@ -70,7 +65,7 @@ const runSeed = async () => {
       ('comp-4', 'TCS Digital', 'IT Consulting', 'High-performance engineering consulting division.', 'https://tcs.com', 'Active')
     ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
   `);
-  console.log('11. Companies seeded.');
+  console.log('✅ 11. Companies seeded.');
 
   // 12. Seed Company Roles
   await pool.query(`
@@ -82,7 +77,7 @@ const runSeed = async () => {
       ('role-4', 'comp-4', 'Digital Systems Engineer', 'Full-stack application engineering and data pipelines.', 'Fresher', 'Active')
     ON CONFLICT (id) DO UPDATE SET role_name = EXCLUDED.role_name;
   `);
-  console.log('12. Company Roles seeded.');
+  console.log('✅ 12. Company Roles seeded.');
 
   // 13. Seed Role Skill Requirements
   await pool.query(`
@@ -96,7 +91,7 @@ const runSeed = async () => {
       ('rsr-6', 'role-3', 'sk-3', 75, 1.1, 'Required')
     ON CONFLICT (role_id, skill_id) DO NOTHING;
   `);
-  console.log('13. Role Skill Requirements mapped.');
+  console.log('✅ 13. Role Skill Requirements mapped.');
 
   // 14. Seed Sample Test Attempt (only if candidate and assessment exist)
   const candCheck = await pool.query("SELECT id FROM candidate_profiles WHERE id = 'cand-001'");
@@ -109,7 +104,7 @@ const runSeed = async () => {
         ('att-001', 'cand-001', 'asm-001', 1, 'Completed', NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days' + INTERVAL '28 minutes', 1680)
       ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status;
     `);
-    console.log('14. Test Attempt seeded.');
+    console.log('✅ 14. Test Attempt seeded.');
 
 
     // 15. Seed Candidate Answers
@@ -123,7 +118,7 @@ const runSeed = async () => {
         ('ans-4', 'att-001', 'q-104', 'B', true, 5, 82, NOW() - INTERVAL '2 days' + INTERVAL '25 minutes')
       ON CONFLICT (id) DO NOTHING;
     `);
-    console.log('15. Candidate Answers seeded.');
+    console.log('✅ 15. Candidate Answers seeded.');
 
     // 16. Seed Performance Analysis
     await pool.query(`
@@ -140,7 +135,7 @@ const runSeed = async () => {
       )
       ON CONFLICT (attempt_id) DO UPDATE SET overall_score = EXCLUDED.overall_score;
     `);
-    console.log('16. Performance Analysis seeded.');
+    console.log('✅ 16. Performance Analysis seeded.');
 
     // 17. Seed Skill Performance
     await pool.query(`
@@ -152,7 +147,7 @@ const runSeed = async () => {
         ('sp-3', 'att-001', 'cand-001', 'sk-3', 75.0, 'Average', 1, 1)
       ON CONFLICT (id) DO NOTHING;
     `);
-    console.log('17. Skill Performance seeded.');
+    console.log('✅ 17. Skill Performance seeded.');
 
     // 18. Seed Company Readiness
     await pool.query(`
@@ -168,7 +163,7 @@ const runSeed = async () => {
       )
       ON CONFLICT (id) DO NOTHING;
     `);
-    console.log('18. Company Readiness seeded.');
+    console.log('✅ 18. Company Readiness seeded.');
 
     // 19. Seed Final Generated Report
     await pool.query(`
@@ -185,12 +180,12 @@ const runSeed = async () => {
       )
       ON CONFLICT (id) DO NOTHING;
     `);
-    console.log('19. Reports seeded.');
+    console.log('✅ 19. Reports seeded.');
   } else {
-    console.log('14-19. Sample attempts and analysis skipped (clean state).');
+    console.log('✅ 14-19. Sample attempts and analysis skipped (clean state).');
   }
 
-  console.log('\nALL 19 DATABASE TABLES POPULATED & LINKED SUCCESSFULLY!');
+  console.log('\n🎉 ALL 19 DATABASE TABLES POPULATED & LINKED SUCCESSFULLY!');
 };
 
 runSeed().then(() => pool.end()).catch(e => { console.error('Seed error:', e.message); pool.end(); });

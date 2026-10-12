@@ -87,7 +87,7 @@ export const AssessmentPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
 
-  // Multi-section attempt state: 'rules' -> pre-start instructions, 'exam' -> live test
+  // Multi-section attempt state: 'rules' → pre-start instructions, 'exam' → live test
   const [phase, setPhase] = useState('rules');
   const [rulesSections, setRulesSections] = useState(null);
   const [rulesAck, setRulesAck] = useState(false);
@@ -388,7 +388,7 @@ export const AssessmentPage = () => {
     setSaveStatus(failures > 0 ? 'error' : 'saved');
   };
 
-  // Rules screen -> Start: open (or resume) the server-side attempt
+  // Rules screen → Start: open (or resume) the server-side attempt
   const handleStartExam = async () => {
     if (!rulesAck || starting) return;
     setStarting(true);
@@ -795,9 +795,9 @@ export const AssessmentPage = () => {
         if (fullscreenExitCountRef.current === 0) {
           fullscreenExitCountRef.current = 1;
           setShowFullscreenWarning(true);
-          if (addToast) addToast('Warning: Fullscreen mode exited! Exiting once more will auto-submit your exam.', 'warning');
+          if (addToast) addToast('⚠️ Warning: Fullscreen mode exited! Exiting once more will auto-submit your exam.', 'warning');
         } else {
-          if (addToast) addToast('Exam Auto-Submitted due to repeated fullscreen exit violation!', 'error');
+          if (addToast) addToast('🚨 Exam Auto-Submitted due to repeated fullscreen exit violation!', 'error');
           handleAutoSubmit('fullscreen_violation');
         }
       }
@@ -805,7 +805,7 @@ export const AssessmentPage = () => {
 
     const handleVisibilityChange = () => {
       if ((document.hidden || document.visibilityState === 'hidden') && !isSubmittedRef.current && totalQuestions > 0 && !loadingQuestions) {
-        if (addToast) addToast('Exam Auto-Submitted due to tab switching violation!', 'error');
+        if (addToast) addToast('🚨 Exam Auto-Submitted due to tab switching violation!', 'error');
         handleAutoSubmit('tab_switch_violation');
       }
     };
@@ -816,9 +816,9 @@ export const AssessmentPage = () => {
           if (fullscreenExitCountRef.current === 0) {
             fullscreenExitCountRef.current = 1;
             setShowFullscreenWarning(true);
-            if (addToast) addToast('Warning: Escape pressed / Fullscreen exit detected! Exiting once more will auto-submit your exam.', 'warning');
+            if (addToast) addToast('⚠️ Warning: Escape pressed / Fullscreen exit detected! Exiting once more will auto-submit your exam.', 'warning');
           } else {
-            if (addToast) addToast('Exam Auto-Submitted due to Escape key violation!', 'error');
+            if (addToast) addToast('🚨 Exam Auto-Submitted due to Escape key violation!', 'error');
             handleAutoSubmit('fullscreen_violation');
           }
         }
@@ -965,7 +965,7 @@ export const AssessmentPage = () => {
               You have already completed and submitted your attempt for <strong className="text-white">{activeAssessment?.title || 'this assessment'}</strong>.
             </p>
             <p className="text-[11px] text-amber-300/90 mt-3 bg-amber-950/40 p-2.5 rounded-xl border border-amber-800/40 text-left">
-              <strong>Candidate Retake Policy:</strong> Self-retakes are disabled. Only an administrator can unlock this assessment. If you need a re-examination, please contact your portal administrator.
+              🔒 <strong>Candidate Retake Policy:</strong> Self-retakes are disabled. Only an administrator can unlock this assessment. If you need a re-examination, please contact your portal administrator.
             </p>
           </div>
           <div className="flex flex-col gap-2.5 pt-2">
@@ -1701,7 +1701,7 @@ export const AssessmentPage = () => {
       <Modal
         isOpen={showEnterFullscreenModal}
         onClose={() => { }}
-        title="Full-Screen Exam Environment Required"
+        title="🔒 Full-Screen Exam Environment Required"
         subtitle="Anti-cheating & proctoring controls active"
       >
         <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
@@ -1735,7 +1735,7 @@ export const AssessmentPage = () => {
       <Modal
         isOpen={showFullscreenWarning}
         onClose={() => { }}
-        title="WARNING: Fullscreen Mode Exited!"
+        title="⚠️ WARNING: Fullscreen Mode Exited!"
         subtitle="First proctoring violation warning"
       >
         <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
@@ -1747,7 +1747,7 @@ export const AssessmentPage = () => {
                 You exited full-screen mode during an active assessment.
               </p>
               <div className="mt-3 p-3 bg-white/80 border border-rose-200 rounded-xl font-bold text-rose-800">
-                CRITICAL: Exiting full screen one more time will immediately auto-submit your test and grade your current answers!
+                🚨 CRITICAL: Exiting full screen one more time will immediately auto-submit your test and grade your current answers!
               </div>
             </div>
           </div>
@@ -1803,7 +1803,7 @@ export const AssessmentPage = () => {
       <Modal
         isOpen={warningModalData.isOpen && !warningModalData.isFinal}
         onClose={() => { }}
-        title={`Proctoring Warning: Strike ${warningModalData.violationNumber} of 3`}
+        title={`⚠️ Proctoring Warning: Strike ${warningModalData.violationNumber} of 3`}
         subtitle="Face-presence integrity alert"
       >
         <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
@@ -1823,7 +1823,7 @@ export const AssessmentPage = () => {
                 {warningModalData.message || 'Please face the camera directly and stay focused on the screen.'}
               </p>
               <div className="mt-2 p-2.5 bg-white/90 rounded-xl border border-amber-200 text-[11px] font-semibold text-amber-900">
-                The exam countdown timer is currently paused. Please adjust your posture and face the camera before resuming.
+                ⏱️ The exam countdown timer is currently paused. Please adjust your posture and face the camera before resuming.
               </div>
             </div>
           </div>
@@ -1836,7 +1836,7 @@ export const AssessmentPage = () => {
           </div>
 
           <div className="text-[11px] text-rose-700 font-bold bg-rose-50 p-3 rounded-xl border border-rose-200">
-            Critical: Reaching 3 strikes will immediately auto-submit your assessment.
+            🚨 Critical: Reaching 3 strikes will immediately auto-submit your assessment.
           </div>
 
           <div className="flex justify-end pt-2">
@@ -1858,7 +1858,7 @@ export const AssessmentPage = () => {
       <Modal
         isOpen={warningModalData.isOpen && warningModalData.isFinal}
         onClose={() => { }}
-        title="Exam Auto-Submitted: Maximum Violations Reached"
+        title="🚨 Exam Auto-Submitted: Maximum Violations Reached"
         subtitle="Assessment terminated due to repeated proctoring strikes"
       >
         <div className="space-y-4 text-xs text-slate-600 leading-relaxed">

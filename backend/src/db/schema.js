@@ -14,23 +14,6 @@ const schemaSQL = `
       updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
 
-    -- 1b. colleges: Tenant institutions onboarded by the platform (multi-tenancy)
-    CREATE TABLE IF NOT EXISTS colleges (
-      id VARCHAR(64) PRIMARY KEY,
-      name VARCHAR(255) NOT NULL,
-      code VARCHAR(32) UNIQUE,
-      domain VARCHAR(128),
-      city VARCHAR(128),
-      state VARCHAR(128),
-      contact_name VARCHAR(255),
-      contact_email VARCHAR(255),
-      contact_phone VARCHAR(32),
-      status VARCHAR(32) DEFAULT 'active',
-      created_by VARCHAR(64) REFERENCES users(id) ON DELETE SET NULL,
-      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-    );
-
     -- 2. candidate_profiles: Stores candidate profile information
     CREATE TABLE IF NOT EXISTS candidate_profiles (
       id VARCHAR(64) PRIMARY KEY,
@@ -291,14 +274,14 @@ export const initSchema = async () => {
 
     // 2. Synchronize Production Core Schema (including candidate_profiles)
     await client.query(schemaSQL);
-    console.log('Production Database Tables synchronized successfully.');
+    console.log('✅ Production Database Tables synchronized successfully.');
 
     // 3. Backfill candidate_profiles from users table if missing
     await client.query(`
       INSERT INTO candidate_profiles (
         id, user_id, name, email, created_at
       )
-      SELECT
+      SELECT 
         u.id,
         u.id,
         u.name,
@@ -308,15 +291,12 @@ export const initSchema = async () => {
       WHERE u.role = 'candidate'
       ON CONFLICT (id) DO NOTHING;
     `);
-    console.log('candidate_profiles table verified.');
+    console.log('✅ candidate_profiles table verified.');
 
     // 4. Safe column migrations for active tables
     await client.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(32) DEFAULT 'active';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS college_id VARCHAR(64) REFERENCES colleges(id) ON DELETE SET NULL;
-      ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS college_id VARCHAR(64) REFERENCES colleges(id) ON DELETE SET NULL;
-      ALTER TABLE assessment_submissions ADD COLUMN IF NOT EXISTS college_id VARCHAR(64) REFERENCES colleges(id) ON DELETE SET NULL;
 
       -- Section-based assessment: per-section strict timer
       ALTER TABLE assessment_sections ADD COLUMN IF NOT EXISTS duration_minutes INT DEFAULT 30;
@@ -412,12 +392,12 @@ export const initSchema = async () => {
       CREATE INDEX IF NOT EXISTS idx_proctoring_candidate ON proctoring_events(candidate_id);
       CREATE INDEX IF NOT EXISTS idx_proctoring_assessment ON proctoring_events(assessment_id);
     `);
-    console.log('Safe column alterations applied.');
+    console.log('✅ Safe column alterations applied.');
 
     // 4b. Sync latest assessment scores to candidates table (job readiness, aptitude, reasoning, technical, verbal)
     await client.query(`
       UPDATE candidates c
-      SET
+      SET 
         job_readiness_score = COALESCE(sub.latest_score, c.job_readiness_score, 0),
         aptitude_score = COALESCE(
           NULLIF((sub.category_scores->>'aptitude'), '')::int,
@@ -463,9 +443,6 @@ export const initSchema = async () => {
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
       CREATE INDEX IF NOT EXISTS idx_candidate_profiles_user_id ON candidate_profiles(user_id);
       CREATE INDEX IF NOT EXISTS idx_candidate_profiles_email ON candidate_profiles(email);
-      CREATE INDEX IF NOT EXISTS idx_users_college ON users(college_id);
-      CREATE INDEX IF NOT EXISTS idx_candidate_profiles_college ON candidate_profiles(college_id);
-      CREATE INDEX IF NOT EXISTS idx_submissions_college ON assessment_submissions(college_id);
       DROP INDEX IF EXISTS idx_candidates_email;
       CREATE INDEX IF NOT EXISTS idx_questions_category_diff ON questions(category, difficulty);
       CREATE INDEX IF NOT EXISTS idx_submissions_candidate_id ON assessment_submissions(candidate_id);
@@ -482,25 +459,19 @@ export const initSchema = async () => {
         AND a.candidate_id = b.candidate_id
         AND a.assessment_id = b.assessment_id;
 
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_submissions_cand_asm_unique
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_submissions_cand_asm_unique 
       ON assessment_submissions(candidate_id, assessment_id);
     `);
-    console.log('Performance indexes and duplicate submission prevention constraint applied.');
+    console.log('✅ Performance indexes and duplicate submission prevention constraint applied.');
 
     // 6. Ensure permanent single admin account exists
-    const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD;
-    const seedAdminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@readysetjob.com';
-    if (seedAdminPassword) {
-      const adminHash = await bcrypt.hash(seedAdminPassword, 10);
-      await client.query(`
-        INSERT INTO users (id, email, password_hash, role, name, status)
-        VALUES ('admin-1', $2, $1, 'admin', 'Site Administrator', 'active')
-        ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = 'admin', name = 'Site Administrator', status = 'active';
-      `, [adminHash, seedAdminEmail]);
-      console.log('Permanent single admin credential verified.');
-    } else {
-      console.log('SEED_ADMIN_PASSWORD not set — skipping admin password seeding (existing admin unchanged).');
-    }
+    const adminHash = await bcrypt.hash('Admin@2026', 10);
+    await client.query(`
+      INSERT INTO users (id, email, password_hash, role, name, status)
+      VALUES ('admin-1', 'admin@readysetjob.com', $1, 'admin', 'HR Administrator', 'active')
+      ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = 'admin', status = 'active';
+    `, [adminHash]);
+    console.log('✅ Permanent single admin credential verified (admin@readysetjob.com).');
 
     // 7. Seed standard company eligibility criteria
     const criteria = [
@@ -547,16 +518,16 @@ export const initSchema = async () => {
           updated_at = CURRENT_TIMESTAMP;
       `, c);
     }
-    console.log('Company eligibility criteria synchronized successfully.');
+    console.log('✅ Company eligibility criteria synchronized successfully.');
   } catch (err) {
-    console.error('Schema initialization error:', err.message);
+    console.error('❌ Schema initialization error:', err.message);
     throw err;
   } finally {
     if (client) {
       try {
         await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]);
       } catch (unlockErr) {
-        console.error('Advisory unlock warning:', unlockErr.message);
+        console.error('⚠️ Advisory unlock warning:', unlockErr.message);
       }
       client.release();
     }

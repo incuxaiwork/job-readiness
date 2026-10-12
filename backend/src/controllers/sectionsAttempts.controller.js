@@ -2,7 +2,6 @@ import { pool, getDbStatus } from '../db/pool.js';
 import crypto from 'crypto';
 import { clearAssessmentsCache } from './assessments.controller.js';
 import { fallbackAssessments, fallbackQuestions } from '../mockFallback.js';
-import { serverError } from '../utils/httpError.js';
 
 const newId = (prefix) => `${prefix}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
 
@@ -38,7 +37,7 @@ const QUESTION_SELECT = `
 `;
 
 const fetchSectionQuestions = async (assessmentId, sectionId, includeAnswer) => {
-  // sectionId present -> scope by section; null/undefined -> whole assessment (implicit section)
+  // sectionId present → scope by section; null/undefined → whole assessment (implicit section)
   const params = [sectionId || assessmentId];
   const where = sectionId ? 'aq.section_id = $1' : 'aq.assessment_id = $1';
   const res = await pool.query(
@@ -99,7 +98,7 @@ export const getAssessmentSections = async (req, res) => {
 
     res.json({ success: true, data });
   } catch (err) {
-    serverError(res, err, 'sectionsAttempts.controller');
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -204,7 +203,7 @@ export const replaceAssessmentSections = async (req, res) => {
     res.json({ success: true, data });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
-    serverError(res, err, 'sectionsAttempts.controller');
+    res.status(500).json({ error: err.message });
   } finally {
     client.release();
   }
@@ -317,7 +316,7 @@ export const startAssessmentAttempt = async (req, res) => {
       [candidateId, assessmentId]
     );
 
-    // Completed attempt -> single-attempt policy blocks re-entry
+    // Completed attempt → single-attempt policy blocks re-entry
     if (existingRes.rows.length > 0 && existingRes.rows[0].status === 'Completed') {
       await client.query('ROLLBACK');
       return res.status(403).json({
@@ -386,7 +385,7 @@ export const startAssessmentAttempt = async (req, res) => {
     res.status(resumed ? 200 : 201).json({ success: true, data: payload });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
-    serverError(res, err, 'sectionsAttempts.controller');
+    res.status(500).json({ error: err.message });
   } finally {
     client.release();
   }
@@ -438,7 +437,7 @@ export const saveAnswer = async (req, res) => {
 
     res.json({ success: true, saved: true });
   } catch (err) {
-    serverError(res, err, 'sectionsAttempts.controller');
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -532,7 +531,7 @@ export const completeSection = async (req, res) => {
       },
     });
   } catch (err) {
-    serverError(res, err, 'sectionsAttempts.controller');
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -737,7 +736,7 @@ export const submitAssessmentAttempt = async (req, res) => {
     });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
-    serverError(res, err, 'sectionsAttempts.controller');
+    res.status(500).json({ error: err.message });
   } finally {
     client.release();
   }
@@ -793,6 +792,6 @@ export const getAttemptStatus = async (req, res) => {
       },
     });
   } catch (err) {
-    serverError(res, err, 'sectionsAttempts.controller');
+    res.status(500).json({ error: err.message });
   }
 };

@@ -182,14 +182,13 @@ export default function InterviewAnalysisSection({ sessionId: initialSessionId }
     const ans = q.answers?.[0];
     const transcriptText = (ans?.transcript || '').trim();
     const isUnanswered =
-      !transcriptText ||
-      transcriptText.length <= 10 ||
+      Boolean(q.isSkipped || ans?.isSkipped) ||
+      (!transcriptText && Number(ans?.overallScore || 0) === 0) ||
       transcriptText.toLowerCase().includes('candidate provided verbal answer') ||
       transcriptText.toLowerCase().includes('no verbal or typed answer') ||
       transcriptText.toLowerCase().includes('no response') ||
       transcriptText.toLowerCase().includes('skipped') ||
-      transcriptText.toLowerCase().includes('remained silent') ||
-      Number(ans?.overallScore || 0) === 0;
+      transcriptText.toLowerCase().includes('remained silent');
 
     const hasAnswer = !isUnanswered;
 
@@ -213,14 +212,12 @@ export default function InterviewAnalysisSection({ sessionId: initialSessionId }
     const transcriptText = (q.transcript || '').trim();
     const isUnanswered =
       Boolean(q.isSkipped) ||
-      !transcriptText ||
-      transcriptText.length <= 10 ||
+      (!transcriptText && Number(q.overallScore || 0) === 0) ||
       transcriptText.toLowerCase().includes('candidate provided verbal answer') ||
       transcriptText.toLowerCase().includes('no verbal or typed answer') ||
       transcriptText.toLowerCase().includes('no response') ||
       transcriptText.toLowerCase().includes('skipped') ||
-      transcriptText.toLowerCase().includes('remained silent') ||
-      Number(q.overallScore || 0) === 0;
+      transcriptText.toLowerCase().includes('remained silent');
 
     const hasAnswer = !isUnanswered;
 
@@ -236,20 +233,20 @@ export default function InterviewAnalysisSection({ sessionId: initialSessionId }
     };
   });
 
-  const answeredQuestions = questions.filter(q => q.overallScore > 0);
+  const answeredQuestions = questions.filter(q => !q.isSkipped && (q.overallScore > 0 || (q.transcript || '').length > 0));
   const hasSpoken = answeredQuestions.length > 0;
 
-  // Strict 0% overall when user didn't speak or answer, otherwise use real database overallScore
+  // Real overall score if user answered questions
   const overall = hasSpoken
-    ? Math.round(Number(analysis.overallScore ?? session?.overallScore ?? (questions.reduce((acc, q) => acc + (q.overallScore || 0), 0) / questions.length)))
+    ? Math.round(Number(analysis.overallScore ?? session?.overallScore ?? (answeredQuestions.reduce((acc, q) => acc + (q.overallScore || 0), 0) / answeredQuestions.length)))
     : 0;
 
   const comm = hasSpoken
-    ? Math.round(questions.reduce((acc, q) => acc + (q.communicationScore || 0), 0) / questions.length)
+    ? Math.round(Number(analysis.communicationScore ?? (answeredQuestions.reduce((acc, q) => acc + (q.communicationScore || 0), 0) / answeredQuestions.length)))
     : 0;
 
   const tech = hasSpoken
-    ? Math.round(questions.reduce((acc, q) => acc + (q.technicalScore || 0), 0) / questions.length)
+    ? Math.round(Number(analysis.technicalScore ?? (answeredQuestions.reduce((acc, q) => acc + (q.technicalScore || 0), 0) / answeredQuestions.length)))
     : 0;
 
   const conf = hasSpoken ? Number(analysis.confidenceScore || 80) : 0;
@@ -273,6 +270,10 @@ export default function InterviewAnalysisSection({ sessionId: initialSessionId }
         </div>
 
         <div className="flex items-center gap-3">
+          <div className="px-3.5 py-2 bg-emerald-50 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-emerald-200 select-none shadow-2xs font-mono">
+            <span className="text-slate-500 font-semibold">ATS Match:</span>
+            <span className="text-emerald-700 font-black">{skillGaps.atsScore}%</span>
+          </div>
           <div className="px-3.5 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-2 border border-slate-200 select-none shadow-2xs">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             <span>Evaluation Generated</span>
@@ -352,64 +353,6 @@ export default function InterviewAnalysisSection({ sessionId: initialSessionId }
         </div>
       </div>
 
-      {/* Resume Skills Match Box */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-6 sm:p-8 space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h3 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">Skills for {targetRole}</h3>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">Resume skillset alignment evaluated against role requirements.</p>
-          </div>
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono self-start sm:self-auto">
-            <span className="text-slate-500 font-semibold">ATS Match Benchmark:</span>
-            <span className="text-emerald-600 font-black">{skillGaps.atsScore}%</span>
-          </div>
-        </div>
-
-        {/* Skills Present in Your Resume */}
-        {skillGaps.matchedCore.length > 0 ? (
-          <div className="p-5 rounded-2xl bg-emerald-50/50 border border-emerald-200/80">
-            <div className="flex items-center gap-2 mb-3 text-xs font-bold text-emerald-800 font-sans">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Skills Present in Your Resume ({skillGaps.matchedCore.length})</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {skillGaps.matchedCore.map((skill, i) => (
-                <span
-                  key={i}
-                  className="px-3.5 py-1.5 rounded-xl bg-white border border-emerald-200 text-xs font-semibold text-emerald-800 shadow-2xs font-sans"
-                >
-                  {skill}
-                </span>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 font-medium font-sans">
-            No specific core resume skills detected for this role.
-          </div>
-        )}
-
-        {/* Missed Skills to Learn According to Resume / Skills to Cover */}
-        {skillGaps.skillsToCover && skillGaps.skillsToCover.length > 0 && (
-          <div className="p-5 rounded-2xl bg-amber-50/50 border border-amber-200/80">
-            <div className="flex items-center gap-2 mb-3 text-xs font-bold text-amber-800 font-sans">
-              <Target className="w-4 h-4 text-amber-600" />
-              <span>Missed Skills to Learn (According to Resume): ({skillGaps.skillsToCover.length})</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {skillGaps.skillsToCover.map((skill, i) => (
-                <span
-                  key={i}
-                  className="px-3.5 py-1.5 rounded-xl bg-white border border-amber-200 text-xs font-semibold text-amber-800 shadow-2xs font-sans"
-                >
-                  + {skill}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Question-wise Breakdown Accordion */}
       <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-6 sm:p-8 space-y-6">
         <div>
@@ -420,7 +363,7 @@ export default function InterviewAnalysisSection({ sessionId: initialSessionId }
         <div className="space-y-3">
           {questions.map((q, idx) => {
             const isExpanded = expandedQuestion === idx;
-            const isSkipped = q.isSkipped || (q.transcript || '').trim().length <= 10 || q.overallScore === 0;
+            const isSkipped = Boolean(q.isSkipped || (!q.transcript && Number(q.overallScore || 0) === 0));
 
             return (
               <div

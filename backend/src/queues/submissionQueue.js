@@ -50,8 +50,7 @@ class InMemorySubmissionQueue extends EventEmitter {
       status: job.status,
       progress: job.progress,
       result: job.result,
-      error: job.error,
-      clientKey: job.data?.clientKey ?? null
+      error: job.error
     };
   }
 
@@ -140,10 +139,10 @@ const initBullMQ = () => {
     bullEvents.on('error', () => {});
 
     useBull = true;
-    console.log('[BullMQ] Distributed submission queue initialized.');
+    console.log('⚡ [BullMQ] Distributed submission queue initialized.');
   } catch (err) {
     useBull = false;
-    console.log('[SubmissionQueue] Operating in high-performance In-Memory asynchronous mode.');
+    console.log('ℹ️  [SubmissionQueue] Operating in high-performance In-Memory asynchronous mode.');
   }
 };
 
@@ -193,8 +192,7 @@ export const getSubmissionJob = async (jobId) => {
           status: state, // 'waiting', 'active', 'completed', 'failed'
           progress: job.progress,
           result: job.returnvalue || null,
-          error: job.failedReason || null,
-          clientKey: job.data?.clientKey ?? null
+          error: job.failedReason || null
         };
       }
     } catch (err) {

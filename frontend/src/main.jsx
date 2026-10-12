@@ -29,7 +29,7 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6 text-center">
           <div className="w-16 h-16 rounded-2xl bg-brand-500/20 text-brand-400 border border-brand-500/30 flex items-center justify-center mb-4 text-2xl font-bold">
-
+            🚀
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight">ReadySetJob Portal Reset</h1>
           <p className="text-xs text-slate-400 max-w-md mt-2 mb-4">

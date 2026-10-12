@@ -1,7 +1,5 @@
 import { pool, getDbStatus } from '../db/pool.js';
 import { fallbackCandidates } from '../mockFallback.js';
-import { resolveCollegeScope } from '../middleware/collegeScope.js';
-import { serverError } from '../utils/httpError.js';
 
 let candidatesCache = null;
 let lastCandidatesFetch = 0;
@@ -19,15 +17,8 @@ export const getAllCandidates = async (req, res) => {
       return res.json({ success: true, data: [], total: 0 });
     }
 
-    const { collegeId, enforced } = resolveCollegeScope(req);
-    if (enforced && !collegeId) {
-      return res.status(403).json({ success: false, error: 'No college scope for this account.' });
-    }
-    const scopeClause = enforced ? 'AND COALESCE(cp.college_id, u.college_id) = $1' : '';
-    const params = enforced ? [collegeId] : [];
-
     const result = await pool.query(`
-      SELECT
+      SELECT 
         COALESCE(cp.id, u.id, c.id) as id,
         COALESCE(cp.name, u.name, 'Candidate') as name,
         COALESCE(cp.email, u.email) as email,
@@ -62,41 +53,38 @@ export const getAllCandidates = async (req, res) => {
       LEFT JOIN candidate_profiles cp ON (cp.user_id = u.id OR cp.id = u.id OR (cp.email IS NOT NULL AND LOWER(cp.email) = LOWER(u.email)))
       LEFT JOIN candidates c ON (cp.id = c.id OR u.id = c.id)
       LEFT JOIN (
-        SELECT
+        SELECT 
           candidate_id,
           LOWER(candidate_email) as norm_email,
           COUNT(DISTINCT id) as total_submissions,
           SUM(COALESCE(obtained_marks, score)) as total_obtained,
           SUM(COALESCE(total_marks, 40)) as total_possible,
           ROUND(AVG(score)) as avg_score,
-          MAX(CASE WHEN LOWER(assessment_title) LIKE '%tech%' THEN score
+          MAX(CASE WHEN LOWER(assessment_title) LIKE '%tech%' THEN score 
                    WHEN (category_scores->>'technical') IS NOT NULL AND (category_scores->>'technical')::int > 0 THEN (category_scores->>'technical')::int ELSE NULL END) as tech_score,
-          MAX(CASE WHEN LOWER(assessment_title) LIKE '%apt%' THEN score
+          MAX(CASE WHEN LOWER(assessment_title) LIKE '%apt%' THEN score 
                    WHEN (category_scores->>'aptitude') IS NOT NULL AND (category_scores->>'aptitude')::int > 0 THEN (category_scores->>'aptitude')::int ELSE NULL END) as apt_score,
-          MAX(CASE WHEN LOWER(assessment_title) LIKE '%reason%' THEN score
+          MAX(CASE WHEN LOWER(assessment_title) LIKE '%reason%' THEN score 
                    WHEN (category_scores->>'reasoning') IS NOT NULL AND (category_scores->>'reasoning')::int > 0 THEN (category_scores->>'reasoning')::int ELSE NULL END) as reason_score,
-          MAX(CASE WHEN LOWER(assessment_title) LIKE '%code%' THEN score
+          MAX(CASE WHEN LOWER(assessment_title) LIKE '%code%' THEN score 
                    WHEN (category_scores->>'coding') IS NOT NULL AND (category_scores->>'coding')::int > 0 THEN (category_scores->>'coding')::int ELSE NULL END) as code_score,
-          MAX(CASE WHEN LOWER(assessment_title) LIKE '%verb%' THEN score
+          MAX(CASE WHEN LOWER(assessment_title) LIKE '%verb%' THEN score 
                    WHEN (category_scores->>'verbal') IS NOT NULL AND (category_scores->>'verbal')::int > 0 THEN (category_scores->>'verbal')::int ELSE NULL END) as verb_score
         FROM assessment_submissions
         GROUP BY candidate_id, LOWER(candidate_email)
       ) s ON cp.id = s.candidate_id OR cp.user_id = s.candidate_id OR u.id = s.candidate_id OR (cp.email IS NOT NULL AND LOWER(cp.email) = s.norm_email) OR (u.email IS NOT NULL AND LOWER(u.email) = s.norm_email)
       WHERE (u.role = 'candidate' OR u.role IS NULL) AND COALESCE(cp.id, u.id, c.id) IS NOT NULL
-        ${scopeClause}
       ORDER BY created_at DESC
-    `, params);
+    `);
     const responsePayload = { success: true, data: result.rows, total: result.rowCount };
 
-    if (!enforced) {
-      candidatesCache = responsePayload;
-      lastCandidatesFetch = Date.now();
-    }
+    candidatesCache = responsePayload;
+    lastCandidatesFetch = Date.now();
 
     res.json(responsePayload);
   } catch (err) {
     console.error('getAllCandidates error:', err.message);
-    serverError(res, err, 'candidates.controller');
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -104,9 +92,8 @@ export const getAllCandidates = async (req, res) => {
 export const getCandidateById = async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT
+      SELECT 
         COALESCE(cp.id, c.id) as id,
-        COALESCE(cp.college_id, u.college_id) as college_id,
         COALESCE(cp.name, u.name, 'Candidate') as name,
         COALESCE(cp.email, u.email) as email,
         cp.mobile,
@@ -140,22 +127,22 @@ export const getCandidateById = async (req, res) => {
       LEFT JOIN candidates c ON cp.id = c.id
       LEFT JOIN users u ON cp.user_id = u.id
       LEFT JOIN (
-        SELECT
+        SELECT 
           candidate_id,
           LOWER(candidate_email) as norm_email,
           COUNT(DISTINCT id) as total_submissions,
           SUM(COALESCE(obtained_marks, score)) as total_obtained,
           SUM(COALESCE(total_marks, 40)) as total_possible,
           ROUND(AVG(score)) as avg_score,
-          MAX(CASE WHEN LOWER(assessment_title) LIKE '%tech%' THEN score
+          MAX(CASE WHEN LOWER(category) LIKE '%tech%' OR LOWER(assessment_title) LIKE '%tech%' THEN score 
                    WHEN (category_scores->>'technical') IS NOT NULL AND (category_scores->>'technical')::int > 0 THEN (category_scores->>'technical')::int ELSE NULL END) as tech_score,
-          MAX(CASE WHEN LOWER(assessment_title) LIKE '%apt%' THEN score
+          MAX(CASE WHEN LOWER(category) LIKE '%apt%' OR LOWER(assessment_title) LIKE '%apt%' THEN score 
                    WHEN (category_scores->>'aptitude') IS NOT NULL AND (category_scores->>'aptitude')::int > 0 THEN (category_scores->>'aptitude')::int ELSE NULL END) as apt_score,
-          MAX(CASE WHEN LOWER(assessment_title) LIKE '%reason%' THEN score
+          MAX(CASE WHEN LOWER(category) LIKE '%reason%' OR LOWER(assessment_title) LIKE '%reason%' THEN score 
                    WHEN (category_scores->>'reasoning') IS NOT NULL AND (category_scores->>'reasoning')::int > 0 THEN (category_scores->>'reasoning')::int ELSE NULL END) as reason_score,
-          MAX(CASE WHEN LOWER(assessment_title) LIKE '%code%' THEN score
+          MAX(CASE WHEN LOWER(category) LIKE '%code%' OR LOWER(assessment_title) LIKE '%code%' THEN score 
                    WHEN (category_scores->>'coding') IS NOT NULL AND (category_scores->>'coding')::int > 0 THEN (category_scores->>'coding')::int ELSE NULL END) as code_score,
-          MAX(CASE WHEN LOWER(assessment_title) LIKE '%verb%' THEN score
+          MAX(CASE WHEN LOWER(category) LIKE '%verb%' OR LOWER(assessment_title) LIKE '%verb%' THEN score 
                    WHEN (category_scores->>'verbal') IS NOT NULL AND (category_scores->>'verbal')::int > 0 THEN (category_scores->>'verbal')::int ELSE NULL END) as verb_score
         FROM assessment_submissions
         GROUP BY candidate_id, LOWER(candidate_email)
@@ -164,12 +151,9 @@ export const getCandidateById = async (req, res) => {
       LIMIT 1
     `, [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Candidate not found.' });
-    if (req.user?.role === 'college_admin' && result.rows[0].college_id !== req.user.college_id) {
-      return res.status(403).json({ error: 'Access denied: candidate is not in your college.' });
-    }
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
-    serverError(res, err, 'candidates.controller');
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -179,10 +163,10 @@ export const updateCandidate = async (req, res) => {
   try {
     clearCandidatesCache();
     const result = await pool.query(
-      `UPDATE candidate_profiles SET
+      `UPDATE candidate_profiles SET 
          name=$1, mobile=$2, college=$3, degree=$4, branch=$5,
          graduation_year=NULLIF(regexp_replace($6::text, '\\D', '', 'g'), '')::INT,
-         experience_level=$7, updated_at=CURRENT_TIMESTAMP
+         experience_level=$7, updated_at=CURRENT_TIMESTAMP 
        WHERE id=$8 OR user_id=$8 RETURNING *`,
       [name, mobile, college, degree, branch, graduationYear, experienceLevel, req.params.id]
     );
@@ -192,7 +176,7 @@ export const updateCandidate = async (req, res) => {
     );
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
-    serverError(res, err, 'candidates.controller');
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -239,7 +223,7 @@ export const deleteCandidate = async (req, res) => {
     let deletedSubmissionsCount = 0;
     if (targetEmails.length > 0) {
       const subDelRes = await client.query(
-        `DELETE FROM assessment_submissions
+        `DELETE FROM assessment_submissions 
          WHERE candidate_id = ANY($1::varchar[]) OR LOWER(candidate_email) = ANY($2::varchar[])`,
         [targetIds, targetEmails]
       );
@@ -267,13 +251,13 @@ export const deleteCandidate = async (req, res) => {
     // 5. Delete from candidate_profiles
     if (targetEmails.length > 0) {
       await client.query(
-        `DELETE FROM candidate_profiles
+        `DELETE FROM candidate_profiles 
          WHERE id = ANY($1::varchar[]) OR user_id = ANY($1::varchar[]) OR LOWER(email) = ANY($2::varchar[])`,
         [targetIds, targetEmails]
       );
     } else {
       await client.query(
-        `DELETE FROM candidate_profiles
+        `DELETE FROM candidate_profiles 
          WHERE id = ANY($1::varchar[]) OR user_id = ANY($1::varchar[])`,
         [targetIds]
       );
@@ -282,7 +266,7 @@ export const deleteCandidate = async (req, res) => {
     // 6. Delete from users table (safety check: ONLY where role = 'candidate', never admin!)
     if (targetEmails.length > 0) {
       await client.query(
-        `DELETE FROM users
+        `DELETE FROM users 
          WHERE (id = ANY($1::varchar[]) OR LOWER(email) = ANY($2::varchar[])) AND role = 'candidate'`,
         [targetIds, targetEmails]
       );
@@ -296,7 +280,7 @@ export const deleteCandidate = async (req, res) => {
     await client.query('COMMIT');
     clearCandidatesCache();
 
-    console.log(`Candidate ${candidateId} permanently deleted across candidate_profiles, candidates, users, and submissions.`);
+    console.log(`✅ Candidate ${candidateId} permanently deleted across candidate_profiles, candidates, users, and submissions.`);
     return res.json({
       success: true,
       message: 'Candidate and all associated records deleted successfully from database.',
@@ -305,8 +289,8 @@ export const deleteCandidate = async (req, res) => {
     });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
-    console.error(`Error deleting candidate ${candidateId}:`, err.message);
-    return serverError(res, err, 'candidates.controller');
+    console.error(`❌ Error deleting candidate ${candidateId}:`, err.message);
+    return res.status(500).json({ success: false, error: err.message });
   } finally {
     client.release();
   }
@@ -316,19 +300,19 @@ export const deleteCandidate = async (req, res) => {
 export const getCandidateSubmissions = async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT * FROM assessment_submissions
-       WHERE candidate_id=$1
+      `SELECT * FROM assessment_submissions 
+       WHERE candidate_id=$1 
           OR LOWER(candidate_email) IN (
             SELECT LOWER(email) FROM candidate_profiles WHERE id=$1 OR user_id=$1
             UNION
             SELECT LOWER(email) FROM users WHERE id=$1
-          )
+          ) 
        ORDER BY created_at DESC`,
       [req.params.id]
     );
     res.json({ success: true, data: result.rows });
   } catch (err) {
-    serverError(res, err, 'candidates.controller');
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -338,7 +322,7 @@ export const getCompanyEligibilityCriteria = async (req, res) => {
     const result = await pool.query('SELECT * FROM company_eligibility_criteria ORDER BY company ASC, role ASC');
     res.json({ success: true, data: result.rows });
   } catch (err) {
-    serverError(res, err, 'candidates.controller');
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -437,7 +421,7 @@ export const updateAcademicMarks = async (req, res) => {
     });
   } catch (err) {
     console.error('updateAcademicMarks error:', err.message);
-    serverError(res, err, 'candidates.controller');
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -486,7 +470,7 @@ export const resetCandidateAttempt = async (req, res) => {
     let deletedCount = 0;
     if (assessmentId && assessmentId !== 'all') {
       const delAsm = await client.query(
-        `DELETE FROM assessment_submissions
+        `DELETE FROM assessment_submissions 
          WHERE (candidate_id = ANY($1::varchar[]) OR LOWER(candidate_email) = ANY($2::varchar[]))
            AND assessment_id = $3
          RETURNING id`,
@@ -495,14 +479,14 @@ export const resetCandidateAttempt = async (req, res) => {
       deletedCount += delAsm.rowCount || 0;
 
       await client.query(
-        `DELETE FROM submissions
+        `DELETE FROM submissions 
          WHERE (candidate_id = ANY($1::varchar[]) OR candidate_id IN (SELECT id FROM users WHERE LOWER(email) = ANY($2::varchar[])))
            AND assessment_id = $3`,
         [targetIds, targetEmails, assessmentId]
       );
     } else {
       const delAsm = await client.query(
-        `DELETE FROM assessment_submissions
+        `DELETE FROM assessment_submissions 
          WHERE candidate_id = ANY($1::varchar[]) OR LOWER(candidate_email) = ANY($2::varchar[])
          RETURNING id`,
         [targetIds, targetEmails]
@@ -510,7 +494,7 @@ export const resetCandidateAttempt = async (req, res) => {
       deletedCount += delAsm.rowCount || 0;
 
       await client.query(
-        `DELETE FROM submissions
+        `DELETE FROM submissions 
          WHERE candidate_id = ANY($1::varchar[]) OR candidate_id IN (SELECT id FROM users WHERE LOWER(email) = ANY($2::varchar[]))`,
         [targetIds, targetEmails]
       );
@@ -518,7 +502,7 @@ export const resetCandidateAttempt = async (req, res) => {
 
     // 3. Re-calculate candidate scores from remaining submissions
     const remaining = await client.query(
-      `SELECT score, category_scores, created_at FROM assessment_submissions
+      `SELECT score, category_scores, created_at FROM assessment_submissions 
        WHERE candidate_id = ANY($1::varchar[]) OR LOWER(candidate_email) = ANY($2::varchar[])
        ORDER BY created_at DESC LIMIT 1`,
       [targetIds, targetEmails]
@@ -526,7 +510,7 @@ export const resetCandidateAttempt = async (req, res) => {
 
     if (remaining.rows.length === 0) {
       await client.query(
-        `UPDATE candidates SET
+        `UPDATE candidates SET 
            readiness_status = 'In Progress',
            job_readiness_score = 0,
            aptitude_score = 0,
@@ -542,7 +526,7 @@ export const resetCandidateAttempt = async (req, res) => {
       const r = remaining.rows[0];
       const scores = typeof r.category_scores === 'string' ? JSON.parse(r.category_scores) : (r.category_scores || {});
       await client.query(
-        `UPDATE candidates SET
+        `UPDATE candidates SET 
            readiness_status = 'Completed',
            job_readiness_score = $1,
            aptitude_score = COALESCE($2, aptitude_score),
@@ -567,7 +551,7 @@ export const resetCandidateAttempt = async (req, res) => {
     await client.query('COMMIT');
     clearCandidatesCache();
 
-    console.log(`Candidate ${candidateId} assessment attempt reset by administrator.`);
+    console.log(`✅ Candidate ${candidateId} assessment attempt reset by administrator.`);
     return res.json({
       success: true,
       message: 'Assessment attempt reset successfully. The candidate can now retake the assessment.',
@@ -577,8 +561,8 @@ export const resetCandidateAttempt = async (req, res) => {
     });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
-    console.error(`Error resetting candidate attempt:`, err.message);
-    return serverError(res, err, 'candidates.controller');
+    console.error(`❌ Error resetting candidate attempt:`, err.message);
+    return res.status(500).json({ success: false, error: err.message });
   } finally {
     client.release();
   }

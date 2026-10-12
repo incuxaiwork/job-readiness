@@ -3,13 +3,13 @@ import { pool } from '../src/db/pool.js';
 async function listAllTables() {
   try {
     const tablesRes = await pool.query(`
-      SELECT table_name
-      FROM information_schema.tables
-      WHERE table_schema = 'public'
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
       ORDER BY table_name;
     `);
 
-    console.log(`Total Tables Found: ${tablesRes.rowCount}\n`);
+    console.log(`📋 Total Tables Found: ${tablesRes.rowCount}\n`);
 
     const tableDetails = [];
 
@@ -33,7 +33,7 @@ async function listAllTables() {
     console.log(JSON.stringify(tableDetails, null, 2));
     process.exit(0);
   } catch (err) {
-    console.error('Error querying tables:', err);
+    console.error('❌ Error querying tables:', err);
     process.exit(1);
   }
 }

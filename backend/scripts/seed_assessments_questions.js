@@ -308,7 +308,7 @@ async function seedAssessmentsAndQuestions() {
       ]
     );
   }
-  console.log(`Seeded ${questions.length} questions into questions table.`);
+  console.log(`✅ Seeded ${questions.length} questions into questions table.`);
 
   // 3. Create Assessments with modern 2026 IDs
   const assessments = [
@@ -428,12 +428,12 @@ async function seedAssessmentsAndQuestions() {
         );
       }
     }
-    console.log(`Seeded Assessment: ${asm.title} (${asm.id}) with ${asm.questionIds.length} questions.`);
+    console.log(`✅ Seeded Assessment: ${asm.title} (${asm.id}) with ${asm.questionIds.length} questions.`);
   }
 
   clearAssessmentsCache();
   clearQuestionsCache();
-  console.log('Seeding completed successfully!');
+  console.log('🎉 Seeding completed successfully!');
   process.exit(0);
 }
 

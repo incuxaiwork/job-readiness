@@ -34,15 +34,11 @@ import {
   Volume2,
   ShieldCheck,
   Zap,
-  Smile,
-  Mic,
-  Settings
+  Smile
 } from 'lucide-react';
-import { InterviewSettingsPanel } from '../../components/admin/InterviewSettingsPanel';
 
 export const AdminCandidatesPage = () => {
-  const { candidatesList, deleteCandidate, resetCandidateAttempt, addToast, navigateTo, assessments, fetchCandidates, adminUser, role } = useApp();
-  const isSuperAdmin = role === 'admin' && (adminUser?.role === 'admin' || !adminUser?.role);
+  const { candidatesList, deleteCandidate, resetCandidateAttempt, addToast, navigateTo, assessments, fetchCandidates } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCollege, setSelectedCollege] = useState('All');
@@ -63,18 +59,13 @@ export const AdminCandidatesPage = () => {
   const [allInterviewSessions, setAllInterviewSessions] = useState([]);
   const [candidateInterviewSession, setCandidateInterviewSession] = useState(null);
   const [loadingInterview, setLoadingInterview] = useState(false);
-  const [showInterviewSettings, setShowInterviewSettings] = useState(false);
 
-  // Fetch all recorded interview sessions & refresh candidate roster for admin visibility.
-  // Super-admin only: interview sessions are a platform-wide module, not part of the college portal.
+  // Fetch all recorded interview sessions & refresh candidate roster for admin visibility
   const fetchAllInterviewSessions = () => {
-    if (!isSuperAdmin) return;
-    const token = localStorage.getItem('rsj_token') || localStorage.getItem('token');
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    fetch('/api/interview/admin/sessions', { headers })
-      .then(res => (res.ok ? res.json() : null))
+    fetch('/api/interview/admin/sessions')
+      .then(res => res.json())
       .then(data => {
-        if (data?.success && Array.isArray(data.sessions)) {
+        if (data.success && Array.isArray(data.sessions)) {
           setAllInterviewSessions(data.sessions);
         }
       })
@@ -86,7 +77,7 @@ export const AdminCandidatesPage = () => {
     if (fetchCandidates) {
       fetchCandidates();
     }
-  }, [fetchCandidates, isSuperAdmin]);
+  }, [fetchCandidates]);
 
   // Helper to match a candidate to their AI Mock Interview session
   const getCandidateInterview = (cand) => {
@@ -94,7 +85,7 @@ export const AdminCandidatesPage = () => {
     const candEmail = (cand.email || '').toLowerCase();
     const candId = cand.id;
 
-    let matched = allInterviewSessions.find(s =>
+    let matched = allInterviewSessions.find(s => 
       (s.userId && s.userId === candId) ||
       (s.candidateEmail && s.candidateEmail.toLowerCase() === candEmail)
     );
@@ -242,7 +233,7 @@ export const AdminCandidatesPage = () => {
     link.setAttribute('download', `Candidate_Roster_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
-    link.remove();
+    document.body.removeChild(link);
     addToast(`Exported ${filteredCandidates.length} candidate record(s) to CSV.`, 'success');
   };
 
@@ -250,7 +241,7 @@ export const AdminCandidatesPage = () => {
 
   return (
     <div className="space-y-8 pb-16">
-
+      
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -267,30 +258,19 @@ export const AdminCandidatesPage = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 self-start sm:self-auto">
-          {isSuperAdmin && (
-            <button
-              onClick={() => setShowInterviewSettings(true)}
-              className="px-4 py-2.5 bg-slate-900 hover:bg-black text-cyan-300 rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-2 border border-cyan-500/30"
-            >
-              <Settings className="w-4 h-4" />
-              <span>Interview Settings</span>
-            </button>
-          )}
-          <button
-            onClick={handleDownloadCSV}
-            className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md shadow-brand-600/20 transition-all flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            <span>Export Candidate Directory (CSV)</span>
-          </button>
-        </div>
+        <button
+          onClick={handleDownloadCSV}
+          className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md shadow-brand-600/20 transition-all flex items-center gap-2 self-start sm:self-auto"
+        >
+          <Download className="w-4 h-4" />
+          <span>Export Candidate Directory (CSV)</span>
+        </button>
       </div>
 
       {/* SEARCH & FILTERS BAR */}
       <div className="bg-white rounded-2xl border border-slate-200/90 shadow-card p-4 sm:p-5 space-y-4">
         <div className="flex flex-col md:flex-row items-center gap-3">
-
+          
           <div className="relative flex-1 w-full">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
@@ -424,8 +404,6 @@ export const AdminCandidatesPage = () => {
                       >
                         <Eye className="w-3.5 h-3.5" />
                       </button>
-                      {isSuperAdmin && (
-                      <>
                       <button
                         type="button"
                         onClick={(e) => {
@@ -452,8 +430,6 @@ export const AdminCandidatesPage = () => {
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
-                      </>
-                      )}
                     </div>
                   </td>
                 </tr>
@@ -472,7 +448,7 @@ export const AdminCandidatesPage = () => {
           subtitle={`Candidate ID: ${viewCandidate.id} • Complete Enrolled Details & Assessment Performance`}
         >
           <div className="space-y-5 text-xs">
-
+            
             {/* 1. Personal & Contact Details */}
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
               <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
@@ -529,7 +505,7 @@ export const AdminCandidatesPage = () => {
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                     : 'bg-rose-50 text-rose-700 border-rose-200'
                 }`}>
-                  {(viewCandidate.backlogs ?? 0) === 0 ? '0 Backlogs (Cleared)' : `${viewCandidate.backlogs} Active Backlog(s)`}
+                  {(viewCandidate.backlogs ?? 0) === 0 ? '✓ 0 Backlogs (Cleared)' : `${viewCandidate.backlogs} Active Backlog(s)`}
                 </span>
               </div>
 
@@ -909,7 +885,6 @@ export const AdminCandidatesPage = () => {
                           <span>Submitted: {new Date(sub.created_at || Date.now()).toLocaleDateString()}</span>
                         </div>
                       </div>
-                      {isSuperAdmin && (
                       <button
                         type="button"
                         onClick={async () => {
@@ -928,7 +903,6 @@ export const AdminCandidatesPage = () => {
                         <Unlock className="w-3 h-3" />
                         <span>Unlock Exam</span>
                       </button>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -941,7 +915,6 @@ export const AdminCandidatesPage = () => {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
-              {isSuperAdmin && (
               <button
                 type="button"
                 onClick={async () => {
@@ -957,7 +930,6 @@ export const AdminCandidatesPage = () => {
                 <Unlock className="w-3.5 h-3.5" />
                 <span>Unlock All Exams</span>
               </button>
-              )}
 
               <div className="flex items-center gap-2">
                 <button
@@ -1051,7 +1023,7 @@ export const AdminCandidatesPage = () => {
                 onChange={(e) => setSelectedUnlockAssessment(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
               >
-                <option value="all">All Assessments (Full Retake Reset)</option>
+                <option value="all">🌟 All Assessments (Full Retake Reset)</option>
                 {(assessments || []).map(asm => (
                   <option key={asm.id} value={asm.id}>
                     {asm.title} ({asm.category || 'Assessment'})
@@ -1100,18 +1072,6 @@ export const AdminCandidatesPage = () => {
               </button>
             </div>
           </div>
-        </Modal>
-      )}
-
-      {/* Interview Settings Modal (super-admin only) */}
-      {isSuperAdmin && (
-        <Modal
-          isOpen={showInterviewSettings}
-          onClose={() => setShowInterviewSettings(false)}
-          title="AI Mock Interview Settings"
-          size="2xl"
-        >
-          <InterviewSettingsPanel />
         </Modal>
       )}
 

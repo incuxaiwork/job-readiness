@@ -1,7 +1,6 @@
 import { pool, getDbStatus } from '../db/pool.js';
 import crypto from 'crypto';
 import { fallbackAssessments, fallbackQuestions, getMySubmissionsFallback } from '../mockFallback.js';
-import { serverError } from '../utils/httpError.js';
 
 let assessmentsCache = null;
 let lastAssessmentsFetch = 0;
@@ -62,7 +61,7 @@ export const getAllAssessments = async (req, res) => {
 
     res.json(responsePayload);
   } catch (err) {
-    serverError(res, err, 'assessments.controller');
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -94,7 +93,7 @@ export const getAssessmentById = async (req, res) => {
     };
     res.json({ success: true, data: formatted });
   } catch (err) {
-    serverError(res, err, 'assessments.controller');
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -165,7 +164,7 @@ export const syncAssessmentQuestions = async (client, assessmentId, selectedQues
                 fallbackQ.marks || (isCoding ? 10 : 4),
                 fallbackQ.test_cases ? JSON.stringify(fallbackQ.test_cases) : null,
                 fallbackQ.starter_templates ? JSON.stringify(fallbackQ.starter_templates) : null,
-                fallbackQ.constraints != null ? JSON.stringify(fallbackQ.constraints) : null
+                fallbackQ.constraints || null
               ]
             );
             if (insQ.rows.length > 0) {
@@ -206,7 +205,7 @@ export const syncAssessmentQuestions = async (client, assessmentId, selectedQues
           q.marks || 1,
           q.test_cases ? JSON.stringify(q.test_cases) : null,
           q.starter_templates ? JSON.stringify(q.starter_templates) : null,
-          q.constraints != null ? JSON.stringify(q.constraints) : null
+          q.constraints || null
         ]
       );
     }
@@ -266,7 +265,7 @@ export const createAssessment = async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('createAssessment error:', err.message);
-    serverError(res, err, 'assessments.controller');
+    res.status(500).json({ error: err.message });
   } finally {
     client.release();
   }
@@ -326,7 +325,7 @@ export const updateAssessment = async (req, res) => {
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     await client.query('ROLLBACK');
-    serverError(res, err, 'assessments.controller');
+    res.status(500).json({ error: err.message });
   } finally {
     client.release();
   }
@@ -349,7 +348,7 @@ export const deleteAssessment = async (req, res) => {
     res.json({ success: true, message: 'Assessment and all associated questions deleted.', data: delRes.rows[0] });
   } catch (err) {
     await client.query('ROLLBACK');
-    serverError(res, err, 'assessments.controller');
+    res.status(500).json({ error: err.message });
   } finally {
     client.release();
   }
@@ -453,7 +452,7 @@ export const getAssessmentQuestions = async (req, res) => {
         : fallbackQuestions.filter(q => String(q.category).toLowerCase() === cat.toLowerCase());
       return res.json({ success: true, data: matchingQuestions, total: matchingQuestions.length });
     }
-    serverError(res, err, 'assessments.controller');
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -533,7 +532,7 @@ export const addQuestionsToAssessment = async (req, res) => {
     res.status(201).json({ success: true, message: `Linked ${insertedRows.length} questions to assessment.`, data: insertedRows });
   } catch (err) {
     await client.query('ROLLBACK');
-    serverError(res, err, 'assessments.controller');
+    res.status(500).json({ error: err.message });
   } finally {
     client.release();
   }
@@ -550,7 +549,7 @@ export const removeQuestionFromAssessment = async (req, res) => {
     clearAssessmentsCache();
     res.json({ success: true, message: 'Question removed from assessment.' });
   } catch (err) {
-    serverError(res, err, 'assessments.controller');
+    res.status(500).json({ error: err.message });
   }
 };
 

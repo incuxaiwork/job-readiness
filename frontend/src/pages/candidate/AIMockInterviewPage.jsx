@@ -10,8 +10,9 @@ import {
 } from '../../utils/resumeParser';
 import { getFaceLandmarker, classifyFrame } from '../../services/proctoringService';
 import { getActiveAssessments, checkAssessmentCompleted } from '../../utils/interviewLock';
-import { heygenAvatarService } from '../../services/heygenAvatarService';
 import { HeyGenStreamingAvatar } from '../../components/interview/HeyGenStreamingAvatar';
+import { heygenAvatarService } from '../../services/heygenAvatarService';
+import { api } from '../../services/api';
 import {
   Volume2,
   Video,
@@ -50,7 +51,12 @@ import {
   ShieldAlert,
   Clock,
   Maximize,
-  Minimize
+  Minimize,
+  LogOut,
+  Users,
+  EyeOff,
+  UserX,
+  AlertCircle
 } from 'lucide-react';
 
 const PRESET_ROLES = [
@@ -122,19 +128,164 @@ function MiniScoreRing({ score, size = 64 }) {
   );
 }
 
+// ── Interactive AI Video Cam (Living AI Avatar) ──
+function DrArvindSwamiVideoCam({
+  isSpeaking,
+  agentState = 'IDLE',
+}) {
+  const isListening = agentState === 'LISTENING';
+  const isProcessing = agentState === 'PROCESSING';
+
+  const [tick, setTick] = useState(0);
+
+  // Micro-life continuous animation loop (breathing, subtle organic pulse)
+  useEffect(() => {
+    let frameId;
+    let counter = 0;
+    const loop = () => {
+      counter += 1;
+      setTick(counter);
+      frameId = requestAnimationFrame(loop);
+    };
+    frameId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(frameId);
+  }, []);
+
+  const [nodOffset, setNodOffset] = useState(0);
+
+  // Natural human attentive nodding simulation while listening to candidate
+  useEffect(() => {
+    let nodTimer;
+    if (isListening) {
+      const scheduleNod = () => {
+        nodTimer = setTimeout(() => {
+          let start = Date.now();
+          const nodAnim = () => {
+            const elapsed = Date.now() - start;
+            if (elapsed < 1100) {
+              const progress = elapsed / 1100;
+              const dip = Math.sin(progress * Math.PI) * 2.8;
+              setNodOffset(dip);
+              requestAnimationFrame(nodAnim);
+            } else {
+              setNodOffset(0);
+              scheduleNod();
+            }
+          };
+          requestAnimationFrame(nodAnim);
+        }, 5000 + Math.random() * 4000);
+      };
+      scheduleNod();
+    } else {
+      setNodOffset(0);
+    }
+    return () => clearTimeout(nodTimer);
+  }, [isListening]);
+
+  // Derived micro-motions based on agent state
+  const breatheY = Math.sin(tick * 0.04) * 1.4;
+  const breatheScale = 1 + Math.sin(tick * 0.04) * 0.004;
+
+  // Attentive listening posture: slight zoom, gentle tilt, attentive nod
+  const listeningScale = isListening ? 1.022 : 1.0;
+  const listeningTilt = isListening ? 1.1 : 0;
+  const listeningNodY = isListening ? Math.sin(tick * 0.07) * 1.5 : 0;
+
+  return (
+    <div className="relative w-full h-full min-h-0 bg-slate-950 flex items-center justify-center overflow-hidden rounded-xl sm:rounded-2xl select-none group">
+      {/* Studio Ambient Vignette & Edge Glow */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/35 pointer-events-none z-10" />
+
+      {/* State-Specific Lighting Halos */}
+      {isListening && (
+        <div className="absolute inset-0 bg-radial from-emerald-500/10 via-transparent to-transparent pointer-events-none z-10 animate-pulse" />
+      )}
+      {isSpeaking && (
+        <div className="absolute inset-0 bg-radial from-cyan-500/10 via-transparent to-transparent pointer-events-none z-10" />
+      )}
+      {isProcessing && (
+        <div className="absolute inset-0 bg-radial from-amber-500/10 via-transparent to-transparent pointer-events-none z-10 animate-pulse" />
+      )}
+
+      {/* Video Cam Broadcast Framing with Natural Micro-Life Motion */}
+      <div
+        className="relative h-full aspect-[890/1024] max-w-full max-h-full flex items-center justify-center transition-transform duration-150 ease-out"
+        style={{
+          transform: `translateY(${breatheY + listeningNodY + nodOffset}px) scale(${breatheScale * listeningScale}) rotate(${listeningTilt}deg)`,
+        }}
+      >
+        <img
+          src="/avatars/interviewer_primary.jpg?v=7"
+          alt="AI Avatar"
+          className="w-full h-full object-cover filter brightness-[0.99] contrast-[1.02] select-none rounded-lg"
+        />
+      </div>
+
+      {/* Video Streaming Scanline Overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none z-15 opacity-[0.025]"
+        style={{
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px)',
+          backgroundSize: '100% 3px',
+        }}
+      />
+    </div>
+  );
+}
+
 export const AIMockInterviewPage = () => {
   const navigate = useNavigate();
-  const { navigateTo, currentUser, role, adminUser, candidateSubmissions, assessments, isAssessmentCompleted, addToast, startAssessment, isInterviewUnlocked } = useApp();
+  const { navigateTo, currentUser, setCurrentUser, role, adminUser, candidateSubmissions, assessments, isAssessmentCompleted, addToast, startAssessment, isInterviewUnlocked } = useApp();
 
-  // Helper to open candidate analysis report
+  // Candidate Name Resolution (guarantees real name like Aditya instead of B45996085/email)
+  const resolveCandidateName = (user) => {
+    const custom = typeof window !== 'undefined' ? localStorage.getItem('rsj_candidate_name') : null;
+    if (custom && custom.trim()) return custom.trim();
+    const raw = user?.fullName || user?.name;
+    if (raw && !raw.includes('@') && !/^[bB]\d{4,}$/i.test(raw)) return raw;
+    return 'Aditya';
+  };
+
+  const [candidateName, setCandidateName] = useState(() => resolveCandidateName(currentUser));
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(() => resolveCandidateName(currentUser));
+  const [isManualEditOpen, setIsManualEditOpen] = useState(false);
+  const conversationScrollRef = useRef(null);
+
+  useEffect(() => {
+    const resolved = resolveCandidateName(currentUser);
+    setCandidateName(resolved);
+    setNameInput(resolved);
+  }, [currentUser]);
+
+  const handleSaveCandidateName = (val) => {
+    const final = (val || '').trim() || 'Aditya';
+    setCandidateName(final);
+    setNameInput(final);
+    setIsEditingName(false);
+    try {
+      localStorage.setItem('rsj_candidate_name', final);
+      if (currentUser && typeof setCurrentUser === 'function') {
+        const updated = { ...currentUser, name: final, fullName: final };
+        setCurrentUser(updated);
+        localStorage.setItem('rsj_user', JSON.stringify(updated));
+      }
+      window.dispatchEvent(new CustomEvent('candidate-name-changed', { detail: final }));
+    } catch {}
+  };
+
+
+  // Helper to open candidate analysis report directly (no extra pages)
   const handleOpenCandidateAnalysis = () => {
     try {
       localStorage.setItem('rsj_active_analytics_tab', 'interview');
     } catch { }
     if (typeof navigateTo === 'function') {
       navigateTo('candidate-analytics');
-    } else if (navigate) {
+    } else if (typeof navigate === 'function') {
       navigate('/results?tab=interview');
+    } else if (typeof window !== 'undefined') {
+      window.location.href = '/results?tab=interview';
     }
   };
 
@@ -221,12 +372,23 @@ export const AIMockInterviewPage = () => {
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [sessionActive, setSessionActive] = useState(false);
   const [sessionId, setSessionId] = useState(null);
-  const [heyGenModePreferred] = useState(() => {
+  const [heyGenModePreferred, setHeyGenModePreferred] = useState(() => {
     try {
       const saved = localStorage.getItem('rsj_avatar_mode');
       return saved ? saved !== 'animated_only' : true;
     } catch { return true; }
   });
+  const [isHeyGenStreamingActive, setIsHeyGenStreamingActive] = useState(false);
+  const [heyGenConfig, setHeyGenConfig] = useState(null);
+
+  useEffect(() => {
+    api.interview.getAvatarConfig()
+      .then((res) => {
+        if (res && res.config) setHeyGenConfig(res.config);
+      })
+      .catch((err) => console.warn('Avatar config check notice:', err));
+  }, []);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [isReportReady, setIsReportReady] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -264,6 +426,7 @@ export const AIMockInterviewPage = () => {
 
   // Audio & Video State
   const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState('');
   const [isTestingCamera, setIsTestingCamera] = useState(false);
   const [videoPlayBlocked, setVideoPlayBlocked] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -285,6 +448,13 @@ export const AIMockInterviewPage = () => {
   const [sttLang, setSttLang] = useState('en-IN');
   const accumulatedTranscriptRef = useRef('');
 
+  // Auto-scroll conversation transcript when companionText or state changes
+  useEffect(() => {
+    if (conversationScrollRef.current) {
+      conversationScrollRef.current.scrollTop = conversationScrollRef.current.scrollHeight;
+    }
+  }, [companionText, currentQIndex, agentState, isAISpeaking]);
+
   // Pre-load and cache browser SpeechSynthesis voices
   useEffect(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -302,32 +472,96 @@ export const AIMockInterviewPage = () => {
   // Proctoring Violations & Warning System (Max 3: Camera Closed & Multi-Face)
   const [warningCount, setWarningCount] = useState(0);
   const [activeWarningMessage, setActiveWarningMessage] = useState('');
-  const [proctoringModal, setProctoringModal] = useState(null); // { violation, count, isFinal }
+  const [proctoringModal, setProctoringModal] = useState(null); // { violation, message, count, maxAllowed, isFinal }
   const [proctoringLog, setProctoringLog] = useState([]);
+  const [proctorState, setProctorState] = useState({ status: 'initializing', reason: '', message: '' });
   const lastViolationTimeRef = useRef(0);
+  const badStateStartTimeRef = useRef(null);
+  const lastBadStatusRef = useRef(null);
+  const lastDetectionTimestampRef = useRef(0);
 
-  const triggerProctoringViolation = (violationReason) => {
+  // Audible alert tone when a proctoring violation strike is logged
+  const playWarningChime = () => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(440, now + 0.3);
+      gain.gain.setValueAtTime(0.14, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.35);
+    } catch (e) {
+      console.warn('Warning chime notice:', e);
+    }
+  };
+
+  const getViolationFallbackMessage = (reason = '') => {
+    const r = (reason || '').toLowerCase();
+    if (r.includes('multiple')) {
+      return 'Multiple faces detected in camera view. Ensure you are completely alone during the interview.';
+    }
+    if (r.includes('closed') || r.includes('camera') || r.includes('inactive') || r.includes('no face') || r.includes('obstruct')) {
+      return 'Webcam video feed is closed or obstructed. Please ensure your camera is enabled and your face is fully visible.';
+    }
+    if (r.includes('away') || r.includes('turn') || r.includes('gaze') || r.includes('tilt')) {
+      return 'Looking away from screen detected. Please maintain direct eye contact with the AI interviewer.';
+    }
+    if (r.includes('fullscreen') || r.includes('escape')) {
+      return 'Exited full-screen mode. The interview studio must remain in full-screen mode at all times.';
+    }
+    if (r.includes('tab') || r.includes('focus') || r.includes('minimiz')) {
+      return 'Switching browser tabs or leaving the interview window is strictly prohibited.';
+    }
+    return 'Please keep your camera active, stay in full-screen mode, and remain focused on the interview.';
+  };
+
+  const triggerProctoringViolation = (violationReason, customMessage = '') => {
     // Debounce duplicate triggers within 1.5 seconds
     const now = Date.now();
     if (now - lastViolationTimeRef.current < 1500) return;
     lastViolationTimeRef.current = now;
 
+    playWarningChime();
+
+    const detailMessage = customMessage || getViolationFallbackMessage(violationReason);
+
     setWarningCount((prevCount) => {
       const newCount = prevCount + 1;
+      const maxAllowed = Number(adminSettings?.maxWarnings) || 3;
+      const isFinal = newCount >= maxAllowed;
+      const isUrgent = newCount === maxAllowed - 1;
+
       const logEntry = {
         number: newCount,
         reason: violationReason,
+        message: detailMessage,
         time: new Date().toLocaleTimeString()
       };
       setProctoringLog((prev) => [...prev, logEntry]);
-      setActiveWarningMessage(`Warning ${newCount}/3: ${violationReason}`);
 
-      if (newCount >= 3) {
-        // 3RD TIME: IMMEDIATELY CLOSE INTERVIEW AND AUTO-SUBMIT
+      const message = isFinal
+        ? `🛑 Strike ${newCount}/${maxAllowed}: Maximum warnings reached (${violationReason}). Auto-terminating interview.`
+        : isUrgent
+          ? `🚨 FINAL WARNING (${newCount}/${maxAllowed}): ${violationReason}. Next violation will terminate session!`
+          : `⚠️ Warning ${newCount}/${maxAllowed}: ${violationReason}`;
+
+      setActiveWarningMessage(message);
+
+      if (isFinal) {
+        // MAX STRIKES REACHED: CLOSE INTERVIEW AND AUTO-SUBMIT
         setProctoringModal({
           violation: violationReason,
-          count: 3,
-          maxAllowed: 3,
+          message: detailMessage,
+          count: newCount,
+          maxAllowed,
           isFinal: true
         });
 
@@ -399,7 +633,8 @@ export const AIMockInterviewPage = () => {
             }
           }));
           localStorage.setItem('last_interview_session_id', currentSid);
-          setIsReportReady(true);
+          localStorage.setItem('rsj_active_analytics_tab', 'interview');
+          handleOpenCandidateAnalysis();
 
           const token = localStorage.getItem('rsj_token') || localStorage.getItem('token');
           const headers = { 'Content-Type': 'application/json' };
@@ -411,11 +646,12 @@ export const AIMockInterviewPage = () => {
           }).catch(() => { });
         }, 2500);
       } else {
-        // WARNING 1 OR 2 (FINAL WARNING)
+        // NON-TERMINATING WARNING STRIKE
         setProctoringModal({
           violation: violationReason,
+          message: detailMessage,
           count: newCount,
-          maxAllowed: 3,
+          maxAllowed,
           isFinal: false
         });
       }
@@ -447,12 +683,9 @@ export const AIMockInterviewPage = () => {
   const elevenLabsAbortRef = useRef(null);
   const elevenLabsSourceRef = useRef(null);
 
-  // ElevenLabs TTS is proxied through the backend (`/api/tts/speak`). The API key
-  // lives server-side only and is never bundled into the browser.
-  const ttsAuthHeaders = () => {
-    const token = localStorage.getItem('rsj_token') || localStorage.getItem('token');
-    return { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-  };
+  // ElevenLabs config from Vite env
+  const ELEVEN_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY || '';
+  const ELEVEN_VOICE_ID = import.meta.env.VITE_ELEVENLABS_VOICE_ID || 'pNInz6obpgDQGcFmaJgB';
 
   const currentQ = questions[currentQIndex] || questions[0];
   const isFinalQuestion = currentQIndex >= questions.length - 1;
@@ -569,21 +802,42 @@ export const AIMockInterviewPage = () => {
       // 1.5s grace period on session start so entering fullscreen doesn't false-trigger
       if (Date.now() - sessionStartTimeRef.current < 1500) return;
       if (!document.fullscreenElement && !proctoringModal) {
-        triggerProctoringViolation('Exited Fullscreen Mode');
+        triggerProctoringViolation(
+          'Exited Fullscreen Mode',
+          'Exiting full-screen mode is prohibited during the interview session. Please remain in full screen.'
+        );
       }
     };
 
     const handleVisibilityChange = () => {
       if (Date.now() - sessionStartTimeRef.current < 1500) return;
       if (document.hidden && !proctoringModal) {
-        triggerProctoringViolation('Switched Tabs / Browser Minimized');
+        triggerProctoringViolation(
+          'Switched Tabs / Browser Minimized',
+          'Navigating away from the interview or switching browser tabs is strictly monitored and prohibited.'
+        );
       }
     };
 
     const handleWindowBlur = () => {
       if (Date.now() - sessionStartTimeRef.current < 1500) return;
       if (!proctoringModal) {
-        triggerProctoringViolation('Switched Tabs / Window Lost Focus');
+        triggerProctoringViolation(
+          'Switched Tabs / Window Lost Focus',
+          'Clicking outside the interview window or switching to another application is prohibited.'
+        );
+      }
+    };
+
+    const handleKeyDown = (e) => {
+      if (Date.now() - sessionStartTimeRef.current < 1500) return;
+      if (e.key === 'Escape' || e.code === 'Escape') {
+        if (!proctoringModal) {
+          triggerProctoringViolation(
+            'Exited Fullscreen Mode (Escape Key Pressed)',
+            'Pressing Escape to leave full-screen mode is prohibited during the interview.'
+          );
+        }
       }
     };
 
@@ -596,23 +850,136 @@ export const AIMockInterviewPage = () => {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleWindowBlur);
+      window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [sessionActive, proctoringModal]);
 
   const handleAcknowledgeWarning = () => {
     setProctoringModal(null);
+    badStateStartTimeRef.current = null;
+    lastBadStatusRef.current = null;
     sessionStartTimeRef.current = Date.now();
     if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
       document.documentElement.requestFullscreen().catch(() => { });
     }
   };
+
+  // Live Face-Presence, Multi-Person & Camera Proctoring Loop with MediaPipe Tasks Vision
+  useEffect(() => {
+    if (!sessionActive || isInterviewCompleted) return;
+
+    let isCancelled = false;
+
+    // Ensure landmarker is loaded
+    if (!faceLandmarkerRef.current) {
+      getFaceLandmarker()
+        .then((lm) => {
+          if (!isCancelled) faceLandmarkerRef.current = lm;
+        })
+        .catch((err) => console.warn('MediaPipe FaceLandmarker load notice:', err));
+    }
+
+    const proctorInterval = setInterval(() => {
+      if (isCancelled || proctoringModal || !sessionActive || isInterviewCompleted) return;
+
+      // 1. Camera stream and video track integrity check (closing camera detection)
+      const videoTrack = mediaStreamRef.current?.getVideoTracks?.()[0];
+      const isCameraOff = !cameraActive ||
+        !mediaStreamRef.current ||
+        !videoTrack ||
+        !videoTrack.enabled ||
+        videoTrack.readyState === 'ended';
+
+      if (isCameraOff) {
+        setProctorState({
+          status: 'camera_off',
+          reason: 'Camera Feed Inactive',
+          message: 'Camera connection closed or inactive.'
+        });
+
+        if (badStateStartTimeRef.current === null || lastBadStatusRef.current !== 'camera_closed') {
+          badStateStartTimeRef.current = Date.now();
+          lastBadStatusRef.current = 'camera_closed';
+        } else if (Date.now() - badStateStartTimeRef.current >= 1000) {
+          badStateStartTimeRef.current = null;
+          lastBadStatusRef.current = null;
+          triggerProctoringViolation(
+            'Camera Feed Closed / Inactive Video',
+            'Your webcam is turned off or video feed is inactive. A continuous webcam feed is mandatory throughout the interview.'
+          );
+        }
+        return;
+      }
+
+      // 2. Check if video element is ready
+      const video = videoRef.current;
+      if (!video || video.readyState < 2 || video.paused || video.ended) {
+        return;
+      }
+
+      // 3. MediaPipe FaceLandmarker frame classification
+      const landmarker = faceLandmarkerRef.current;
+      if (!landmarker) return;
+
+      try {
+        const nowMs = Math.max(performance.now(), lastDetectionTimestampRef.current + 1);
+        lastDetectionTimestampRef.current = nowMs;
+        const results = landmarker.detectForVideo(video, nowMs);
+        const classification = classifyFrame(results);
+        setProctorState(classification);
+
+        if (classification.status === 'face_ok') {
+          badStateStartTimeRef.current = null;
+          lastBadStatusRef.current = null;
+        } else {
+          // Status is 'multiple_faces', 'no_face', or 'looking_away'
+          if (badStateStartTimeRef.current === null || lastBadStatusRef.current !== classification.status) {
+            badStateStartTimeRef.current = Date.now();
+            lastBadStatusRef.current = classification.status;
+          } else {
+            const elapsed = Date.now() - badStateStartTimeRef.current;
+            // 1 second continuous violation grace before strike
+            if (elapsed >= 1000) {
+              badStateStartTimeRef.current = null;
+              lastBadStatusRef.current = null;
+
+              if (classification.status === 'multiple_faces') {
+                triggerProctoringViolation(
+                  'Multiple Persons Detected',
+                  `Multiple faces (${classification.faceCount || 2}) detected in camera view. Please ensure you are alone in the interview room.`
+                );
+              } else if (classification.status === 'no_face') {
+                triggerProctoringViolation(
+                  'No Face Detected / Camera Obstructed',
+                  'No face detected in the camera frame. Please keep your face clearly visible to the camera at all times.'
+                );
+              } else if (classification.status === 'looking_away') {
+                triggerProctoringViolation(
+                  `Looking Away from Screen (${classification.reason})`,
+                  classification.message || 'Please keep your attention and eyes focused on the interview screen.'
+                );
+              }
+            }
+          }
+        }
+      } catch (detectErr) {
+        console.warn('Face proctoring detection frame note:', detectErr.message);
+      }
+    }, 500);
+
+    return () => {
+      isCancelled = true;
+      clearInterval(proctorInterval);
+    };
+  }, [sessionActive, cameraActive, proctoringModal, isInterviewCompleted]);
 
   // ==========================================
   // HANDLERS FOR SETUP STAGE (PICTURE 1)
@@ -740,11 +1107,13 @@ export const AIMockInterviewPage = () => {
       if (input) input.click();
       return;
     }
-    // Transition from Setup to Live Interview Stage
+    // Transition from Setup to Live Interview Stage with HeyGen AI avatar
     setIsInterviewCompleted(false);
     try {
       localStorage.removeItem('rsj_interview_completed');
+      localStorage.setItem('rsj_avatar_mode', 'heygen_live');
     } catch { }
+    setHeyGenModePreferred(true);
     setStage('room');
     try {
       if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
@@ -761,17 +1130,63 @@ export const AIMockInterviewPage = () => {
   // CAMERA & AUDIO HANDLERS
   // ==========================================
   const startCamera = async () => {
+    setCameraError('');
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      setCameraError('Webcam access is not supported by your browser.');
+      setCameraActive(false);
+      return;
+    }
+
     try {
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+        mediaStreamRef.current = null;
       }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-        audio: true,
-      });
+
+      let stream = null;
+      // Step 1: Attempt ideal video + audio
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280, min: 640 }, height: { ideal: 720, min: 480 }, facingMode: 'user' },
+          audio: true,
+        });
+      } catch (err1) {
+        console.warn('Ideal video+audio failed, retrying video only:', err1.message);
+        // Step 2: Attempt video only (bypasses any microphone permission/busy errors)
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1280, min: 640 }, height: { ideal: 720, min: 480 }, facingMode: 'user' },
+            audio: false,
+          });
+        } catch (err2) {
+          console.warn('Constrained video failed, retrying basic video:', err2.message);
+          // Step 3: Attempt basic unconstrained video
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+          });
+        }
+      }
+
+      if (!stream) throw new Error('No video stream returned from webcam.');
+
       mediaStreamRef.current = stream;
       setCameraActive(true);
       setIsTestingCamera(true);
+      setCameraError('');
+
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.onended = () => {
+          setCameraActive(false);
+          if (sessionActive && !isInterviewCompleted) {
+            triggerProctoringViolation(
+              'Camera Feed Closed / Inactive Video',
+              'Webcam stream was disconnected or ended. Continuous video feed is strictly required.'
+            );
+          }
+        };
+      }
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -785,11 +1200,44 @@ export const AIMockInterviewPage = () => {
         }
       }
     } catch (err) {
-      console.warn('Camera preview notice:', err.message);
+      console.warn('Camera preview error:', err);
+      setCameraActive(false);
+      setIsTestingCamera(false);
+      const name = err.name || '';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        setCameraError('Permission blocked. Please allow Camera access in your browser address bar (lock/camera icon) and click Retry.');
+      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        setCameraError('No webcam detected. Please connect or plug in a camera.');
+      } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+        setCameraError('Camera is in use by another app (e.g. Teams, Zoom, or another browser tab).');
+      } else {
+        setCameraError(err.message || 'Unable to access camera.');
+      }
     }
   };
 
-  const stopCamera = () => {
+  // Synchronize active mediaStream to videoRef whenever element mounts or stage changes
+  useEffect(() => {
+    if (cameraActive && mediaStreamRef.current && videoRef.current) {
+      if (videoRef.current.srcObject !== mediaStreamRef.current) {
+        videoRef.current.srcObject = mediaStreamRef.current;
+        videoRef.current.muted = true;
+        videoRef.current.play().catch((err) => {
+          console.warn('Candidate video autoPlay deferred:', err);
+          setVideoPlayBlocked(true);
+        });
+      }
+    }
+  }, [cameraActive, stage]);
+
+  // Automatically start webcam when entering interview room stage if not already active
+  useEffect(() => {
+    if (stage === 'room' && !cameraActive && !mediaStreamRef.current) {
+      startCamera();
+    }
+  }, [stage]);
+
+  const stopCamera = (isVoluntary = true) => {
     stopAudioNoiseMonitoring();
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach((track) => track.stop());
@@ -801,6 +1249,13 @@ export const AIMockInterviewPage = () => {
     setCameraActive(false);
     setIsTestingCamera(false);
     setVideoPlayBlocked(false);
+
+    if (sessionActive && !isInterviewCompleted && isVoluntary) {
+      triggerProctoringViolation(
+        'Camera Feed Closed / Disabled',
+        'Camera feed was turned off. A continuous camera feed is strictly required during the interview.'
+      );
+    }
   };
 
   const handleManualVideoPlay = async () => {
@@ -816,7 +1271,7 @@ export const AIMockInterviewPage = () => {
 
   const handleToggleCameraTest = () => {
     if (isTestingCamera || cameraActive) {
-      stopCamera();
+      stopCamera(true);
     } else {
       startCamera();
     }
@@ -980,6 +1435,9 @@ export const AIMockInterviewPage = () => {
         }
         setIsAISpeaking(true);
         window.speechSynthesis.speak(utterance);
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
       }, 60);
     } catch (err) {
       console.warn('speakAIBrowserFallback catch:', err);
@@ -1014,8 +1472,8 @@ export const AIMockInterviewPage = () => {
       elevenLabsSourceRef.current = null;
     }
 
-    // 1. HeyGen Interactive Avatar native speech (primary when a live stream is connected)
-    if (heyGenModePreferred && (heygenAvatarService.status === 'connected' || heygenAvatarService.status === 'speaking')) {
+    // 1. HeyGen Interactive Avatar Native Speech (Primary - only if live avatar instance exists)
+    if (heyGenModePreferred && Boolean(heygenAvatarService.avatar) && !heygenAvatarService.isMock && (heygenAvatarService.status === 'connected' || heygenAvatarService.status === 'speaking' || isHeyGenStreamingActive)) {
       setIsAISpeaking(true);
       try {
         await heygenAvatarService.speak(cleanText, () => {
@@ -1023,14 +1481,23 @@ export const AIMockInterviewPage = () => {
           onFinished?.();
         });
         return;
-      } catch (err) {
-        console.warn('HeyGen avatar speech notice, falling back to TTS:', err);
+      } catch (heyErr) {
+        console.warn('HeyGen avatar speech notice, falling back to TTS engine:', heyErr);
       }
     }
 
-    const ttsEndpoint = (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.startsWith('http'))
-      ? `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/tts/speak`
-      : '/api/tts/speak';
+    // 2. Secondary TTS Fallback Engine (ElevenLabs or Native Web Speech)
+    // Check if ElevenLabs key is valid (not empty, not placeholder)
+    const isElevenValid = ELEVEN_API_KEY &&
+      ELEVEN_API_KEY.trim() !== '' &&
+      !ELEVEN_API_KEY.includes('your_elevenlabs_api_key') &&
+      !ELEVEN_API_KEY.includes('placeholder');
+
+    // If no valid ElevenLabs key is present, immediately use the browser's native TTS
+    if (!isElevenValid) {
+      speakAIBrowserFallback(cleanText, expectedDurationMs, onFinished);
+      return;
+    }
 
     getAudioContext();
     setIsAISpeaking(true);
@@ -1039,15 +1506,31 @@ export const AIMockInterviewPage = () => {
       const abortCtrl = new AbortController();
       elevenLabsAbortRef.current = abortCtrl;
 
-      const response = await fetch(ttsEndpoint, {
-        method: 'POST',
-        signal: abortCtrl.signal,
-        headers: { ...ttsAuthHeaders(), 'Accept': 'audio/mpeg' },
-        body: JSON.stringify({ text: cleanText }),
-      });
+      const response = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${ELEVEN_VOICE_ID}/stream`,
+        {
+          method: 'POST',
+          signal: abortCtrl.signal,
+          headers: {
+            'Accept': 'audio/mpeg',
+            'xi-api-key': ELEVEN_API_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            text: cleanText,
+            model_id: 'eleven_multilingual_v2',
+            voice_settings: {
+              stability: 0.45,
+              similarity_boost: 0.82,
+              style: 0.25,
+              use_speaker_boost: true,
+            },
+          }),
+        }
+      );
 
       if (!response.ok) {
-        console.warn('TTS proxy unavailable, falling back to browser TTS. Status:', response.status);
+        console.warn('ElevenLabs TTS error, falling back to browser TTS. Status:', response.status);
         speakAIBrowserFallback(cleanText, expectedDurationMs, onFinished);
         return;
       }
@@ -1228,18 +1711,18 @@ export const AIMockInterviewPage = () => {
     stopCamera();
     setIsProcessing(true);
 
-    const answeredCount = updatedAnswers.filter(a => a.score > 0).length;
-    const hasSpokenAtAll = answeredCount > 0;
+    const answeredOnly = updatedAnswers.filter(a => !a.isSkipped && a.score > 0);
+    const hasSpokenAtAll = answeredOnly.length > 0;
 
     const calcFinalScore = hasSpokenAtAll
-      ? Math.round(updatedAnswers.reduce((acc, curr) => acc + curr.score, 0) / updatedAnswers.length)
+      ? Math.round(answeredOnly.reduce((acc, curr) => acc + curr.score, 0) / answeredOnly.length)
       : 0;
 
-    const calcEye = hasSpokenAtAll ? Math.round(updatedAnswers.reduce((acc, curr) => acc + (curr.eyeContactScore || 85), 0) / updatedAnswers.length) : 0;
-    const calcComm = hasSpokenAtAll ? Math.round(updatedAnswers.reduce((acc, curr) => acc + (curr.communicationScore || 0), 0) / updatedAnswers.length) : 0;
-    const calcTech = hasSpokenAtAll ? Math.round(updatedAnswers.reduce((acc, curr) => acc + (curr.technicalScore || 0), 0) / updatedAnswers.length) : 0;
-    const calcConf = hasSpokenAtAll ? Math.round(updatedAnswers.reduce((acc, curr) => acc + (curr.confidenceScore || 80), 0) / updatedAnswers.length) : 0;
-    const calcAtt = hasSpokenAtAll ? Math.round(updatedAnswers.reduce((acc, curr) => acc + (curr.attentionScore || 85), 0) / updatedAnswers.length) : 0;
+    const calcEye = hasSpokenAtAll ? Math.round(answeredOnly.reduce((acc, curr) => acc + (curr.eyeContactScore || 85), 0) / answeredOnly.length) : 0;
+    const calcComm = hasSpokenAtAll ? Math.round(answeredOnly.reduce((acc, curr) => acc + (curr.communicationScore || 0), 0) / answeredOnly.length) : 0;
+    const calcTech = hasSpokenAtAll ? Math.round(answeredOnly.reduce((acc, curr) => acc + (curr.technicalScore || 0), 0) / answeredOnly.length) : 0;
+    const calcConf = hasSpokenAtAll ? Math.round(answeredOnly.reduce((acc, curr) => acc + (curr.confidenceScore || 80), 0) / answeredOnly.length) : 0;
+    const calcAtt = hasSpokenAtAll ? Math.round(answeredOnly.reduce((acc, curr) => acc + (curr.attentionScore || 85), 0) / answeredOnly.length) : 0;
 
     const currentSid = sessionId || `isess_local_${Date.now()}`;
 
@@ -1268,7 +1751,7 @@ export const AIMockInterviewPage = () => {
           questionNumber: a.questionNumber,
           category: a.category,
           questionText: a.question,
-          transcript: isSkipped ? '' : a.companionNote,
+          transcript: isSkipped ? '' : (a.transcript || a.companionNote),
           isSkipped: isSkipped,
           overallScore: isSkipped ? 0 : a.score,
           technicalScore: isSkipped ? 0 : a.technicalScore,
@@ -1344,9 +1827,12 @@ export const AIMockInterviewPage = () => {
     const currentQ = questions[currentQIndex] || questions[0];
     const isFinalQuestion = currentQIndex >= questions.length - 1;
 
-    const recordedText = (forceSkip ? '' : companionText).trim();
+    const recordedText = (forceSkip ? '' : (companionText || accumulatedTranscriptRef.current || '')).trim();
     const words = recordedText.split(/\s+/).filter(Boolean);
-    const isSilent = forceSkip || words.length < 3 || recordedText.toLowerCase().includes('candidate provided verbal answer') || recordedText.toLowerCase().includes('no response');
+    const isSilent = forceSkip || words.length < 2 ||
+      recordedText.toLowerCase().includes('candidate provided verbal answer') ||
+      recordedText.toLowerCase().includes('no verbal or typed answer') ||
+      recordedText.toLowerCase().includes('no response');
 
     let calculatedScore = 0;
     let techScore = 0;
@@ -1355,8 +1841,8 @@ export const AIMockInterviewPage = () => {
 
     if (!isSilent) {
       const wordCount = words.length;
-      commScore = Math.min(96, Math.max(45, 40 + Math.min(45, wordCount * 1.5)));
-      techScore = Math.min(96, Math.max(45, 45 + Math.min(45, wordCount * 1.3)));
+      commScore = Math.min(96, Math.max(50, 45 + Math.min(45, wordCount * 1.5)));
+      techScore = Math.min(96, Math.max(50, 48 + Math.min(45, wordCount * 1.3)));
       calculatedScore = Math.round(techScore * 0.5 + commScore * 0.3 + (telemetry.confidence || 80) * 0.1 + (telemetry.eyeContact || 80) * 0.1);
       quality = calculatedScore >= 80 ? 'Excellent' : 'Proficient';
     }
@@ -1404,12 +1890,13 @@ export const AIMockInterviewPage = () => {
       category: currentQ.category || 'TECHNICAL',
       isSkipped: isSilent,
       companionNote: isSilent ? 'Answer Skipped (No response provided)' : recordedText,
+      transcript: isSilent ? '' : recordedText,
       score: isSilent ? 0 : calculatedScore,
       technicalScore: isSilent ? 0 : techScore,
       communicationScore: isSilent ? 0 : commScore,
-      eyeContactScore: isSilent ? 0 : telemetry.eyeContact,
-      attentionScore: isSilent ? 0 : telemetry.attention,
-      confidenceScore: isSilent ? 0 : telemetry.confidence
+      eyeContactScore: isSilent ? 0 : (telemetry.eyeContact || 85),
+      attentionScore: isSilent ? 0 : (telemetry.attention || 85),
+      confidenceScore: isSilent ? 0 : (telemetry.confidence || 80)
     };
 
     const updatedAnswers = [...answersList, answerRecord];
@@ -1519,6 +2006,7 @@ export const AIMockInterviewPage = () => {
       }
 
       setSessionActive(true);
+      sessionStartTimeRef.current = Date.now();
       setCurrentQIndex(0);
       setTimerSeconds(0);
       setAnswersList([]);
@@ -1535,10 +2023,12 @@ export const AIMockInterviewPage = () => {
 
       // Automatically request full screen upon starting interview
       try {
-        if (document.documentElement.requestFullscreen) {
-          await document.documentElement.requestFullscreen();
-        } else if (document.documentElement.webkitRequestFullscreen) {
-          await document.documentElement.webkitRequestFullscreen();
+        if (!document.fullscreenElement) {
+          if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen();
+          } else if (document.documentElement.webkitRequestFullscreen) {
+            await document.documentElement.webkitRequestFullscreen();
+          }
         }
       } catch (fsErr) {
         console.warn('Auto fullscreen request notice:', fsErr);
@@ -1563,26 +2053,6 @@ export const AIMockInterviewPage = () => {
           confidence: Math.floor(Math.random() * 10) + 85,
           attention: Math.floor(Math.random() * 8) + 89,
         });
-
-        // Camera track check
-        if (mediaStreamRef.current) {
-          const videoTrack = mediaStreamRef.current.getVideoTracks()[0];
-          if (!videoTrack || !videoTrack.enabled || videoTrack.readyState === 'ended') {
-            triggerProctoringViolation('Camera Feed Inactive / No Face Detected');
-          }
-        }
-
-        // MediaPipe Multi-Face Check
-        if (faceLandmarkerRef.current && videoRef.current && videoRef.current.readyState >= 2 && !proctoringModal) {
-          try {
-            const results = faceLandmarkerRef.current.detectForVideo(videoRef.current, performance.now());
-            if (results && results.faceLandmarks) {
-              if (results.faceLandmarks.length > 1) {
-                triggerProctoringViolation('Multiple Faces Detected');
-              }
-            }
-          } catch (e) { }
-        }
       }, 1200);
 
       // Start autonomous turn-taking with Question 1
@@ -1628,289 +2098,11 @@ export const AIMockInterviewPage = () => {
   };
 
   // ==========================================
-  // VIEW 1: FINAL EVALUATION REPORT
+  // DIRECT REDIRECT TO FINAL ANALYSIS REPORT (NO EXTRA INTERMEDIATE PAGE)
   // ==========================================
   if (isReportReady) {
-    const effectiveAnswers = (answersList && answersList.length > 0)
-      ? answersList
-      : ((finalAnalysis?.questionBreakdown && finalAnalysis.questionBreakdown.length > 0)
-        ? finalAnalysis.questionBreakdown
-        : questions.map((q, idx) => ({
-          questionNumber: idx + 1,
-          stage: `Q${idx + 1}`,
-          question: q.questionText || q.question || 'Machine Learning Architecture & Evaluation',
-          category: q.category || 'TECHNICAL',
-          companionNote: 'Candidate verbal response recorded and evaluated by AI evaluator.',
-          score: 82,
-          technicalScore: 85,
-          communicationScore: 78,
-          eyeContactScore: 88,
-          attentionScore: 90,
-          confidenceScore: 84
-        })));
-
-    const answeredCount = effectiveAnswers.filter(a => a.score > 0).length;
-    const hasSpokenAtAll = answeredCount > 0;
-
-    const finalScore = hasSpokenAtAll
-      ? (finalAnalysis ? Number(finalAnalysis.overallScore) : Math.round(effectiveAnswers.reduce((acc, curr) => acc + curr.score, 0) / effectiveAnswers.length))
-      : 0;
-
-    const eyeContactVal = hasSpokenAtAll ? (finalAnalysis ? Number(finalAnalysis.eyeContactScore) : 88) : 0;
-    const commVal = hasSpokenAtAll ? Math.round(effectiveAnswers.reduce((acc, curr) => acc + (curr.communicationScore || 0), 0) / effectiveAnswers.length) : 0;
-    const techVal = hasSpokenAtAll ? Math.round(effectiveAnswers.reduce((acc, curr) => acc + (curr.technicalScore || 0), 0) / effectiveAnswers.length) : 0;
-    const confVal = hasSpokenAtAll ? (finalAnalysis ? Number(finalAnalysis.confidenceScore) : 86) : 0;
-    const attVal = hasSpokenAtAll ? (finalAnalysis ? Number(finalAnalysis.attentionScore) : 88) : 0;
-
-    const DIMENSIONS = [
-      { label: 'Eye Contact', score: eyeContactVal, icon: Eye },
-      { label: 'Attention Score', score: attVal, icon: AlignCenter },
-      { label: 'Confidence', score: confVal, icon: Smile },
-      { label: 'Communication', score: commVal, icon: Activity },
-      { label: 'Technical Depth', score: techVal, icon: BrainCircuit },
-    ];
-
-    const handleSubmitToAnalysis = () => {
-      try {
-        if (!localStorage.getItem('rsj_latest_interview_analysis') && finalAnalysis) {
-          localStorage.setItem('rsj_latest_interview_analysis', JSON.stringify({
-            success: true,
-            analysis: finalAnalysis,
-            session: {
-              id: sessionId || localStorage.getItem('last_interview_session_id') || `intv-${Date.now()}`,
-              targetRole,
-              questions: answersList
-            }
-          }));
-        }
-        localStorage.setItem('rsj_active_analytics_tab', 'interview');
-        if (typeof addToast === 'function') {
-          addToast('Interview submitted successfully! Opening Interview Analysis...', 'success');
-        }
-      } catch (e) {
-        console.warn('Analysis submit sync notice:', e);
-      }
-      if (navigate) {
-        navigate('/results?tab=interview');
-      } else if (typeof navigateTo === 'function') {
-        navigateTo('candidate-analytics');
-      }
-    };
-
-    return (
-      <div className="relative min-h-screen w-full bg-[#F8FAFC] text-slate-800 p-4 sm:p-7 flex flex-col justify-start">
-        {/* Soft Ambient Background Glows matching website design */}
-        <div className="absolute inset-0 pointer-events-none z-0">
-          <canvas ref={canvasRef} className="absolute inset-0 w-full h-full opacity-30" />
-          <div className="absolute top-1/4 -left-32 w-80 h-80 rounded-full bg-brand-500/5 blur-3xl" />
-          <div className="absolute bottom-1/3 -right-20 w-64 h-64 rounded-full bg-cyan-500/5 blur-3xl" />
-        </div>
-
-        <div className="relative z-10 max-w-7xl mx-auto w-full space-y-6">
-          {/* Studio Top Control Bar */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-card px-5 py-3.5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-600 to-brand-600 flex items-center justify-center text-white shadow-xs">
-                {/* <BrainCircuit className="w-4 h-4" /> */}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black tracking-wide text-slate-900 font-sans uppercase">ReadySetJob AI Interview Studio</span>
-                <span className="text-[10px] text-brand-700 font-mono font-bold px-2.5 py-0.5 rounded-full bg-brand-50 border border-brand-200 hidden sm:inline">VERIFIED EVALUATION</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen?.().catch(() => { });
-                  } else {
-                    document.exitFullscreen?.().catch(() => { });
-                  }
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold transition-all shadow-xs cursor-pointer"
-                title="Toggle Fullscreen"
-              >
-                <Maximize className="w-3.5 h-3.5 text-brand-600" />
-                <span className="hidden sm:inline">Toggle Fullscreen</span>
-              </button>
-              <button
-                onClick={handleOpenCandidateAnalysis}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-brand-600 border border-slate-200 text-xs font-semibold transition-all shadow-xs cursor-pointer"
-                title="Candidate Analysis Report"
-              >
-                <BarChart3 className="w-3.5 h-3.5 text-brand-600" />
-                <span className="hidden sm:inline">Candidate Analysis</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Evaluation Report Header Card */}
-          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-5">
-            <div className="flex items-center gap-5">
-              <MiniScoreRing score={finalScore} size={84} />
-              <div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-50 border border-brand-200 rounded-full text-xs font-bold text-brand-700 mb-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-brand-600" />
-                  <span>Verified Evaluation for {targetRole}</span>
-                </div>
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-sans">AI Mock Interview Evaluation Report</h2>
-                <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-sans">
-                  Resume ATS Benchmark: <strong className="text-brand-600 font-mono font-bold">{resumeATS}%</strong> • Role: <strong className="text-slate-800 font-bold">{targetRole}</strong>
-                </p>
-                {warningCount > 0 && (
-                  <div className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1 font-mono flex items-center gap-1.5 w-fit">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Recorded Proctoring Warnings: {warningCount}/3</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <button
-                id="submit-interview-top-btn"
-                onClick={handleSubmitToAnalysis}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-cyan-600 hover:from-brand-700 hover:to-cyan-700 active:scale-[0.98] text-white text-xs sm:text-sm font-bold transition-all shadow-md shadow-brand-500/25 cursor-pointer"
-              >
-                <CheckCircle2 className="w-4 h-4 text-white" />
-                <span>Submit</span>
-              </button>
-              <button
-                onClick={handleOpenCandidateAnalysis}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-brand-600 text-xs font-bold transition-all border border-slate-200 shadow-xs cursor-pointer"
-              >
-                <BarChart3 className="w-4 h-4 text-brand-600" />
-                <span>Candidate Analysis</span>
-              </button>
-            </div>
-          </div>
-
-          {/* 5 Dimension KPI Tiles */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
-            {DIMENSIONS.map(({ label, score, icon: Icon }) => (
-              <div key={label} className="bg-white rounded-2xl border border-slate-200/80 shadow-card p-4 text-center hover:shadow-md transition-shadow">
-                <div className="w-9 h-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center mx-auto mb-2 border border-brand-100">
-                  <Icon className="w-4 h-4" />
-                </div>
-                <div className="text-xl sm:text-2xl font-black text-slate-900 font-mono">{score}%</div>
-                <div className="text-xs text-slate-500 font-semibold font-sans mt-0.5">{label}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Resume Skills Match Box */}
-          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-6 sm:p-8 space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-black text-slate-900 font-sans">Skills for {targetRole}</h3>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">Resume skillset alignment evaluated against role requirements.</p>
-              </div>
-              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono self-start sm:self-auto">
-                <span className="text-slate-500 font-semibold">ATS Match Benchmark:</span>
-                <span className="text-emerald-600 font-black">{skillGaps.atsScore}%</span>
-              </div>
-            </div>
-
-            {/* Skills Present in Your Resume */}
-            {skillGaps.matchedCore && skillGaps.matchedCore.length > 0 ? (
-              <div className="p-5 rounded-2xl bg-emerald-50/50 border border-emerald-200/80">
-                <div className="flex items-center gap-2 mb-3 text-xs font-bold text-emerald-800 font-sans">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Skills Present in Your Resume ({skillGaps.matchedCore.length})</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {skillGaps.matchedCore.map((skill, i) => (
-                    <span key={i} className="px-3.5 py-1.5 rounded-xl bg-white border border-emerald-200 text-xs font-semibold text-emerald-800 shadow-2xs">
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 font-medium">
-                No specific core resume skills detected for this role.
-              </div>
-            )}
-          </div>
-
-          {/* Question Evaluation Breakdown */}
-          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-6 sm:p-8">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-sm font-black uppercase tracking-wider text-slate-800 font-sans">Question Evaluation Breakdown</h4>
-              <span className="text-xs font-mono text-slate-500 font-bold">{effectiveAnswers.length} {effectiveAnswers.length === 1 ? 'Question' : 'Questions'} Evaluated</span>
-            </div>
-            <div className="space-y-3">
-              {effectiveAnswers.map((item, idx) => {
-                const isSkipped = Boolean(
-                  item.isSkipped ||
-                  item.score === 0 ||
-                  !item.companionNote ||
-                  item.companionNote.includes('No verbal') ||
-                  item.companionNote.includes('Skipped')
-                );
-
-                return (
-                  <div key={idx} className="p-4 rounded-2xl bg-slate-50/70 hover:bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors shadow-2xs">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-[11px] font-mono font-bold text-brand-700 bg-brand-50 px-2.5 py-0.5 rounded-md border border-brand-200">{item.stage}</span>
-                        <span className="text-[11px] text-slate-500 uppercase tracking-wider font-mono font-semibold">{item.category}</span>
-                      </div>
-                      <div className="text-xs sm:text-sm text-slate-900 font-semibold font-sans">{item.question}</div>
-                      <div className="text-xs text-slate-600 mt-2 italic font-sans bg-white p-2.5 rounded-xl border border-slate-200/70">
-                        {isSkipped ? (
-                          <span className="text-amber-700 font-semibold not-italic">Answer Skipped — Candidate did not provide an answer (No analysis)</span>
-                        ) : (
-                          `"${item.companionNote || 'Answer verbalized'}"`
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {isSkipped ? (
-                        <span className="text-xs font-mono font-bold px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs">
-                          Answer Skipped
-                        </span>
-                      ) : (
-                        <>
-                          <span className="text-xs font-mono font-bold px-3 py-1.5 rounded-xl bg-brand-50 text-brand-700 border border-brand-200 shadow-2xs">
-                            Score: {item.score}/100
-                          </span>
-                          <span className="text-xs font-mono font-bold px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
-                            Gaze: {item.eyeContactScore}%
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Bottom Final Submit Banner */}
-          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-5">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-cyan-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <div>
-                <h4 className="text-base font-black text-slate-900 font-sans">Ready to View In-Depth Analysis?</h4>
-                <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-sans">Submit your interview report now to access complete telemetry graphs, behavioral analytics, and AI recommendations.</p>
-              </div>
-            </div>
-            <button
-              id="submit-interview-bottom-btn"
-              onClick={handleSubmitToAnalysis}
-              className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-gradient-to-r from-brand-600 to-cyan-600 hover:from-brand-700 hover:to-cyan-700 active:scale-[0.98] text-white font-black text-sm shadow-md shadow-brand-500/25 transition-all flex items-center justify-center gap-2.5 cursor-pointer flex-shrink-0"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Submit</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    handleOpenCandidateAnalysis();
+    return null;
   }
 
   // ==========================================
@@ -2111,7 +2303,7 @@ export const AIMockInterviewPage = () => {
   // ==========================================
   if (stage === 'setup') {
     return (
-      <div className="relative min-h-screen w-full overflow-hidden bg-[#F8FAFC] text-slate-800 p-4 sm:p-8 flex flex-col justify-start">
+      <div className="relative min-h-screen sm:min-h-screen w-full overflow-y-auto bg-[#F8FAFC] text-slate-800 p-3 sm:p-5 flex flex-col justify-between">
 
         {/* Soft Ambient Background Glows */}
         <div className="absolute inset-0 pointer-events-none z-0">
@@ -2120,15 +2312,10 @@ export const AIMockInterviewPage = () => {
         </div>
 
         {/* Studio Top Control Bar */}
-        <div className="relative z-10 w-full max-w-5xl mx-auto flex items-center justify-between pb-4 mb-4 border-b border-slate-200/90">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-600 to-brand-600 flex items-center justify-center text-white shadow-xs">
-              {/* <BrainCircuit className="w-4 h-4" /> */}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-black tracking-wide text-slate-900 font-sans uppercase">ReadySetJob AI Interview Studio</span>
-              <span className="text-[10px] text-brand-700 font-mono font-bold px-2.5 py-0.5 rounded-full bg-brand-50 border border-brand-200 hidden sm:inline">FULLSCREEN</span>
-            </div>
+        <div className="relative z-10 w-full max-w-4xl mx-auto flex items-center justify-between pb-2.5 mb-2 border-b border-slate-200/80 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black tracking-wide text-slate-900 font-sans uppercase">ReadySetJob AI Mock Interview Studio</span>
+            <span className="text-[10px] text-brand-700 font-mono font-bold px-2.5 py-0.5 rounded-full bg-brand-50 border border-brand-200 hidden sm:inline">FULLSCREEN</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -2148,37 +2335,26 @@ export const AIMockInterviewPage = () => {
           </div>
         </div>
 
-        <div className="relative z-10 w-full max-w-4xl mx-auto my-auto">
+        <div className="relative z-10 w-full max-w-3xl mx-auto my-auto flex-1 flex flex-col justify-center">
 
           {/* Admin Testing Mode Badge */}
           {isAdmin && (
-            <div className="flex justify-center mb-3">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-purple-50 border border-purple-200 text-purple-700 rounded-full text-xs font-mono font-bold shadow-xs">
+            <div className="flex justify-center mb-2.5">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-50 border border-purple-200 text-purple-700 rounded-full text-xs font-mono font-bold shadow-xs">
                 <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
                 <span>Admin Testing Mode Active • Interview Session Unlocked</span>
               </div>
             </div>
           )}
 
-          {/* Subtitle directly matching website design */}
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-bold tracking-wider uppercase mb-3 font-sans shadow-xs">
-              <Sparkles className="w-3.5 h-3.5 text-brand-600" />
-              <span>AI Mock Interview Preparation Studio</span>
-            </div>
-            <p className="text-sm sm:text-base text-slate-500 max-w-2xl mx-auto leading-relaxed font-sans">
-              Extract skills, evaluate experience depth, score candidate suitability, match targeted job descriptions, and evaluate personalized interview readiness.
-            </p>
-          </div>
-
-          {/* Main Container Card (Picture 1) */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/40 p-6 sm:p-8">
+          {/* Main Container Card (Compact Single-Page Layout) */}
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-md shadow-slate-200/30 p-4 sm:p-5">
 
             {/* COMPACT RESUME DROP ZONE */}
             <div
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleDrop}
-              className="relative border-2 border-dashed border-brand-200 hover:border-brand-400 rounded-xl p-4 sm:p-5 text-center transition-all bg-brand-50/20 hover:bg-brand-50/50 group shadow-xs"
+              className="relative border-2 border-dashed border-brand-200 hover:border-brand-400 rounded-xl p-3 sm:p-3.5 text-center transition-all bg-brand-50/20 hover:bg-brand-50/50 group shadow-xs"
             >
               <input
                 type="file"
@@ -2188,16 +2364,16 @@ export const AIMockInterviewPage = () => {
                 onChange={(e) => handleFileUpload(e.target.files?.[0])}
               />
 
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform text-brand-600 shadow-xs">
-                    <FileText className="w-5 h-5" />
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 text-left">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform text-brand-600 shadow-xs">
+                    <FileText className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-sm font-bold text-slate-900 truncate font-sans">
+                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 truncate font-sans">
                       {uploadedFileName ? `Resume Uploaded: ${uploadedFileName}` : 'Drag & drop your resume here'}
                     </h3>
-                    <p className="text-[11px] text-slate-500 font-sans">
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 font-sans">
                       Supports PDF and TXT files (Max 20MB) • ATS & Skill Match
                     </p>
                   </div>
@@ -2206,7 +2382,7 @@ export const AIMockInterviewPage = () => {
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <label
                     htmlFor="resume-file-input"
-                    className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-900 text-xs font-semibold text-white shadow-xs transition-all cursor-pointer hover:scale-105 font-sans"
+                    className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-900 text-xs font-semibold text-white shadow-xs transition-all cursor-pointer hover:scale-105 font-sans"
                   >
                     {uploadedFileName ? 'Change File' : 'Browse File'}
                   </label>
@@ -2218,7 +2394,7 @@ export const AIMockInterviewPage = () => {
                         e.stopPropagation();
                         handleClearResume();
                       }}
-                      className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-xs font-semibold text-rose-700 transition-all cursor-pointer font-sans"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-xs font-semibold text-rose-700 transition-all cursor-pointer font-sans"
                       title="Remove uploaded resume"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -2231,9 +2407,9 @@ export const AIMockInterviewPage = () => {
 
             {/* Scanning Progress Bar */}
             {isScanning && (
-              <div className="mt-5 p-4 rounded-xl bg-brand-50/80 border border-brand-200 text-center">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <RefreshCw className="w-4 h-4 text-brand-600 animate-spin" />
+              <div className="mt-3 p-3 rounded-xl bg-brand-50/80 border border-brand-200 text-center">
+                <div className="flex items-center justify-center gap-2 mb-1.5">
+                  <RefreshCw className="w-3.5 h-3.5 text-brand-600 animate-spin" />
                   <span className="text-xs font-bold text-brand-700 font-sans">Extracting skills & evaluating ATS match ({scanProgress}%)...</span>
                 </div>
                 <div className="w-full bg-brand-100 h-1.5 rounded-full overflow-hidden">
@@ -2245,9 +2421,9 @@ export const AIMockInterviewPage = () => {
               </div>
             )}
 
-            {/* TARGET ROLE INPUT FIELD (Picture 1) */}
-            <div className="mt-6">
-              <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-2 font-sans">
+            {/* TARGET ROLE INPUT FIELD */}
+            <div className="mt-3.5">
+              <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5 font-sans">
                 Target Role <span className="text-slate-400 font-normal">(Enter Manually)</span>
               </label>
 
@@ -2257,7 +2433,7 @@ export const AIMockInterviewPage = () => {
                   value={targetRole}
                   onChange={(e) => handleRoleChange(e.target.value)}
                   placeholder="e.g. Data Scientist, ML Engineer, Software Engineer"
-                  className="w-full bg-slate-50/80 hover:bg-white focus:bg-white border border-slate-200 hover:border-slate-300 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 rounded-xl px-4 py-3 pr-10 text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition-all shadow-xs font-sans font-medium"
+                  className="w-full bg-slate-50/80 hover:bg-white focus:bg-white border border-slate-200 hover:border-slate-300 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 rounded-xl px-3.5 py-2.5 pr-10 text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition-all shadow-xs font-sans font-medium"
                 />
                 {targetRole && (
                   <button
@@ -2271,17 +2447,17 @@ export const AIMockInterviewPage = () => {
                 )}
               </div>
 
-              <p className="mt-2 text-[11px] text-slate-500 font-sans">
+              <p className="mt-1 text-[11px] text-slate-500 font-sans">
                 Type your desired job role above (e.g. Data Scientist, ML Engineer, Full Stack Developer, etc.). The interview questions and ATS benchmark calibrate automatically.
               </p>
             </div>
 
             {/* ATS MATCH & EXTRACTED SKILLS (Shown ONLY when a resume is uploaded) */}
             {hasUploadedResume ? (
-              <div className="mt-6 pt-6 border-t border-slate-100">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+              <div className="mt-3.5 pt-3 border-t border-slate-100">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2.5">
-                    <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-mono font-bold">
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-mono font-bold">
                       ATS Match: {resumeATS}%
                     </span>
                     <span className="text-xs text-slate-600 font-medium font-sans">
@@ -2292,33 +2468,33 @@ export const AIMockInterviewPage = () => {
 
                 {/* Extracted Skills Pills from Resume */}
                 {analysisResult?.skills && analysisResult.skills.length > 0 ? (
-                  <div className="flex items-center gap-1.5 flex-wrap mb-3">
+                  <div className="flex items-center gap-1.5 flex-wrap mb-2">
                     <span className="text-[11px] text-emerald-800 font-semibold mr-1 font-sans">Skills Present in Resume:</span>
-                    {analysisResult.skills.slice(0, 10).map((skill, idx) => (
+                    {analysisResult.skills.slice(0, 6).map((skill, idx) => (
                       <span
                         key={idx}
-                        className="px-2.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-[11px] font-mono text-slate-700 font-medium"
+                        className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-[11px] font-mono text-slate-700 font-medium"
                       >
                         {skill}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <div className="mb-3 text-[11px] text-slate-500 font-sans italic">
+                  <div className="mb-2 text-[11px] text-slate-500 font-sans italic">
                     No specific technical skills detected in the uploaded resume.
                   </div>
                 )}
 
                 {/* Missed Skills to Learn According to Resume */}
                 {skillGaps.skillsToCover && skillGaps.skillsToCover.length > 0 && (
-                  <div className="flex items-center gap-1.5 flex-wrap mb-4">
+                  <div className="flex items-center gap-1.5 flex-wrap mb-3">
                     <span className="text-[11px] text-amber-700 font-semibold mr-1 font-sans">
                       Missed Skills to Learn (According to Resume):
                     </span>
-                    {skillGaps.skillsToCover.slice(0, 8).map((skill, idx) => (
+                    {skillGaps.skillsToCover.slice(0, 4).map((skill, idx) => (
                       <span
                         key={idx}
-                        className="px-2.5 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-[11px] font-mono text-amber-800 font-medium"
+                        className="px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-[11px] font-mono text-amber-800 font-medium"
                       >
                         + {skill}
                       </span>
@@ -2326,18 +2502,18 @@ export const AIMockInterviewPage = () => {
                   </div>
                 )}
 
-                {/* Primary Action Button */}
-                <div className="space-y-3">
+                {/* Primary Action Button (Direct to HeyGen Room) */}
+                <div className="space-y-2 mt-2">
                   <button
                     type="button"
                     onClick={handleProceedToRoom}
-                    className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm sm:text-base shadow-md shadow-brand-600/20 transition-all hover:scale-[1.005] cursor-pointer font-sans"
+                    className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm sm:text-base shadow-md shadow-brand-600/20 transition-all hover:scale-[1.005] cursor-pointer font-sans"
                   >
-                    <span>Proceed to Live AI Interview Room -></span>
+                    <span>Proceed to Live AI Interview Room →</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                   {isInterviewCompleted && (
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
                       <div className="flex items-center gap-2 text-slate-700 font-medium">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                         <span>Previous interview session saved</span>
@@ -2355,15 +2531,15 @@ export const AIMockInterviewPage = () => {
                 </div>
               </div>
             ) : (
-              <div className="mt-6 pt-6 border-t border-slate-100 space-y-4">
-                <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 flex items-start gap-3.5 text-amber-900">
-                  <div className="w-9 h-9 rounded-xl bg-white border border-amber-200 flex items-center justify-center text-amber-600 flex-shrink-0 shadow-2xs mt-0.5">
+              <div className="mt-3.5 pt-3 border-t border-slate-100 space-y-3">
+                <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-200/80 flex items-start gap-3 text-amber-900">
+                  <div className="w-8 h-8 rounded-lg bg-white border border-amber-200 flex items-center justify-center text-amber-600 flex-shrink-0 shadow-2xs mt-0.5">
                     <FileText className="w-4 h-4" />
                   </div>
                   <div className="text-xs">
-                    <strong className="text-slate-900 block font-bold text-sm mb-0.5">Resume Required to Calibrate Skills</strong>
-                    <p className="text-slate-600 font-sans leading-relaxed">
-                      Upload your resume above. Once uploaded, we will extract skills present in your resume, calculate your ATS match benchmark, and identify missed skills to learn according to resume for <strong className="text-slate-900 font-bold">{targetRole || 'your target role'}</strong>.
+                    <strong className="text-slate-900 block font-bold text-xs mb-0.5">Resume Required to Calibrate Skills</strong>
+                    <p className="text-slate-600 font-sans leading-relaxed text-[11px]">
+                      Upload your resume above to extract skills, calculate ATS match, and launch your personalized interview for <strong className="text-slate-900 font-bold">{targetRole || 'your target role'}</strong>.
                     </p>
                   </div>
                 </div>
@@ -2374,10 +2550,10 @@ export const AIMockInterviewPage = () => {
                     const input = document.getElementById('resume-file-input');
                     if (input) input.click();
                   }}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm sm:text-base shadow-md shadow-brand-600/20 transition-all hover:scale-[1.005] cursor-pointer font-sans"
+                  className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm sm:text-base shadow-md shadow-brand-600/20 transition-all hover:scale-[1.005] cursor-pointer font-sans"
                 >
                   <Upload className="w-4 h-4" />
-                  <span>Upload Resume to Calibrate & Proceed -></span>
+                  <span>Upload Resume to Calibrate & Proceed →</span>
                 </button>
               </div>
             )}
@@ -2393,7 +2569,7 @@ export const AIMockInterviewPage = () => {
   // VIEW 3: LIVE INTERVIEW STAGE (PICTURE 2)
   // ==========================================
   return (
-    <div className="relative h-screen max-h-screen w-full overflow-hidden bg-[#F8FAFC] text-slate-800 p-2 sm:p-3 flex flex-col justify-between select-none">
+    <div className="fixed inset-0 z-50 h-screen w-screen overflow-hidden bg-[#F8FAFC] text-slate-800 p-2 sm:p-3 flex flex-col justify-between select-none">
 
       {/* Subtle Ambient Background Glows matching website design */}
       <div className="absolute inset-0 pointer-events-none z-0">
@@ -2406,14 +2582,9 @@ export const AIMockInterviewPage = () => {
       <div className="relative z-10 max-w-7xl mx-auto w-full h-full flex flex-col justify-between gap-2 sm:gap-2.5 min-h-0 overflow-hidden">
         {/* Studio Top Control Bar */}
         <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs px-4 py-2 shrink-0 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-600 to-brand-600 flex items-center justify-center text-white shadow-xs">
-              {/* <BrainCircuit className="w-3.5 h-3.5" /> */}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-black tracking-wide text-slate-900 font-sans uppercase">ReadySetJob AI Interview Studio</span>
-              <span className="text-[10px] text-brand-600 font-mono font-bold px-2 py-0.5 rounded-full bg-brand-50 border border-brand-200 hidden sm:inline">FULLSCREEN</span>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black tracking-wide text-slate-900 font-sans uppercase">ReadySetJob AI Mock Interview Studio</span>
+            <span className="text-[10px] text-brand-600 font-mono font-bold px-2 py-0.5 rounded-full bg-brand-50 border border-brand-200 hidden sm:inline">FULLSCREEN</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -2437,6 +2608,24 @@ export const AIMockInterviewPage = () => {
             >
               <BarChart3 className="w-3 h-3 text-brand-600" />
               <span className="hidden sm:inline">Analysis Report</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (sessionActive) {
+                  if (window.confirm('Are you sure you want to pause and exit the interview room?')) {
+                    setSessionActive(false);
+                    setStage('setup');
+                  }
+                } else {
+                  setStage('setup');
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-rose-600 border border-slate-200 text-xs font-semibold transition-all shadow-2xs cursor-pointer"
+              title="Exit Interview Room"
+            >
+              <LogOut className="w-3 h-3 text-rose-500" />
+              <span className="hidden sm:inline">Exit Studio</span>
             </button>
           </div>
         </div>
@@ -2468,7 +2657,7 @@ export const AIMockInterviewPage = () => {
               </div>
             </div>
             <span className="text-xs font-mono font-black text-rose-700 bg-rose-100 px-2 py-0.5 rounded border border-rose-300">
-              {warningCount}/3 Strikes
+              {warningCount}/{adminSettings?.maxWarnings || 3} Strikes
             </span>
           </div>
         )}
@@ -2533,7 +2722,7 @@ export const AIMockInterviewPage = () => {
                   }`}
               >
                 <Video className="w-3 h-3" />
-                <span>{isTestingCamera ? 'Cam: Active' : 'Test Cam'}</span>
+                <span>{isTestingCamera ? 'Cam: Active ✓' : 'Test Cam'}</span>
               </button>
             )}
 
@@ -2555,69 +2744,10 @@ export const AIMockInterviewPage = () => {
             )}
           </div>
         </div>
-        {/* Question Bar - Q1 IS ALWAYS "TELL ME ABOUT YOURSELF" */}
-        <div className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs px-4 py-2 shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="flex-shrink-0 text-xs font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded-md">
-              Q{currentQIndex + 1}:
-            </span>
-            <span className="text-xs sm:text-sm font-bold text-slate-800 truncate font-sans">{currentQ.questionText || currentQ.question}</span>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              type="button"
-              onClick={() => handlePlayOrReplayQuestion()}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 text-xs font-bold transition-all shadow-2xs cursor-pointer font-sans"
-              title="Hear AI speak this question aloud"
-            >
-              <Volume2 className={`w-3.5 h-3.5 ${isAISpeaking ? 'text-brand-600 animate-pulse' : 'text-slate-600'}`} />
-              <span>{isAISpeaking ? 'Speaking...' : 'Listen to AI'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (!document.fullscreenElement) {
-                  document.documentElement.requestFullscreen?.().catch(() => { });
-                } else {
-                  document.exitFullscreen?.().catch(() => { });
-                }
-              }}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-xs font-semibold transition-all shadow-2xs cursor-pointer"
-              title="Toggle Fullscreen"
-            >
-              <Maximize className="w-3 h-3 text-brand-600" />
-              <span className="hidden sm:inline text-xs">Fullscreen</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Two-Pane Stage (The Two Cameras with Adjusted Size) */}
-        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
-
-          {/* Pane 1: AI Avatar */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-card overflow-hidden flex flex-col h-full min-h-0">
-            <div className="flex items-center justify-between px-3.5 py-2 border-b border-slate-100 bg-slate-50/60 shrink-0">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`w-2.5 h-2.5 rounded-full ${isAISpeaking
-                    ? 'bg-cyan-500 animate-pulse'
-                    : agentState === 'LISTENING'
-                      ? 'bg-emerald-500 animate-pulse'
-                      : agentState === 'PROCESSING'
-                        ? 'bg-amber-500 animate-pulse'
-                        : sessionActive
-                          ? 'bg-emerald-500'
-                          : 'bg-slate-400'
-                    }`}
-                />
-                <span className="text-xs sm:text-sm font-bold text-slate-800 font-sans">
-                  AI Avatar
-                </span>
-              </div>
-            </div>
-
-            {/* AI Avatar Video Cam Feed (HeyGen live stream with animated fallback) */}
-            <div className="p-2 sm:p-2.5 bg-slate-100/50 flex-1 min-h-0 flex items-center justify-center overflow-hidden">
+        {/* Interview room: video-reference layout with AI interviewer, candidate PiP and live conversation */}
+        <div className="flex-1 min-h-[420px] min-w-0 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-3">
+          <section className="relative min-h-[360px] lg:min-h-0 rounded-2xl overflow-hidden bg-black border border-slate-200 shadow-card">
+            <div className="absolute inset-0">
               <HeyGenStreamingAvatar
                 isSpeaking={isAISpeaking}
                 agentState={agentState}
@@ -2626,141 +2756,159 @@ export const AIMockInterviewPage = () => {
                 onSpeechEnd={() => {
                   setIsAISpeaking(false);
                 }}
+                onStreamStateChange={(s) => {
+                  setIsHeyGenStreamingActive(s.isLive);
+                }}
               />
             </div>
-          </div>
-
-          {/* Pane 2: Candidate Video Feed & Audio Telemetry */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-card overflow-hidden flex flex-col h-full min-h-0">
-            <div className="flex items-center justify-between px-3.5 py-2 border-b border-slate-100 bg-slate-50/60 shrink-0">
-              <div className="flex items-center gap-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${cameraActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-                <span className="text-xs sm:text-sm font-bold text-slate-800 font-sans">
-                  Candidate Video Stream
-                </span>
-              </div>
-              {/* Right Corner of User Box: Proctoring Warnings & Alert Status */}
-              <div className="flex items-center gap-1.5 min-w-0">
-                {activeWarningMessage ? (
-                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-xs font-bold animate-pulse shadow-2xs">
-                    <AlertTriangle className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
-                    <span className="truncate max-w-[200px] sm:max-w-[280px] font-sans text-[11px] sm:text-xs">
-                      {activeWarningMessage}
-                    </span>
-                    <span className="px-1.5 py-0.2 rounded bg-rose-200/80 text-[10px] font-mono font-black text-rose-900 shrink-0">
-                      {warningCount}/3 Strikes
-                    </span>
-                  </div>
-                ) : (
-                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${warningCount === 0
-                    ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
-                    : warningCount === 1
-                      ? 'text-amber-700 bg-amber-50 border-amber-200'
-                      : 'text-rose-700 bg-rose-50 border-rose-300 animate-pulse'
-                    }`}>
-                    Warnings: {warningCount} / 3 Strikes
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Video Viewport Stage matching Dr. Arvind Swami container */}
-            <div className="p-2 sm:p-2.5 bg-slate-100/50 flex-1 min-h-0 flex items-center justify-center overflow-hidden">
-              <div className="relative w-full h-full min-h-0 bg-slate-950 flex items-center justify-center overflow-hidden rounded-xl sm:rounded-2xl select-none">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className={`w-full h-full object-cover mirror-mode ${cameraActive ? 'block' : 'hidden'}`}
-                />
-
-                {videoPlayBlocked && cameraActive && (
-                  <div className="absolute inset-0 z-30 bg-black/80 flex flex-col items-center justify-center p-3 text-center">
-                    <Play className="w-8 h-8 text-brand-400 mb-1 cursor-pointer" onClick={handleManualVideoPlay} />
-                    <p className="text-xs text-white font-semibold mb-1.5 font-sans">Click to start live camera preview</p>
-                    <button
-                      onClick={handleManualVideoPlay}
-                      className="px-3 py-1 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold font-sans transition-colors cursor-pointer"
+            <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-2 p-3 bg-gradient-to-b from-black/75 to-transparent">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-1.5 rounded-full bg-white/95 text-slate-900 px-3 py-1 text-[11px] font-bold shadow-xs">
+                  <span>CANDIDATE ·</span>
+                  {isEditingName ? (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSaveCandidateName(nameInput);
+                      }}
+                      className="inline-flex items-center"
                     >
-                      Activate Video
-                    </button>
-                  </div>
-                )}
-
-                {!cameraActive && (
-                  <div className="flex flex-col items-center justify-center p-4 text-center">
-                    <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 mb-2">
-                      <VideoOff className="w-5 h-5" />
-                    </div>
-                    <p className="text-xs font-bold text-white mb-0.5 font-sans">Camera Feed Standby</p>
-                    <p className="text-[10px] text-slate-400 max-w-xs mb-2 font-sans">
-                      Click below or start interview to activate.
-                    </p>
+                      <input
+                        type="text"
+                        value={nameInput}
+                        onChange={(e) => setNameInput(e.target.value)}
+                        onBlur={() => handleSaveCandidateName(nameInput)}
+                        autoFocus
+                        className="bg-slate-100 text-slate-900 px-1 py-0.5 rounded text-[11px] font-bold outline-none border border-brand-500 w-24"
+                      />
+                    </form>
+                  ) : (
                     <button
                       type="button"
-                      onClick={startCamera}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold font-sans shadow-xs cursor-pointer transition-all"
+                      onClick={() => {
+                        setNameInput(candidateName);
+                        setIsEditingName(true);
+                      }}
+                      className="flex items-center gap-1 text-slate-900 hover:text-brand-600 transition-colors font-bold cursor-pointer"
+                      title="Click to edit candidate display name"
                     >
-                      <Video className="w-3 h-3" />
-                      <span>Turn On Camera Preview</span>
+                      <span>{candidateName}</span>
+                      <Edit3 className="w-2.5 h-2.5 text-slate-400 hover:text-brand-600" />
                     </button>
-                  </div>
-                )}
-
-                {/* Live Overlay HUD when session is active */}
-                {sessionActive && (
-                  <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none z-10">
-                    <div className="px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-                      <Eye className="w-3 h-3" />
-                      <span>Gaze: {telemetry.eyeContact}%</span>
-                    </div>
-                    <div className="px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-mono text-cyan-300 flex items-center gap-1">
-                      <Activity className="w-3 h-3" />
-                      <span>Time: {formatTimer(timerSeconds)}</span>
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
+                <span className="hidden sm:inline-flex rounded-full bg-emerald-500/15 border border-emerald-300/40 text-emerald-200 px-2.5 py-1 text-[10px] font-semibold">AI Interview</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="rounded-full bg-black/60 border border-white/15 text-white px-2.5 py-1 text-[10px] font-mono">{formatTimer(timerSeconds)}</span>
+                {sessionActive && <span className="flex items-center gap-1 rounded-full bg-rose-600 text-white px-2 py-1 text-[10px] font-bold"><span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /> REC</span>}
+                <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${warningCount >= (adminSettings?.maxWarnings || 3) ? 'bg-rose-600 text-white animate-pulse' : warningCount > 0 ? 'bg-amber-400 text-slate-950 font-black' : 'bg-white/15 text-white border border-white/20'}`}><AlertTriangle className="inline w-3 h-3 mr-1" />Violations {warningCount}/{adminSettings?.maxWarnings || 3}</span>
               </div>
             </div>
-          </div>
+            {/* Note: Floating question overlay on avatar removed per user request (question is displayed in right conversation panel) */}
+            <div className="absolute right-3 bottom-3 z-20 w-[clamp(115px,22%,220px)] aspect-[4/3] rounded-xl overflow-hidden bg-slate-900 border-2 border-white/80 shadow-xl">
+              <video ref={videoRef} autoPlay playsInline muted className={`w-full h-full object-cover mirror-mode ${cameraActive ? 'block' : 'hidden'}`} />
+              {!cameraActive && <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 p-2 text-center text-white bg-slate-950/95 z-20">
+                <VideoOff className="w-5 h-5 text-rose-400 shrink-0" />
+                <span className="text-[10px] font-bold text-slate-100">{cameraError ? 'Camera Blocked' : 'Camera is off'}</span>
+                {cameraError ? (
+                  <p className="text-[9px] text-rose-200/90 leading-tight px-1 font-medium line-clamp-3">
+                    {cameraError}
+                  </p>
+                ) : (
+                  <span className="text-[9px] text-slate-400 leading-tight">Webcam feed is required for interview proctoring</span>
+                )}
+                <button type="button" onClick={startCamera} className="mt-0.5 rounded-md bg-white hover:bg-slate-100 text-slate-900 px-2.5 py-1 text-[10px] font-bold cursor-pointer shadow-sm transition-all">
+                  {cameraError ? 'Retry Camera' : 'Enable camera'}
+                </button>
+              </div>}
+              {videoPlayBlocked && cameraActive && <button type="button" onClick={handleManualVideoPlay} className="absolute inset-0 bg-black/65 text-white text-xs font-bold">Activate video</button>}
 
-        </div>
-
-        {/* BOTTOM ACTION BAR (Autonomous Real-Time Turn Taking) */}
-        <div className="flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl bg-white border border-slate-200/90 shadow-card shrink-0">
-          {!sessionActive ? (
-            <button
-              type="button"
-              onClick={handleStartSession}
-              className="flex items-center justify-center gap-2 px-7 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-cyan-600 hover:from-brand-700 hover:to-cyan-700 text-white font-bold text-sm font-sans shadow-md shadow-brand-500/20 transition-all hover:scale-[1.01] cursor-pointer"
-            >
-              <Video className="w-4 h-4" />
-              <span>Start Interview Session for {targetRole}</span>
-            </button>
-          ) : (
-            <div className="flex flex-col items-center gap-2.5 w-full max-w-3xl sm:max-w-4xl">
-              {/* SPEECH-TO-TEXT VERBAL TRANSCRIPTION AREA */}
-              <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 shadow-2xs">
-                <div className="flex items-center justify-between text-xs mb-2 flex-wrap gap-1">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`w-2.5 h-2.5 rounded-full ${isAISpeaking
-                        ? 'bg-cyan-500 animate-ping'
-                        : isRecording
-                          ? 'bg-emerald-500 animate-ping'
-                          : agentState === 'PROCESSING'
-                            ? 'bg-amber-500 animate-pulse'
-                            : 'bg-brand-500'
-                        }`}
-                    />
-                    <span className="font-bold text-slate-800 font-sans text-xs sm:text-sm">
-                      {isAISpeaking
-                        ? 'Interviewer Question:'
-                        : agentState === 'PROCESSING'
-                          ? 'Evaluating Answer:'
-                          : 'Your Verbal Answer (Speech-to-Text):'}
+              {/* Live Proctor Status Badge on Candidate Camera */}
+              {sessionActive && (
+                <div className="absolute top-1.5 left-1.5 z-10">
+                  {!cameraActive ? (
+                    <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-rose-600 text-white flex items-center gap-1 shadow">
+                      <UserX className="w-2.5 h-2.5" /> Cam Off
                     </span>
+                  ) : proctorState?.status === 'multiple_faces' ? (
+                    <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-rose-600 text-white flex items-center gap-1 shadow animate-pulse">
+                      <Users className="w-2.5 h-2.5" /> Multi-Face
+                    </span>
+                  ) : proctorState?.status === 'no_face' ? (
+                    <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-rose-600 text-white flex items-center gap-1 shadow animate-pulse">
+                      <UserX className="w-2.5 h-2.5" /> No Face
+                    </span>
+                  ) : proctorState?.status === 'looking_away' ? (
+                    <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-500 text-slate-950 flex items-center gap-1 shadow">
+                      <EyeOff className="w-2.5 h-2.5" /> Gaze Away
+                    </span>
+                  ) : (
+                    <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-emerald-600/90 text-white flex items-center gap-1 shadow">
+                      <CheckCircle2 className="w-2.5 h-2.5" /> Face OK
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <span className="absolute bottom-1.5 left-1.5 rounded bg-black/65 px-1.5 py-0.5 text-[9px] text-white">You ({candidateName})</span>
+            </div>
+            <div className="absolute bottom-3 left-3 z-20 flex flex-wrap items-center gap-2">
+              <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold backdrop-blur ${agentState === 'LISTENING' ? 'bg-emerald-500/90 text-white' : agentState === 'PROCESSING' ? 'bg-amber-400/90 text-slate-950' : 'bg-black/60 text-white border border-white/20'}`}>{agentState === 'LISTENING' ? 'Listening to you' : agentState === 'PROCESSING' ? 'Evaluating answer' : isAISpeaking ? 'Interviewer speaking' : sessionActive ? 'Interview in progress' : 'Ready to begin'}</span>
+              <span className="rounded-full bg-black/60 border border-white/20 text-white px-2.5 py-1 text-[10px]">100% · {cameraActive ? 'Camera on' : 'Camera off'}</span>
+            </div>
+          </section>
+
+          <aside className="min-h-[260px] lg:min-h-0 rounded-2xl bg-white border border-slate-200 shadow-card flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 shrink-0">
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900">Live conversation</h3>
+                <p className="text-[10px] text-slate-500 mt-0.5">AI interviewer · {targetRole}</p>
+              </div>
+              <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live
+              </span>
+            </div>
+
+            <div ref={conversationScrollRef} className="flex-1 min-h-[160px] overflow-y-auto p-3 space-y-3">
+              {/* Interviewer Intro Greeting */}
+              <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
+                <p className="text-[9px] uppercase tracking-wider font-extrabold text-emerald-700 mb-1">Vidhit · Interviewer</p>
+                <p className="text-xs leading-relaxed text-slate-700">Welcome. I’ll ask questions for the {targetRole} role. Take your time and explain your thinking clearly.</p>
+              </div>
+
+              {/* Current Question Display */}
+              <div className="rounded-xl bg-slate-50 border border-slate-200/90 p-3 shadow-2xs">
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <p className="text-[9px] uppercase tracking-wider font-extrabold text-slate-500">
+                    Question {currentQIndex + 1} of {questions.length}
+                  </p>
+                  {isAISpeaking && (
+                    <span className="flex items-center gap-1 text-[9px] font-bold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded-full border border-cyan-200">
+                      <Volume2 className="w-2.5 h-2.5 animate-pulse text-cyan-600" />
+                      Interviewer Speaking
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs sm:text-sm font-semibold leading-relaxed text-slate-900">
+                  {currentSpokenSubtitle || currentQ.questionText || currentQ.question || 'Tell me about yourself.'}
+                </p>
+              </div>
+
+              {/* Candidate Live Verbal Answer Card */}
+              <div className="rounded-xl bg-blue-50/80 border border-blue-200/90 p-3 shadow-2xs">
+                <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-blue-800">
+                      {candidateName} · Your Verbal Answer
+                    </span>
+                    {isRecording && (
+                      <span className="flex items-center gap-1 text-[9px] font-bold font-mono text-emerald-700 bg-white/90 px-2 py-0.5 rounded-full border border-emerald-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                        Live Listening
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     {companionText && !isAISpeaking && (
@@ -2770,83 +2918,144 @@ export const AIMockInterviewPage = () => {
                           accumulatedTranscriptRef.current = '';
                           setCompanionText('');
                         }}
-                        className="text-xs text-slate-500 hover:text-rose-600 underline font-mono cursor-pointer"
+                        className="text-[10px] text-slate-500 hover:text-rose-600 underline font-mono cursor-pointer"
                         title="Reset transcript"
                       >
                         Reset
                       </button>
                     )}
-                    <span className="text-xs font-mono font-bold text-brand-600">
-                      {companionText && !isAISpeaking ? `${companionText.split(/\s+/).filter(Boolean).length} words` : ''}
+                    <span className="text-[10px] font-mono font-bold text-blue-700">
+                      {companionText ? `${companionText.split(/\s+/).filter(Boolean).length} words` : ''}
                     </span>
                   </div>
                 </div>
 
-                {/* Live Speech Transcription View */}
-                {isAISpeaking || agentState === 'SPEAKING' ? (
-                  <div className="min-h-[110px] sm:min-h-[130px] flex flex-col justify-center bg-white border border-cyan-200/90 rounded-xl p-3.5 sm:p-4 shadow-2xs">
-                    <div className="flex items-center gap-2 mb-1.5 text-xs font-bold text-cyan-800">
-                      <Volume2 className="w-4 h-4 text-cyan-600 animate-pulse shrink-0" />
-                      <span>Question {currentQIndex + 1}:</span>
-                    </div>
-                    <p className="text-sm sm:text-base font-medium text-slate-800 font-sans leading-relaxed select-text">
-                      "{currentSpokenSubtitle || currentQ.questionText || currentQ.question || 'Asking question...'}"
-                    </p>
-                  </div>
-                ) : agentState === 'PROCESSING' ? (
-                  <div className="min-h-[110px] sm:min-h-[130px] flex items-center justify-center text-center bg-white border border-slate-200 rounded-xl p-4 shadow-2xs">
-                    <Sparkles className="w-5 h-5 mr-2 text-amber-500 animate-spin" />
-                    <p className="text-sm font-medium text-slate-700 font-sans">
-                      Analyzing technical keywords, speech cadence, and domain depth...
-                    </p>
+                {companionText ? (
+                  <p className="text-xs sm:text-sm leading-relaxed text-slate-800 whitespace-pre-wrap break-words select-text">
+                    {companionText}
+                  </p>
+                ) : isRecording ? (
+                  <div className="flex items-center gap-2 py-1 text-xs text-emerald-800 font-medium animate-pulse">
+                    <Mic className="w-3.5 h-3.5 text-emerald-600 animate-bounce" />
+                    <span>Listening to your voice... Speak your response clearly now.</span>
                   </div>
                 ) : (
-                  <div className="relative">
-                    <textarea
-                      value={companionText}
-                      onChange={(e) => {
-                        setCompanionText(e.target.value);
-                        accumulatedTranscriptRef.current = e.target.value;
-                      }}
-                      placeholder={`Microphone is ${isRecording ? 'listening live' : 'ready'}. Speak clearly to answer Question ${currentQIndex + 1} (voice speech-to-text, or type directly)...`}
-                      className="w-full min-h-[110px] sm:min-h-[130px] max-h-[180px] overflow-y-auto bg-white border border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 rounded-xl p-3 sm:p-4 text-sm sm:text-base text-slate-800 leading-relaxed shadow-2xs font-sans resize-none transition-all outline-none"
-                      rows={4}
-                    />
-                    {isRecording && (
-                      <div className="absolute right-3 bottom-3 pointer-events-none flex items-center gap-1.5 text-xs font-mono text-emerald-700 bg-white/95 backdrop-blur-xs px-2 py-1 rounded-md border border-emerald-200 shadow-2xs">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                        <span className="font-bold">Live Listening</span>
-                      </div>
-                    )}
-                  </div>
+                  <p className="text-xs text-slate-500 italic py-1">
+                    Microphone is paused. Click "Start Mic" below to record your verbal response.
+                  </p>
                 )}
 
-                {agentState === 'LISTENING' && isRecording && (
-                  <div className="mt-2 flex items-center justify-between text-xs px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 font-mono animate-pulse">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                      Attentively recording answer... Speak your complete response.
+                {/* Optional manual text editor toggle for candidate */}
+                <div className="mt-2 pt-2 border-t border-blue-100 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setIsManualEditOpen(!isManualEditOpen)}
+                    className="text-[10px] text-blue-700 hover:text-blue-900 font-semibold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Edit3 className="w-2.5 h-2.5" />
+                    <span>{isManualEditOpen ? 'Hide text editor' : 'Type or edit transcript'}</span>
+                  </button>
+                  {isRecording && (
+                    <span className="text-[9px] text-emerald-600 font-mono font-semibold">
+                      Auto-recording active
                     </span>
-                    <span className="font-semibold">Click Submit when finished</span>
-                  </div>
-                )}
+                  )}
+                </div>
 
-                {agentState === 'PROCESSING' && (
-                  <div className="mt-2 flex items-center justify-center text-xs px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 font-mono">
-                    <span>Evaluating answer with AI evaluation engine...</span>
-                  </div>
+                {isManualEditOpen && (
+                  <textarea
+                    value={companionText}
+                    onChange={(e) => {
+                      setCompanionText(e.target.value);
+                      accumulatedTranscriptRef.current = e.target.value;
+                    }}
+                    placeholder="Type or refine your response here..."
+                    rows={3}
+                    className="w-full mt-2 p-2 rounded-lg border border-blue-200 bg-white text-xs text-slate-800 outline-none focus:ring-1 focus:ring-blue-500 resize-none font-sans"
+                  />
                 )}
               </div>
 
-              {/* Turn-Taking Control Buttons */}
+              {agentState === 'PROCESSING' && (
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 flex items-center gap-2 animate-pulse">
+                  <Sparkles className="w-4 h-4 animate-spin text-amber-600 shrink-0" />
+                  <span>Evaluating technical keywords, clarity, and depth...</span>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-slate-100 p-3 space-y-2 shrink-0">
+              <div className="flex items-center justify-between text-[10px] text-slate-500">
+                <span>Session status</span>
+                <span className="font-bold text-emerald-700">● Interview room ready</span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={handleToggleCameraTest}
+                  className="flex-1 rounded-lg border border-slate-200 px-2 py-2 text-[11px] font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                >
+                  <Video className="inline w-3.5 h-3.5 mr-1" />
+                  {cameraActive ? 'Camera ready' : 'Test camera'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePlayOrReplayQuestion()}
+                  className="flex-1 rounded-lg bg-slate-900 px-2 py-2 text-[11px] font-bold text-white hover:bg-slate-700 cursor-pointer"
+                >
+                  <Volume2 className="inline w-3.5 h-3.5 mr-1" />
+                  Replay question
+                </button>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        {/* BOTTOM CONTROL TOOLBAR (Turn-taking buttons only; verbal answer text is in right conversation panel) */}
+        <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-2xl bg-white border border-slate-200/90 shadow-card shrink-0">
+          {!sessionActive ? (
+            <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-3 px-1">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50/90 text-amber-800 border border-amber-200/90 text-[11px] font-semibold">
+                  <ShieldAlert className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span>
+                    AI Proctoring Armed: Fullscreen, Tab Monitoring & Multi-Face Detection Active ({adminSettings?.maxWarnings || 3} Strikes Max)
+                  </span>
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleStartSession}
+                className="flex items-center justify-center gap-2 px-7 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-cyan-600 hover:from-brand-700 hover:to-cyan-700 text-white font-bold text-sm font-sans shadow-md shadow-brand-500/20 transition-all hover:scale-[1.01] cursor-pointer"
+              >
+                <Video className="w-4 h-4" />
+                <span>Start Interview Session for {targetRole}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between w-full flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                  isRecording ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${isRecording ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'}`} />
+                  {isRecording ? 'Microphone Active' : 'Microphone Paused'}
+                </span>
+                <span className="text-xs font-mono text-slate-500 hidden sm:inline">
+                  Question {currentQIndex + 1} of {questions.length}
+                </span>
+              </div>
+
+              {/* Turn-Taking Action Buttons */}
               <div className="flex items-center gap-2.5 flex-wrap justify-center">
                 <button
                   type="button"
                   onClick={handleRecordVoice}
-                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold font-sans transition-all border cursor-pointer ${isRecording
-                    ? 'bg-rose-50 border-rose-300 text-rose-700 animate-pulse shadow-2xs'
-                    : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-2xs'
-                    }`}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold font-sans transition-all border cursor-pointer ${
+                    isRecording
+                      ? 'bg-rose-50 border-rose-300 text-rose-700 animate-pulse shadow-2xs'
+                      : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-2xs'
+                  }`}
                   title="Toggle Microphone"
                 >
                   <Mic className="w-3.5 h-3.5 text-brand-600" />
@@ -2856,7 +3065,7 @@ export const AIMockInterviewPage = () => {
                 <button
                   type="button"
                   onClick={() => handlePlayOrReplayQuestion()}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold font-sans shadow-2xs cursor-pointer transition-all"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold font-sans shadow-2xs cursor-pointer transition-all"
                   title="Replay Question Audio"
                 >
                   <Volume2 className="w-3.5 h-3.5 text-cyan-600" />
@@ -2867,7 +3076,7 @@ export const AIMockInterviewPage = () => {
                   type="button"
                   onClick={handleSkipQuestion}
                   disabled={agentState === 'PROCESSING' || agentState === 'AI_RESPONSE'}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold font-sans transition-all cursor-pointer shadow-2xs"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold font-sans transition-all cursor-pointer shadow-2xs disabled:opacity-50"
                   title="Skip this question without providing an answer"
                 >
                   <span>Skip Question</span>
@@ -2877,8 +3086,9 @@ export const AIMockInterviewPage = () => {
                   type="button"
                   onClick={() => handleCandidateSubmit(false)}
                   disabled={agentState === 'PROCESSING' || agentState === 'AI_RESPONSE'}
-                  className={`flex items-center gap-1.5 px-5 py-1.5 rounded-lg bg-gradient-to-r from-brand-600 to-cyan-600 hover:from-brand-700 hover:to-cyan-700 text-white text-xs font-bold font-sans shadow-md shadow-brand-500/20 transition-all cursor-pointer hover:scale-105 ${agentState === 'PROCESSING' || agentState === 'AI_RESPONSE' ? 'opacity-60 cursor-not-allowed' : ''
-                    }`}
+                  className={`flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-cyan-600 hover:from-brand-700 hover:to-cyan-700 text-white text-xs font-bold font-sans shadow-md shadow-brand-500/20 transition-all cursor-pointer hover:scale-102 ${
+                    agentState === 'PROCESSING' || agentState === 'AI_RESPONSE' ? 'opacity-60 cursor-not-allowed' : ''
+                  }`}
                 >
                   <span>{isFinalQuestion ? 'Submit & Finalize Interview' : 'Submit Answer & Continue'}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -2928,80 +3138,111 @@ export const AIMockInterviewPage = () => {
         </div>
       )}
       {/* ============================================================== */}
-      {/* PROCTORING WARNING MODAL (1st, 2nd, and 3rd TERMINATION WARNING) */}
+      {/* PROCTORING WARNING MODAL (Styled identically to AssessmentPage) */}
       {/* ============================================================== */}
       {proctoringModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className={`w-full max-w-md rounded-2xl border p-6 text-white shadow-2xl relative ${proctoringModal.isFinal
-            ? 'bg-rose-950/95 border-rose-600 shadow-rose-900/50'
-            : proctoringModal.count === 2
-              ? 'bg-amber-950/95 border-amber-600 shadow-amber-900/50'
-              : 'bg-slate-900/95 border-amber-500/70 shadow-amber-500/20'
-            }`}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${proctoringModal.isFinal ? 'bg-rose-900/80 text-rose-300' : 'bg-amber-900/80 text-amber-300'
-                }`}>
-                <AlertTriangle className="w-6 h-6 animate-bounce" />
-              </div>
+          <div className={`w-full max-w-lg rounded-2xl border p-6 text-slate-800 shadow-2xl relative bg-white ${
+            proctoringModal.isFinal ? 'border-rose-400' : 'border-amber-300'
+          }`}>
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
-                <span className="text-[11px] font-mono uppercase tracking-wider font-bold block text-slate-400">
-                  AI Proctoring Telemetry Alert
-                </span>
-                <h3 className="text-lg font-black tracking-tight text-white">
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
                   {proctoringModal.isFinal
-                    ? 'Interview Closed & Auto-Submitted'
-                    : proctoringModal.count === 2
-                      ? 'FINAL WARNING (2 of 2)'
-                      : `Warning 1 of 2`}
+                    ? '🚨 Interview Auto-Submitted: Maximum Violations Reached'
+                    : `⚠️ Proctoring Warning: Strike ${proctoringModal.count} of ${proctoringModal.maxAllowed || 3}`}
                 </h3>
+                <span className="text-xs text-slate-500 font-medium">
+                  {proctoringModal.isFinal
+                    ? 'Interview terminated due to repeated proctoring strikes'
+                    : 'Face-presence & integrity alert'}
+                </span>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 mb-4 space-y-1.5 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Violation Detected:</span>
-                <span className="font-bold font-mono text-white">{proctoringModal.violation}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Violation Count:</span>
-                <span className="font-bold font-mono text-rose-400">{proctoringModal.count} / 3 Strikes</span>
-              </div>
-            </div>
-
-            <p className="text-xs text-slate-200 leading-relaxed mb-5">
-              {proctoringModal.isFinal ? (
-                <span>
-                  Maximum proctoring violations reached (3 strikes). Your interview session has closed and your answers are being submitted automatically.
-                </span>
-              ) : proctoringModal.count === 2 ? (
-                <span>
-                  <strong className="text-amber-400">FINAL WARNING (2 of 2)!</strong> You have incurred 2 strikes. Exiting fullscreen, closing or switching tabs, and multiple faces detected are strictly prohibited. The 3rd strike will immediately close and submit your interview!
-                </span>
-              ) : (
-                <span>
-                  <strong>Warning 1 of 2:</strong> Please stay in full-screen mode, do not close or switch browser tabs, and ensure only you are visible to the camera. You have 1 warning remaining.
-                </span>
-              )}
-            </p>
-
-            <div className="flex items-center justify-end">
-              {proctoringModal.isFinal ? (
-                <div className="text-xs font-mono text-rose-300 flex items-center gap-2">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Submitting Assessment & Redirecting...</span>
+            {proctoringModal.isFinal ? (
+              /* FINAL 3RD STRIKE TERMINATION MODAL */
+              <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
+                <div className="p-4 bg-rose-50 border border-rose-300 rounded-2xl flex items-start gap-3.5">
+                  <AlertCircle className="w-8 h-8 text-rose-600 flex-shrink-0 mt-0.5 animate-bounce" />
+                  <div className="space-y-1.5 flex-1">
+                    <h4 className="font-bold text-rose-950 text-sm">
+                      {proctoringModal.maxAllowed || 3} of {proctoringModal.maxAllowed || 3} Proctoring Strikes Exceeded
+                    </h4>
+                    <p className="text-rose-800 font-medium">
+                      Your interview session has closed and your answers are being submitted automatically due to repeated proctoring violations ({proctoringModal.violation}).
+                    </p>
+                    <p className="text-slate-600 text-[11px] mt-1">
+                      Your verbal responses and telemetry recorded up to this point have been saved to the proctoring audit log.
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleAcknowledgeWarning}
-                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs shadow-lg transition-all cursor-pointer hover:scale-[1.02]"
-                >
-                  {proctoringModal.count === 2
-                    ? 'I Understand (Final Warning) • Resume Fullscreen'
-                    : 'Acknowledge Warning 1 • Resume Fullscreen'}
-                </button>
-              )}
-            </div>
+
+                <div className="py-2 flex items-center justify-center gap-2 text-xs font-bold text-slate-500">
+                  <RefreshCw className="w-4 h-4 animate-spin text-brand-600" />
+                  <span>Submitting assessment and redirecting to results...</span>
+                </div>
+              </div>
+            ) : (
+              /* STRIKE 1 OR 2 WARNING MODAL */
+              <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
+                <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 text-amber-700 mt-0.5">
+                    {proctoringModal.violation?.toLowerCase().includes('multiple') ? (
+                      <Users className="w-5 h-5 text-amber-700" />
+                    ) : proctoringModal.violation?.toLowerCase().includes('away') ||
+                       proctoringModal.violation?.toLowerCase().includes('turn') ||
+                       proctoringModal.violation?.toLowerCase().includes('tilt') ||
+                       proctoringModal.violation?.toLowerCase().includes('gaze') ? (
+                      <EyeOff className="w-5 h-5 text-amber-700" />
+                    ) : proctoringModal.violation?.toLowerCase().includes('camera') ||
+                       proctoringModal.violation?.toLowerCase().includes('closed') ||
+                       proctoringModal.violation?.toLowerCase().includes('no face') ||
+                       proctoringModal.violation?.toLowerCase().includes('inactive') ? (
+                      <UserX className="w-5 h-5 text-amber-700" />
+                    ) : (
+                      <AlertTriangle className="w-5 h-5 text-amber-700" />
+                    )}
+                  </div>
+                  <div className="space-y-1.5 flex-1">
+                    <h4 className="font-bold text-amber-950 text-sm">{proctoringModal.violation || 'Proctoring Violation Detected'}</h4>
+                    <p className="text-amber-800 font-medium">
+                      {proctoringModal.message || 'Please face the camera directly and stay focused on the screen.'}
+                    </p>
+                    <div className="mt-2 p-2.5 bg-white/90 rounded-xl border border-amber-200 text-[11px] font-semibold text-amber-900">
+                      ⏱️ The interview countdown is currently paused. Please adjust your posture and face the camera before resuming.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs font-bold">
+                  <span className="text-slate-600">Proctoring Strikes Recorded:</span>
+                  <span className="px-2.5 py-1 bg-amber-500 text-white rounded-lg shadow-xs font-mono">
+                    Strike {proctoringModal.count} of {proctoringModal.maxAllowed || 3}
+                  </span>
+                </div>
+
+                <div className="text-[11px] text-rose-700 font-bold bg-rose-50 p-3 rounded-xl border border-rose-200">
+                  🚨 Critical: Reaching {proctoringModal.maxAllowed || 3} strikes will immediately auto-submit your interview.
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={handleAcknowledgeWarning}
+                    className="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md shadow-brand-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.01]"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>
+                      {proctoringModal.count === (proctoringModal.maxAllowed || 3) - 1
+                        ? 'I Understand (Final Warning) — Resume Fullscreen Interview'
+                        : `I Understand (Strike ${proctoringModal.count}) — Resume Interview`}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

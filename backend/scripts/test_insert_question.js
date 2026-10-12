@@ -31,14 +31,14 @@ async function testInsert() {
       ]
     );
 
-    console.log('INSERT Result:', res.rows[0]);
+    console.log('✅ INSERT Result:', res.rows[0]);
 
     const selectRes = await pool.query('SELECT COUNT(*) FROM questions');
-    console.log(`Total questions in DB: ${selectRes.rows[0].count}`);
+    console.log(`✅ Total questions in DB: ${selectRes.rows[0].count}`);
 
     process.exit(0);
   } catch (err) {
-    console.error('INSERT Error:', err);
+    console.error('❌ INSERT Error:', err);
     process.exit(1);
   }
 }

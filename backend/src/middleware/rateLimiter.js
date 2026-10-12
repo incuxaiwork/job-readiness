@@ -43,10 +43,11 @@ export const registerLimiter = makeRateLimiter({
     }),
 });
 
-// -- Global API: 600 requests per 15 min per IP -------------------------------
+// -- Global API: 600 requests per 15 min per IP (higher threshold in dev/load-tests) ---
 export const apiLimiter = makeRateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 600,
+  max: isDev ? 25000 : 3000,
+  skip: (req) => Boolean(req.headers['x-load-test'] === 'true' && isDev),
   message: { success: false, error: "Too many requests. Please slow down and try again later." },
 });
 

@@ -11,35 +11,30 @@
     "reset:candidate": "node scripts/reset_candidate_password.js",
     "db:generate": "prisma generate",
     "db:baseline": "node scripts/prisma-baseline.js",
-    "questions:validate": "node scripts/validate_questions_json.js",
-    "seed:questions": "node scripts/seed_from_json.js",
-    "colleges:migrate": "node scripts/migrate_colleges.js",
-    "colleges:migrate:dry": "node scripts/migrate_colleges.js --dry-run",
-    "db:rls": "node scripts/enable_rls.js",
-    "test:portals": "node scripts/smoke_test_portals.mjs",
+    "postinstall": "prisma generate",
     "test:heygen": "node scripts/test_heygen_integration.js",
     "test:load600": "node scripts/load_test_heygen_600.js",
-    "postinstall": "prisma generate"
+    "test": "node scripts/test_heygen_integration.js"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "7.10.0",
-    "@prisma/client": "7.10.0",
-    "prisma": "7.10.0",
-    "bcryptjs": "2.4.3",
-    "bullmq": "6.3.6",
-    "cookie-parser": "1.4.7",
-    "cors": "2.8.6",
-    "dotenv": "16.6.1",
-    "express": "4.22.3",
-    "express-rate-limit": "8.7.0",
-    "helmet": "7.2.0",
-    "jsonwebtoken": "9.0.3",
-    "pg": "8.23.0",
-    "rate-limit-redis": "6.0.1",
-    "redis": "6.2.1"
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "prisma": "^7.10.0",
+    "bcryptjs": "^2.4.3",
+    "bullmq": "^6.3.6",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.12.0",
+    "rate-limit-redis": "^6.0.1",
+    "redis": "^6.2.1"
   },
   "devDependencies": {}
 }

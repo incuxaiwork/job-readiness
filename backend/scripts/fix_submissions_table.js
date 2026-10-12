@@ -33,7 +33,7 @@ async function fixTable() {
       ALTER TABLE submissions ADD COLUMN IF NOT EXISTS answers JSONB;
     `);
 
-    console.log('Recreated assessment_submissions and patched submissions table successfully!');
+    console.log('✅ Recreated assessment_submissions and patched submissions table successfully!');
     process.exit(0);
   } catch (err) {
     console.error('Error fixing tables:', err.message);

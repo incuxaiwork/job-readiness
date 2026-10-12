@@ -1,6 +1,4 @@
 import { pool } from '../db/pool.js';
-import { resolveCollegeScope } from '../middleware/collegeScope.js';
-import { serverError } from '../utils/httpError.js';
 
 // GET /api/admin/stats — dashboard KPIs
 export const getStats = async (req, res) => {
@@ -17,20 +15,12 @@ export const getStats = async (req, res) => {
         }
       });
     }
-
-    const { collegeId, enforced } = resolveCollegeScope(req);
-    if (enforced && !collegeId) {
-      return res.status(403).json({ success: false, error: 'No college scope for this account.' });
-    }
-    // null scope = platform-wide (super admin)
-    const scope = enforced ? collegeId : null;
-
     const [candCount, subCount, avgScore, assessCount, jobReadyCount] = await Promise.all([
-      pool.query('SELECT COUNT(DISTINCT id) FROM candidate_profiles WHERE ($1::varchar IS NULL OR college_id = $1)', [scope]),
-      pool.query('SELECT COUNT(*) FROM assessment_submissions WHERE ($1::varchar IS NULL OR college_id = $1)', [scope]),
-      pool.query('SELECT COALESCE(ROUND(AVG(score)), 0) as avg FROM assessment_submissions WHERE ($1::varchar IS NULL OR college_id = $1)', [scope]),
+      pool.query('SELECT COUNT(DISTINCT id) FROM candidate_profiles'),
+      pool.query('SELECT COUNT(*) FROM assessment_submissions'),
+      pool.query('SELECT COALESCE(ROUND(AVG(score)), 0) as avg FROM assessment_submissions'),
       pool.query('SELECT COUNT(*) FROM assessments'),
-      pool.query('SELECT COUNT(DISTINCT candidate_id) FROM assessment_submissions WHERE score >= 70 AND ($1::varchar IS NULL OR college_id = $1)', [scope]),
+      pool.query('SELECT COUNT(DISTINCT candidate_id) FROM assessment_submissions WHERE score >= 70'),
     ]);
 
     res.json({
@@ -45,7 +35,7 @@ export const getStats = async (req, res) => {
     });
   } catch (err) {
     console.error('Error fetching admin stats:', err);
-    serverError(res, err, 'admin.controller');
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -63,16 +53,11 @@ export const getAnalytics = async (req, res) => {
             { range: '81-100%', count: 38 }
           ],
           readinessOverview: { ready: 68, inProgress: 32 },
-          skillRadar: { technical: 82, reasoning: 76, aptitude: 79, verbal: 74, coding: 80 },
-          collegeBreakdown: []
+          skillRadar: { technical: 82, reasoning: 76, aptitude: 79, verbal: 74, coding: 80 }
         }
       });
     }
     const { dateRange, college, assessmentId } = req.query;
-    const { collegeId: scopeCollegeId, collegeName: scopeCollegeName, enforced } = resolveCollegeScope(req);
-    if (enforced && !scopeCollegeId) {
-      return res.status(403).json({ success: false, error: 'No college scope for this account.' });
-    }
 
     const conditions = [];
     const params = [];
@@ -86,11 +71,8 @@ export const getAnalytics = async (req, res) => {
       conditions.push(`s.created_at >= NOW() - INTERVAL '90 days'`);
     }
 
-    // 2. College / University Filter (college admins are locked to their own college)
-    if (enforced) {
-      params.push(scopeCollegeId);
-      conditions.push(`s.college_id = $${params.length}`);
-    } else if (college && college !== 'All' && college !== 'All Universities') {
+    // 2. College / University Filter
+    if (college && college !== 'All' && college !== 'All Universities') {
       params.push(college);
       const idx = params.length;
       conditions.push(`(
@@ -207,24 +189,6 @@ export const getAnalytics = async (req, res) => {
       LIMIT 25
     `;
 
-    // Query 7: Per-College Performance Breakdown (grouped by college)
-    const collegeBreakdownQuery = `
-      SELECT
-        COALESCE(col.name, cp.college, 'Unspecified') AS college,
-        COUNT(DISTINCT s.candidate_id) as candidates,
-        COUNT(*) as submissions,
-        COALESCE(ROUND(AVG(s.score), 1), 0) as avg_score,
-        COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE s.score >= 65) / NULLIF(COUNT(*), 0), 1), 0) as pass_rate,
-        COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE s.score >= 70) / NULLIF(COUNT(*), 0), 1), 0) as job_readiness_rate
-      FROM assessment_submissions s
-      LEFT JOIN candidate_profiles cp ON s.candidate_id = cp.id OR s.candidate_id = cp.user_id OR LOWER(s.candidate_email) = LOWER(cp.email)
-      LEFT JOIN colleges col ON col.id = s.college_id
-      ${whereClause}
-      GROUP BY COALESCE(col.name, cp.college, 'Unspecified')
-      ORDER BY submissions DESC
-      LIMIT 50
-    `;
-
     const [
       kpiRes,
       distRes,
@@ -232,8 +196,7 @@ export const getAnalytics = async (req, res) => {
       trendRes,
       topicsRes,
       collegesRes,
-      asmsRes,
-      collegeRes
+      asmsRes
     ] = await Promise.all([
       pool.query(kpiQuery, params),
       pool.query(distQuery, params),
@@ -241,8 +204,7 @@ export const getAnalytics = async (req, res) => {
       pool.query(trendQuery, params),
       pool.query(topicsQuery, params),
       pool.query(collegesQuery),
-      pool.query(asmsQuery),
-      pool.query(collegeBreakdownQuery, params)
+      pool.query(asmsQuery)
     ]);
 
     // Format KPIs
@@ -315,6 +277,7 @@ export const getAnalytics = async (req, res) => {
       failureRate: `${parseFloat(r.failure_rate) || 0}%`,
       count: parseInt(r.count) || 0
     }));
+
     // Fallback if no topic breakdown rows match the specific filter
     if (weakestTopics.length === 0) {
       weakestTopics = [
@@ -325,21 +288,9 @@ export const getAnalytics = async (req, res) => {
       ];
     }
 
-    // Format Per-College Breakdown
-    const collegeBreakdown = collegeRes.rows.map(r => ({
-      college: r.college,
-      candidates: parseInt(r.candidates) || 0,
-      submissions: parseInt(r.submissions) || 0,
-      avgScore: parseFloat(r.avg_score) || 0,
-      passRate: parseFloat(r.pass_rate) || 0,
-      jobReadinessRate: parseFloat(r.job_readiness_rate) || 0
-    }));
-
     // Filter Options
     const filterOptions = {
-      colleges: enforced
-        ? [scopeCollegeName].filter(Boolean)
-        : collegesRes.rows.map(r => r.college).filter(Boolean),
+      colleges: collegesRes.rows.map(r => r.college).filter(Boolean),
       assessments: asmsRes.rows.map(r => ({ id: r.id, title: r.title })).filter(r => r.title)
     };
 
@@ -350,25 +301,17 @@ export const getAnalytics = async (req, res) => {
       categoryAverages,
       trend,
       weakestTopics,
-      collegeBreakdown,
       filterOptions,
     });
   } catch (err) {
     console.error('Error fetching admin analytics:', err);
-    serverError(res, err, 'admin.controller');
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
 // GET /api/admin/reports — full candidate report for CSV export
 export const getPlacementReport = async (req, res) => {
   try {
-    const { collegeId, enforced } = resolveCollegeScope(req);
-    if (enforced && !collegeId) {
-      return res.status(403).json({ success: false, error: 'No college scope for this account.' });
-    }
-    const where = enforced ? 'WHERE cp.college_id = $1' : '';
-    const params = enforced ? [collegeId] : [];
-
     const result = await pool.query(`
       SELECT
         cp.id, cp.name, cp.email, cp.mobile, cp.college, cp.degree, cp.branch,
@@ -380,101 +323,11 @@ export const getPlacementReport = async (req, res) => {
         cp.created_at
       FROM candidate_profiles cp
       LEFT JOIN candidates c ON cp.id = c.id OR cp.user_id = c.id
-      ${where}
       ORDER BY cp.created_at DESC
-    `, params);
+    `);
     res.json({ success: true, data: result.rows, total: result.rowCount });
   } catch (err) {
     console.error('Error fetching placement report:', err);
-    serverError(res, err, 'admin.controller');
-  }
-};
-
-const csvEscape = (value) => {
-  if (value === null || value === undefined) return '';
-  const s = String(value);
-  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-};
-
-const pickScore = (obj, ...keys) => {
-  for (const k of keys) {
-    if (obj && obj[k] !== null && obj[k] !== undefined && obj[k] !== '') return Math.round(Number(obj[k]));
-  }
-  return '';
-};
-
-// GET /api/admin/reports/export?format=csv&collegeId=&assessmentId=&dateRange=
-export const exportResultsCsv = async (req, res) => {
-  try {
-    const { collegeId, enforced } = resolveCollegeScope(req);
-    if (enforced && !collegeId) {
-      return res.status(403).json({ success: false, error: 'No college scope for this account.' });
-    }
-
-    const clauses = [];
-    const params = [];
-    if (enforced) {
-      params.push(collegeId);
-      clauses.push(`s.college_id = $${params.length}`);
-    } else if (req.query.collegeId) {
-      params.push(req.query.collegeId);
-      clauses.push(`s.college_id = $${params.length}`);
-    } else if (req.query.college) {
-      params.push(req.query.college);
-      clauses.push(`LOWER(col.name) = LOWER($${params.length})`);
-    }
-    if (req.query.assessmentId) {
-      params.push(req.query.assessmentId);
-      clauses.push(`s.assessment_id = $${params.length}`);
-    }
-    const days = { '7d': 7, '30d': 30, '90d': 90 }[req.query.dateRange];
-    if (days) clauses.push(`s.created_at >= NOW() - INTERVAL '${days} days'`);
-
-    const where = clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
-
-    const result = await pool.query(`
-      SELECT s.candidate_name, s.candidate_email, s.assessment_title,
-        COALESCE(col.name, cp.college) AS college,
-        s.score, s.accuracy, s.obtained_marks, s.total_marks,
-        s.category_scores, s.status, s.created_at
-      FROM assessment_submissions s
-      LEFT JOIN candidate_profiles cp ON cp.id = s.candidate_id OR cp.user_id = s.candidate_id
-      LEFT JOIN colleges col ON col.id = s.college_id
-      ${where}
-      ORDER BY s.created_at DESC
-    `, params);
-
-    const num = (obj, ...keys) => {
-      for (const k of keys) {
-        if (obj && obj[k] !== null && obj[k] !== undefined) return Math.round(Number(obj[k]));
-      }
-      return '';
-    };
-
-    const header = ['candidate_name', 'email', 'college', 'assessment_title', 'score', 'accuracy',
-      'obtained_marks', 'total_marks', 'aptitude', 'reasoning', 'technical', 'verbal', 'coding', 'status', 'submitted_at'];
-    const lines = [header.join(',')];
-    for (const r of result.rows) {
-      const cs = r.category_scores || {};
-      lines.push([
-        r.candidate_name, r.candidate_email, r.college, r.assessment_title,
-        r.score, r.accuracy, r.obtained_marks, r.total_marks,
-        num(cs, 'aptitude', 'Aptitude'),
-        num(cs, 'reasoning', 'LogicalReasoning'),
-        num(cs, 'technical', 'TechnicalKnowledge'),
-        num(cs, 'verbal', 'Verbal', 'english'),
-        num(cs, 'coding', 'Coding'),
-        r.status,
-        r.created_at ? new Date(r.created_at).toISOString() : '',
-      ].map(csvEscape).join(','));
-    }
-
-    const stamp = new Date().toISOString().slice(0, 10);
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="results-${stamp}.csv"`);
-    res.send('\uFEFF' + lines.join('\r\n'));
-  } catch (err) {
-    console.error('Error exporting results CSV:', err);
-    serverError(res, err, 'admin.controller');
+    res.status(500).json({ success: false, error: err.message });
   }
 };

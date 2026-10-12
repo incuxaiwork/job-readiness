@@ -13,8 +13,6 @@
     "deploy:start": "npm run start",
     "db:generate": "cd backend && npx prisma generate",
     "db:baseline": "npm run db:baseline --prefix backend",
-    "questions:validate": "cd backend && node scripts/validate_questions_json.js",
-    "seed:questions": "cd backend && node scripts/seed_from_json.js",
     "db:migrate": "npm run db:baseline && cd backend && npx prisma migrate deploy",
     "db:studio": "cd backend && npx prisma studio",
     "seed": "npm run seed --prefix backend",
