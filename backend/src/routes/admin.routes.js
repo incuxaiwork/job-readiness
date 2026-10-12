@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { getStats, getAnalytics, getPlacementReport, exportResultsCsv } from '../controllers/admin.controller.js';
 import {
-  listColleges, createCollege, updateCollege,
+  listColleges, createCollege, updateCollege, deleteCollege,
   listCollegeAdmins, createCollegeAdmin, updateCollegeAdmin,
 } from '../controllers/colleges.controller.js';
 import { authenticateToken } from '../middleware/auth.js';
@@ -22,6 +22,7 @@ router.get('/reports/export', exportResultsCsv);
 router.get('/colleges', requireRole('admin'), listColleges);
 router.post('/colleges', requireRole('admin'), createCollege);
 router.patch('/colleges/:id', requireRole('admin'), updateCollege);
+router.delete('/colleges/:id', requireRole('admin'), deleteCollege);
 router.get('/colleges/:id/admins', requireRole('admin'), listCollegeAdmins);
 router.post('/colleges/:id/admins', requireRole('admin'), createCollegeAdmin);
 router.patch('/colleges/:id/admins/:userId', requireRole('admin'), updateCollegeAdmin);

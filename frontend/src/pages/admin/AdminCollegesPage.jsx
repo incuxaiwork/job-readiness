@@ -3,7 +3,7 @@ import { api } from '../../services/api';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../../components/common/Modal';
 import {
-  Building2, Plus, KeyRound, Copy, Users, RefreshCw, Ban, CheckCircle2, Mail,
+  Building2, Plus, KeyRound, Copy, Users, RefreshCw, Ban, CheckCircle2, Mail, Trash2,
 } from 'lucide-react';
 
 const emptyForm = { name: '', code: '', domain: '', city: '', state: '', contact_name: '', contact_email: '', contact_phone: '' };
@@ -57,6 +57,19 @@ export const AdminCollegesPage = () => {
       addToast?.(e.message || 'Could not create college', 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async (college) => {
+    if (!window.confirm(`Delete "${college.name}" and its admin logins? Students will be unlinked. This cannot be undone.`)) return;
+    try {
+      const res = await api.admin.colleges.remove(college.id);
+      if (!res.ok) throw new Error(res.error || 'Failed to delete college');
+      addToast?.('College deleted', 'success');
+      if (manageCollege?.id === college.id) setManageCollege(null);
+      await load();
+    } catch (e) {
+      addToast?.(e.message || 'Could not delete college', 'error');
     }
   };
 
@@ -174,6 +187,13 @@ export const AdminCollegesPage = () => {
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-700"
                       >
                         <KeyRound className="w-3.5 h-3.5" /> Manage Admins
+                      </button>
+                      <button
+                        onClick={() => handleDelete(c)}
+                        title="Delete college"
+                        className="inline-flex items-center gap-1.5 ml-2 px-2.5 py-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-xs font-bold text-rose-600"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </td>
                   </tr>

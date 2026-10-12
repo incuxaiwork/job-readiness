@@ -65,6 +65,38 @@ export const createCollege = async (req, res) => {
   }
 };
 
+// DELETE /api/admin/colleges/:id  (super admin only)
+// Removes the college, its college_admin accounts, and unlinks any associated
+// students/submissions (their college_id is set NULL via ON DELETE SET NULL).
+export const deleteCollege = async (req, res) => {
+  const { id } = req.params;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const college = await client.query('SELECT id FROM colleges WHERE id = $1', [id]);
+    if (college.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ success: false, error: 'College not found.' });
+    }
+
+    const admins = await client.query(
+      'DELETE FROM users WHERE college_id = $1 AND role = $2 RETURNING id',
+      [id, 'college_admin']
+    );
+    await client.query('DELETE FROM colleges WHERE id = $1', [id]);
+
+    await client.query('COMMIT');
+    res.json({ success: true, data: { id, deletedAdmins: admins.rowCount } });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('deleteCollege error:', err.message);
+    serverError(res, err, 'colleges.controller');
+  } finally {
+    client.release();
+  }
+};
+
 // PATCH /api/admin/colleges/:id  (super admin only)
 export const updateCollege = async (req, res) => {
   const { id } = req.params;

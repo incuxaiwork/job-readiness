@@ -311,6 +311,7 @@ export const api = {
       list:        ()                    => request("GET",   "/admin/colleges"),
       create:      (body)                => request("POST",  "/admin/colleges", body),
       update:      (id, body)            => request("PATCH", "/admin/colleges/" + id, body),
+      remove:      (id)                  => request("DELETE", "/admin/colleges/" + id),
       admins:      (id)                  => request("GET",   "/admin/colleges/" + id + "/admins"),
       createAdmin: (id, body)            => request("POST",  "/admin/colleges/" + id + "/admins", body),
       updateAdmin: (id, userId, body)    => request("PATCH", "/admin/colleges/" + id + "/admins/" + userId, body),
