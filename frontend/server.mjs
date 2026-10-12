@@ -28,6 +28,17 @@ const MIME = {
   '.wasm': 'application/wasm',
 };
 
+// When the API is deployed on a separate origin (split deploy), the browser
+// calls it cross-origin, so its origin must be allowed in connect-src.
+const API_ORIGIN = (() => {
+  try {
+    const u = new URL(process.env.VITE_API_URL || '');
+    return (u.protocol === 'http:' || u.protocol === 'https:') ? `${u.protocol}//${u.host}` : '';
+  } catch {
+    return '';
+  }
+})();
+
 const CSP = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -35,7 +46,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https://fonts.gstatic.com",
-  "connect-src 'self' https://cdn.jsdelivr.net https://storage.googleapis.com https://ce.judge0.com blob: data:",
+  `connect-src 'self'${API_ORIGIN ? ` ${API_ORIGIN}` : ''} https://cdn.jsdelivr.net https://storage.googleapis.com https://ce.judge0.com blob: data:`,
   "media-src 'self' blob: data:",
   "worker-src 'self' blob:",
   "object-src 'none'",
