@@ -102,14 +102,15 @@ export const FallbackAnimatedAvatar = ({ isSpeaking, agentState }) => {
  * connection status indicator, and mode switcher.
  */
 export const HeyGenStreamingAvatar = ({
-  isSpeaking = false,
-  agentState = 'IDLE',
-  sessionId = null,
-  isLiveStreamPreferred = true,
-  onSpeechEnd = null,
-  onStreamStateChange = null
+  isSpeaking,
+  agentState,
+  sessionId,
+  isLiveStreamPreferred,
+  onSpeechEnd,
+  onStreamStateChange,
+  visual = 'video'
 }) => {
-  const videoRef = useRef(null);
+  const mediaRef = useRef(null);
   const [streamStatus, setStreamStatus] = useState('idle'); // 'idle' | 'connecting' | 'connected' | 'speaking' | 'fallback' | 'error'
   const [statusDetail, setStatusDetail] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -120,9 +121,9 @@ export const HeyGenStreamingAvatar = ({
   useEffect(() => {
     const unsubStream = heygenAvatarService.on('stream_ready', (stream) => {
       console.log('[HeyGen Component] Stream ready received in component');
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play().catch((err) => {
+      if (mediaRef.current) {
+        mediaRef.current.srcObject = stream;
+        mediaRef.current.play().catch((err) => {
           console.warn('[HeyGen Component] Auto-play prevented:', err);
         });
       }
@@ -198,21 +199,27 @@ export const HeyGenStreamingAvatar = ({
 
   // Re-attach mediaStream to video ref if state restored
   useEffect(() => {
-    if (hasWebRTCStream && heygenAvatarService.mediaStream && videoRef.current) {
-      if (videoRef.current.srcObject !== heygenAvatarService.mediaStream) {
-        videoRef.current.srcObject = heygenAvatarService.mediaStream;
-        videoRef.current.play().catch(() => {});
+    if (hasWebRTCStream && heygenAvatarService.mediaStream && mediaRef.current) {
+      if (mediaRef.current.srcObject !== heygenAvatarService.mediaStream) {
+        mediaRef.current.srcObject = heygenAvatarService.mediaStream;
+        mediaRef.current.play().catch(() => {});
       }
     }
   }, [hasWebRTCStream]);
 
   const isLiveConnected = hasWebRTCStream && (streamStatus === 'connected' || streamStatus === 'speaking');
 
+  // Audio-only mode: the interviewer tile renders no video, but we keep the
+  // HeyGen session alive so its voice still drives the avatar (when configured).
+  if (visual === 'none') {
+    return <audio ref={mediaRef} autoPlay aria-hidden="true" className="hidden" />;
+  }
+
   return (
     <div className="relative w-full h-full min-h-0 bg-slate-950 flex items-center justify-center overflow-hidden rounded-xl sm:rounded-2xl select-none group">
       {/* 1. Live WebRTC Video Element */}
       <video
-        ref={videoRef}
+        ref={mediaRef}
         autoPlay
         playsInline
         muted={isAudioMuted}

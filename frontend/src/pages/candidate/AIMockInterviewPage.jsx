@@ -13,6 +13,10 @@ import { getActiveAssessments, checkAssessmentCompleted } from '../../utils/inte
 import { heygenAvatarService } from '../../services/heygenAvatarService';
 import { HeyGenStreamingAvatar } from '../../components/interview/HeyGenStreamingAvatar';
 import {
+  getInterviewAudioForText,
+  findInterviewAudioKey
+} from '../../data/interviewAudioManifest';
+import {
   Volume2,
   Video,
   Mic,
@@ -447,6 +451,9 @@ export const AIMockInterviewPage = () => {
   const elevenLabsAbortRef = useRef(null);
   const elevenLabsSourceRef = useRef(null);
 
+  // Pre-rendered interview audio clip (fixed questions + transition lines)
+  const preRenderedAudioRef = useRef(null);
+
   // ElevenLabs TTS is proxied through the backend (`/api/tts/speak`). The API key
   // lives server-side only and is never bundled into the browser.
   const ttsAuthHeaders = () => {
@@ -467,6 +474,17 @@ export const AIMockInterviewPage = () => {
     setQuestions(updatedQ);
     localStorage.setItem('rsj_resume_questions', JSON.stringify(updatedQ));
   }, [targetRole, analysisResult]);
+
+  // Dev-only drift guard: warn if a spoken question has no pre-rendered clip.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    questions.forEach((q) => {
+      const text = q?.questionText || q?.question;
+      if (text && !findInterviewAudioKey(text)) {
+        console.warn('[InterviewAudio] No pre-rendered clip for question text; will use live TTS:', text);
+      }
+    });
+  }, [questions]);
 
   // Determine whether a genuine resume is uploaded
   const hasUploadedResume = Boolean(uploadedFileName && (rawResumeText || (analysisResult?.skills && analysisResult.skills.length > 0)));
@@ -988,6 +1006,67 @@ export const AIMockInterviewPage = () => {
     }
   };
 
+  // Play a pre-rendered clip from /audio/interview/. Resolves true once playback
+  // has started, false when the clip is missing/unplayable so the caller can
+  // fall back to live TTS.
+  const playPreRenderedClip = (clip, onDone) => new Promise((resolve) => {
+    let audio;
+    try {
+      setIsAISpeaking(true);
+      audio = new Audio(clip.src);
+      audio.preload = 'auto';
+      preRenderedAudioRef.current = audio;
+    } catch (err) {
+      console.warn('[InterviewAudio] could not create audio element:', err);
+      resolve(false);
+      return;
+    }
+
+    let settled = false;
+    let started = false;
+    const release = () => {
+      if (preRenderedAudioRef.current === audio) preRenderedAudioRef.current = null;
+    };
+
+    audio.onplaying = () => { started = true; };
+
+    audio.onended = () => {
+      if (settled) return;
+      settled = true;
+      release();
+      setIsAISpeaking(false);
+      onDone?.();
+    };
+
+    audio.onerror = () => {
+      if (settled) return;
+      settled = true;
+      release();
+      if (started) {
+        // Failed mid-playback: treat as finished so the flow continues.
+        setIsAISpeaking(false);
+        onDone?.();
+        resolve(true);
+      } else {
+        console.warn('[InterviewAudio] pre-rendered clip unavailable, falling back to TTS:', clip.src);
+        resolve(false);
+      }
+    };
+
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.then === 'function') {
+      playPromise.catch(() => {
+        if (settled) return;
+        settled = true;
+        release();
+        console.warn('[InterviewAudio] pre-rendered clip blocked/unplayable, falling back to TTS:', clip.src);
+        resolve(false);
+      });
+    } else {
+      resolve(true);
+    }
+  });
+
   // ── Interviewer Voice Engine (ElevenLabs or Native Browser TTS) ──
   const speakAI = async (text, onFinished) => {
     if (!text) { onFinished?.(); return; }
@@ -1012,6 +1091,18 @@ export const AIMockInterviewPage = () => {
     if (elevenLabsSourceRef.current) {
       try { elevenLabsSourceRef.current.stop(); } catch { }
       elevenLabsSourceRef.current = null;
+    }
+    if (preRenderedAudioRef.current) {
+      try { preRenderedAudioRef.current.pause(); } catch { }
+      preRenderedAudioRef.current = null;
+    }
+
+    // 0. Pre-rendered static clip (fixed questions + transition lines). Zero
+    // latency / zero cost; any unmatched text falls through to live TTS below.
+    const preRenderedClip = getInterviewAudioForText(cleanText);
+    if (preRenderedClip) {
+      const played = await playPreRenderedClip(preRenderedClip, () => onFinished?.());
+      if (played) return;
     }
 
     // 1. HeyGen Interactive Avatar native speech (primary when a live stream is connected)
@@ -1614,6 +1705,8 @@ export const AIMockInterviewPage = () => {
       // Cancel any in-progress ElevenLabs audio
       if (elevenLabsAbortRef.current) { try { elevenLabsAbortRef.current.abort(); } catch { } }
       if (elevenLabsSourceRef.current) { try { elevenLabsSourceRef.current.stop(); } catch { } }
+      // Stop any in-progress pre-rendered clip
+      if (preRenderedAudioRef.current) { try { preRenderedAudioRef.current.pause(); } catch { } preRenderedAudioRef.current = null; }
       if (document.fullscreenElement) {
         document.exitFullscreen?.().catch(() => { });
       }
@@ -2591,138 +2684,173 @@ export const AIMockInterviewPage = () => {
           </div>
         </div>
 
-        {/* Two-Pane Stage (The Two Cameras with Adjusted Size) */}
+        {/* Google Meet-style stage: two participant tiles */}
         <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
 
-          {/* Pane 1: AI Avatar */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-card overflow-hidden flex flex-col h-full min-h-0">
-            <div className="flex items-center justify-between px-3.5 py-2 border-b border-slate-100 bg-slate-50/60 shrink-0">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`w-2.5 h-2.5 rounded-full ${isAISpeaking
-                    ? 'bg-cyan-500 animate-pulse'
-                    : agentState === 'LISTENING'
-                      ? 'bg-emerald-500 animate-pulse'
-                      : agentState === 'PROCESSING'
-                        ? 'bg-amber-500 animate-pulse'
-                        : sessionActive
-                          ? 'bg-emerald-500'
-                          : 'bg-slate-400'
-                    }`}
-                />
-                <span className="text-xs sm:text-sm font-bold text-slate-800 font-sans">
-                  AI Avatar
-                </span>
+          {/* Tile 1 — AI Interviewer (Meet-style, camera OFF: no video) */}
+          <div className="relative rounded-2xl overflow-hidden bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700/60 shadow-card h-full min-h-0 flex items-center justify-center">
+            {/* HeyGen session kept alive for interviewer voice only (never shown as video) */}
+            <HeyGenStreamingAvatar
+              visual="none"
+              isSpeaking={isAISpeaking}
+              agentState={agentState}
+              sessionId={sessionId}
+              isLiveStreamPreferred={heyGenModePreferred}
+              onSpeechEnd={() => {
+                setIsAISpeaking(false);
+              }}
+            />
+
+            {isAISpeaking && (
+              <div className="absolute inset-0 bg-radial from-cyan-500/10 via-transparent to-transparent pointer-events-none animate-pulse" />
+            )}
+
+            {/* Centered round avatar (no video feed) */}
+            <div className="relative z-10 flex flex-col items-center justify-center gap-3">
+              <div className="relative">
+                <div className={`w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden bg-slate-800 ring-4 transition-all duration-300 ${isAISpeaking
+                  ? 'ring-cyan-400/80'
+                  : agentState === 'LISTENING'
+                    ? 'ring-emerald-400/70'
+                    : agentState === 'PROCESSING'
+                      ? 'ring-amber-400/70'
+                      : 'ring-white/10'
+                  }`}>
+                  <img
+                    src="/avatars/interviewer_primary.jpg?v=7"
+                    alt="AI Interviewer"
+                    className="w-full h-full object-cover select-none"
+                  />
+                </div>
+                {isAISpeaking && (
+                  <span className="absolute inset-0 rounded-full ring-4 ring-cyan-400/40 animate-ping pointer-events-none" />
+                )}
               </div>
+              <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-full border backdrop-blur-md ${isAISpeaking
+                ? 'bg-cyan-950/70 border-cyan-500/40 text-cyan-300'
+                : agentState === 'LISTENING'
+                  ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-300'
+                  : agentState === 'PROCESSING'
+                    ? 'bg-amber-950/70 border-amber-500/40 text-amber-300'
+                    : 'bg-slate-900/70 border-slate-700/60 text-slate-300'
+                }`}>
+                {isAISpeaking
+                  ? 'Speaking…'
+                  : agentState === 'LISTENING'
+                    ? 'Listening…'
+                    : agentState === 'PROCESSING'
+                      ? 'Evaluating…'
+                      : 'Camera off'}
+              </span>
             </div>
 
-            {/* AI Avatar Video Cam Feed (HeyGen live stream with animated fallback) */}
-            <div className="p-2 sm:p-2.5 bg-slate-100/50 flex-1 min-h-0 flex items-center justify-center overflow-hidden">
-              <HeyGenStreamingAvatar
-                isSpeaking={isAISpeaking}
-                agentState={agentState}
-                sessionId={sessionId}
-                isLiveStreamPreferred={heyGenModePreferred}
-                onSpeechEnd={() => {
-                  setIsAISpeaking(false);
-                }}
-              />
+            {/* Camera-off badge (top-right) */}
+            <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-black/50 backdrop-blur-md border border-white/10">
+              <VideoOff className="w-3.5 h-3.5 text-slate-300" />
+              <span className="text-[10px] font-mono text-slate-200">Camera off</span>
+            </div>
+
+            {/* Name pill (bottom-left, Meet style) */}
+            <div className="absolute bottom-3 left-3 z-20 flex items-center gap-2 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/10">
+              <span className={`w-2.5 h-2.5 rounded-full ${isAISpeaking
+                ? 'bg-cyan-400 animate-pulse'
+                : agentState === 'LISTENING'
+                  ? 'bg-emerald-400 animate-pulse'
+                  : agentState === 'PROCESSING'
+                    ? 'bg-amber-400 animate-pulse'
+                    : sessionActive
+                      ? 'bg-emerald-400'
+                      : 'bg-slate-400'
+                }`} />
+              <span className="text-xs font-bold text-white font-sans">AI Interviewer</span>
             </div>
           </div>
 
-          {/* Pane 2: Candidate Video Feed & Audio Telemetry */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-card overflow-hidden flex flex-col h-full min-h-0">
-            <div className="flex items-center justify-between px-3.5 py-2 border-b border-slate-100 bg-slate-50/60 shrink-0">
-              <div className="flex items-center gap-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${cameraActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-                <span className="text-xs sm:text-sm font-bold text-slate-800 font-sans">
-                  Candidate Video Stream
+          {/* Tile 2 — You (Meet-style, webcam always on) */}
+          <div className="relative rounded-2xl overflow-hidden bg-slate-950 border border-slate-700/60 shadow-card h-full min-h-0">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className={`absolute inset-0 w-full h-full object-cover mirror-mode ${cameraActive ? 'block' : 'hidden'}`}
+            />
+
+            {videoPlayBlocked && cameraActive && (
+              <div className="absolute inset-0 z-30 bg-black/80 flex flex-col items-center justify-center p-3 text-center">
+                <Play className="w-8 h-8 text-brand-400 mb-1 cursor-pointer" onClick={handleManualVideoPlay} />
+                <p className="text-xs text-white font-semibold mb-1.5 font-sans">Click to start live camera preview</p>
+                <button
+                  onClick={handleManualVideoPlay}
+                  className="px-3 py-1 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold font-sans transition-colors cursor-pointer"
+                >
+                  Activate Video
+                </button>
+              </div>
+            )}
+
+            {!cameraActive && (
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-4 text-center">
+                <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 mb-2">
+                  <VideoOff className="w-5 h-5" />
+                </div>
+                <p className="text-xs font-bold text-white mb-0.5 font-sans">Camera Feed Standby</p>
+                <p className="text-[10px] text-slate-400 max-w-xs mb-2 font-sans">
+                  Click below or start interview to activate.
+                </p>
+                <button
+                  type="button"
+                  onClick={startCamera}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold font-sans shadow-xs cursor-pointer transition-all"
+                >
+                  <Video className="w-3 h-3" />
+                  <span>Turn On Camera</span>
+                </button>
+              </div>
+            )}
+
+            {/* Live overlay HUD when session is active */}
+            {sessionActive && (
+              <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none z-10">
+                <div className="px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                  <Eye className="w-3 h-3" />
+                  <span>Gaze: {telemetry.eyeContact}%</span>
+                </div>
+                <div className="px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-mono text-cyan-300 flex items-center gap-1">
+                  <Activity className="w-3 h-3" />
+                  <span>Time: {formatTimer(timerSeconds)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Proctoring warning overlay (top) */}
+            {activeWarningMessage && (
+              <div className="absolute top-10 left-2.5 right-2.5 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-rose-400/50 text-rose-200 text-[11px] font-sans font-semibold">
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
+                <span className="truncate">{activeWarningMessage}</span>
+                <span className="ml-auto px-1.5 rounded bg-rose-500/30 text-[10px] font-mono font-black text-rose-100 shrink-0">
+                  {warningCount}/3
                 </span>
               </div>
-              {/* Right Corner of User Box: Proctoring Warnings & Alert Status */}
-              <div className="flex items-center gap-1.5 min-w-0">
-                {activeWarningMessage ? (
-                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-xs font-bold animate-pulse shadow-2xs">
-                    <AlertTriangle className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
-                    <span className="truncate max-w-[200px] sm:max-w-[280px] font-sans text-[11px] sm:text-xs">
-                      {activeWarningMessage}
-                    </span>
-                    <span className="px-1.5 py-0.2 rounded bg-rose-200/80 text-[10px] font-mono font-black text-rose-900 shrink-0">
-                      {warningCount}/3 Strikes
-                    </span>
-                  </div>
-                ) : (
-                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${warningCount === 0
-                    ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
-                    : warningCount === 1
-                      ? 'text-amber-700 bg-amber-50 border-amber-200'
-                      : 'text-rose-700 bg-rose-50 border-rose-300 animate-pulse'
-                    }`}>
-                    Warnings: {warningCount} / 3 Strikes
-                  </span>
-                )}
-              </div>
+            )}
+
+            {/* Name pill (bottom-left, Meet style) */}
+            <div className="absolute bottom-3 left-3 z-20 flex items-center gap-2 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/10">
+              <Mic className={`w-3.5 h-3.5 ${isRecording ? 'text-emerald-400' : 'text-slate-300'}`} />
+              <span className="text-xs font-bold text-white font-sans">You</span>
+              {warningCount > 0 && (
+                <span className={`text-[10px] font-mono font-black ${warningCount >= 3 ? 'text-rose-300' : 'text-amber-300'}`}>
+                  {warningCount}/3
+                </span>
+              )}
             </div>
 
-            {/* Video Viewport Stage matching Dr. Arvind Swami container */}
-            <div className="p-2 sm:p-2.5 bg-slate-100/50 flex-1 min-h-0 flex items-center justify-center overflow-hidden">
-              <div className="relative w-full h-full min-h-0 bg-slate-950 flex items-center justify-center overflow-hidden rounded-xl sm:rounded-2xl select-none">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className={`w-full h-full object-cover mirror-mode ${cameraActive ? 'block' : 'hidden'}`}
-                />
-
-                {videoPlayBlocked && cameraActive && (
-                  <div className="absolute inset-0 z-30 bg-black/80 flex flex-col items-center justify-center p-3 text-center">
-                    <Play className="w-8 h-8 text-brand-400 mb-1 cursor-pointer" onClick={handleManualVideoPlay} />
-                    <p className="text-xs text-white font-semibold mb-1.5 font-sans">Click to start live camera preview</p>
-                    <button
-                      onClick={handleManualVideoPlay}
-                      className="px-3 py-1 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold font-sans transition-colors cursor-pointer"
-                    >
-                      Activate Video
-                    </button>
-                  </div>
-                )}
-
-                {!cameraActive && (
-                  <div className="flex flex-col items-center justify-center p-4 text-center">
-                    <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 mb-2">
-                      <VideoOff className="w-5 h-5" />
-                    </div>
-                    <p className="text-xs font-bold text-white mb-0.5 font-sans">Camera Feed Standby</p>
-                    <p className="text-[10px] text-slate-400 max-w-xs mb-2 font-sans">
-                      Click below or start interview to activate.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={startCamera}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold font-sans shadow-xs cursor-pointer transition-all"
-                    >
-                      <Video className="w-3 h-3" />
-                      <span>Turn On Camera Preview</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* Live Overlay HUD when session is active */}
-                {sessionActive && (
-                  <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none z-10">
-                    <div className="px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-                      <Eye className="w-3 h-3" />
-                      <span>Gaze: {telemetry.eyeContact}%</span>
-                    </div>
-                    <div className="px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-mono text-cyan-300 flex items-center gap-1">
-                      <Activity className="w-3 h-3" />
-                      <span>Time: {formatTimer(timerSeconds)}</span>
-                    </div>
-                  </div>
-                )}
+            {isRecording && (
+              <div className="absolute bottom-3 right-3 z-20 flex items-center gap-1.5 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-emerald-500/40">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <span className="text-[10px] font-mono font-bold text-emerald-300">Live</span>
               </div>
-            </div>
+            )}
           </div>
 
         </div>

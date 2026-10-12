@@ -19,6 +19,7 @@
     "test:portals": "node scripts/smoke_test_portals.mjs",
     "test:heygen": "node scripts/test_heygen_integration.js",
     "test:load600": "node scripts/load_test_heygen_600.js",
+    "gen:interview-audio": "node scripts/generate_interview_audio.mjs",
     "postinstall": "prisma generate"
   },
   "engines": {
