@@ -63,105 +63,6 @@ export const isCodingQuestion = (q) => {
     hasTemplates;
 };
 
-// Assessment Tracks Specification
-const TRACKS = [
-  {
-    id: 'Coding',
-    title: 'Hands-on Coding Assessment',
-    category: 'Coding',
-    badge: 'Interactive Code Studio',
-    icon: Code2,
-    badgeColor: 'bg-indigo-100 text-indigo-700 border-indigo-200',
-    borderColor: 'border-indigo-500 bg-indigo-50/50 shadow-md ring-2 ring-indigo-500/20',
-    inactiveBorder: 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50',
-    description: 'Algorithmic challenges executed in Monaco Editor with automated test runner across Python, JS, C++, and Java.',
-    features: ['Monaco Code Studio', 'Multi-Language Sandbox', 'Hidden Test Cases', '4s Auto-Termination'],
-    defaultDuration: 60,
-    defaultQuestions: 3,
-    defaultPassing: 60,
-    defaultTitle: 'Software Engineering Coding Assessment',
-    defaultDesc: 'Hands-on programming and algorithmic challenges in Java, Python, C++, and JavaScript with automated test runner evaluation.'
-  },
-  {
-    id: 'Sectional',
-    title: 'Sectional Skill Assessment (MCQ)',
-    category: 'Aptitude',
-    badge: 'Objective MCQ Pillar',
-    icon: BookOpen,
-    badgeColor: 'bg-brand-100 text-brand-700 border-brand-200',
-    borderColor: 'border-brand-500 bg-brand-50/50 shadow-md ring-2 ring-brand-500/20',
-    inactiveBorder: 'border-slate-200 hover:border-brand-300 hover:bg-slate-50',
-    description: 'Standardized multiple choice question evaluations assessing a dedicated skill pillar with instant grading.',
-    features: ['Objective Questions', 'Category Question Bank', 'Option Shuffling', 'Negative Marking Option'],
-    defaultDuration: 30,
-    defaultQuestions: 15,
-    defaultPassing: 65,
-    defaultTitle: 'Aptitude & Quantitative Speed Assessment',
-    defaultDesc: 'Evaluates quantitative reasoning, problem solving speed, arithmetic, and data interpretation.'
-  },
-  {
-    id: 'All Mix',
-    title: 'Hybrid All-Mix Assessment (MCQ)',
-    category: 'All Mix',
-    badge: 'All 4 MCQ Pillars',
-    icon: Sparkles,
-    badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    borderColor: 'border-emerald-500 bg-emerald-50/50 shadow-md ring-2 ring-emerald-500/20',
-    inactiveBorder: 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50',
-    description: 'Comprehensive full-length simulation combining objective MCQs from all 4 pillars: Aptitude, Reasoning, Technical, and Verbal.',
-    features: ['Balanced 4-Pillar Mix', 'Objective MCQs Only', 'Comprehensive Scorecard', 'Job Readiness Radar'],
-    defaultDuration: 45,
-    defaultQuestions: 20,
-    defaultPassing: 70,
-    defaultTitle: 'Comprehensive Job Readiness Full-Length Assessment',
-    defaultDesc: 'Comprehensive full-length test assessing Aptitude, Reasoning, Technical, and Verbal skills with objective MCQs.'
-  }
-];
-
-// Sectional MCQ Core Pillars
-const SECTIONAL_PILLARS = [
-  {
-    id: 'Aptitude',
-    name: 'Aptitude',
-    icon: Calculator,
-    color: 'emerald',
-    badge: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    activeBg: 'bg-emerald-600 text-white shadow-xs',
-    inactiveBg: 'bg-slate-100 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700',
-    desc: 'Quantitative, Math & Arithmetic'
-  },
-  {
-    id: 'Reasoning',
-    name: 'Reasoning',
-    icon: Brain,
-    color: 'amber',
-    badge: 'bg-amber-100 text-amber-700 border-amber-200',
-    activeBg: 'bg-amber-600 text-white shadow-xs',
-    inactiveBg: 'bg-slate-100 text-slate-700 hover:bg-amber-50 hover:text-amber-700',
-    desc: 'Logical, Puzzles & Deduction'
-  },
-  {
-    id: 'Technical',
-    name: 'Technical',
-    icon: Cpu,
-    color: 'cyan',
-    badge: 'bg-cyan-100 text-cyan-700 border-cyan-200',
-    activeBg: 'bg-cyan-600 text-white shadow-xs',
-    inactiveBg: 'bg-slate-100 text-slate-700 hover:bg-cyan-50 hover:text-cyan-700',
-    desc: 'Core CS, DBMS, OS & Networks'
-  },
-  {
-    id: 'Verbal',
-    name: 'Verbal',
-    icon: BookOpen,
-    color: 'blue',
-    badge: 'bg-blue-100 text-blue-700 border-blue-200',
-    activeBg: 'bg-blue-600 text-white shadow-xs',
-    inactiveBg: 'bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-700',
-    desc: 'Grammar, Vocabulary & Reading'
-  }
-];
-
 export const AdminAssessmentsPage = () => {
   const {
     assessments,
@@ -183,17 +84,17 @@ export const AdminAssessmentsPage = () => {
   const [editingAsmId, setEditingAsmId] = useState(null);
   const [step2CategoryFilter, setStep2CategoryFilter] = useState('all');
 
-  // Wizard state
+  // Wizard state — a single unified assessment may mix coding + MCQ questions
   const [newAssessment, setNewAssessment] = useState({
     title: '',
-    category: 'Coding',
+    category: 'Full',
     description: '',
     difficulty: 'Medium',
     durationMinutes: 60,
     passingScore: 60,
     selectedQuestionIds: [],
-    totalQuestions: 3,
-    tags: ['Coding', 'Algorithms', 'Data Structures']
+    totalQuestions: 10,
+    tags: ['Coding', 'MCQ', 'Full Assessment']
   });
 
   const steps = [
@@ -209,7 +110,8 @@ export const AdminAssessmentsPage = () => {
   // Determine current wizard track
   const isCodingTrack = (newAssessment.category || '').toLowerCase() === 'coding';
   const isAllMixTrack = ['all', 'all mix', 'full length', 'all mix (combined)'].includes((newAssessment.category || '').toLowerCase());
-  const isSectionalTrack = !isCodingTrack && !isAllMixTrack;
+  const isFullTrack = (newAssessment.category || '').toLowerCase() === 'full';
+  const isSectionalTrack = !isCodingTrack && !isAllMixTrack && !isFullTrack;
 
   // Filter assessments for catalog
   const filteredAssessments = useMemo(() => {
@@ -232,99 +134,33 @@ export const AdminAssessmentsPage = () => {
       reasoning: assessments.filter(a => (a.category || '').toLowerCase() === 'reasoning').length,
       technical: assessments.filter(a => (a.category || '').toLowerCase() === 'technical').length,
       verbal: assessments.filter(a => (a.category || '').toLowerCase() === 'verbal').length,
-      allMix: assessments.filter(a => ['all mix', 'all', 'full length'].includes((a.category || '').toLowerCase())).length
+      allMix: assessments.filter(a => ['all mix', 'all', 'full length'].includes((a.category || '').toLowerCase())).length,
+      full: assessments.filter(a => (a.category || '').toLowerCase() === 'full').length
     };
   }, [assessments]);
 
-  // Handle Track Selection in Wizard
-  const handleSelectTrack = (trackId) => {
-    const track = TRACKS.find(t => t.id === trackId);
-    if (!track) return;
-
-    let nextCategory = track.category;
-    let nextQuestions = track.defaultQuestions;
-    let nextTitle = track.defaultTitle;
-    let nextDesc = track.defaultDesc;
-    let nextDuration = track.defaultDuration;
-    let nextPassing = track.defaultPassing;
-    let nextTags = trackId === 'Coding' ? ['Coding', 'Algorithms', 'Data Structures'] : ['DSA', 'Algorithms'];
-
-    let initialSelectedIds = [];
-    if (trackId === 'Coding') {
-      const codingQs = questionBank.filter(isCodingQuestion);
-      initialSelectedIds = codingQs.slice(0, nextQuestions).map(q => q.id);
-    } else if (trackId === 'Sectional') {
-      const aptQs = questionBank.filter(q => (q.category || '').trim().toLowerCase() === 'aptitude' && !isCodingQuestion(q));
-      initialSelectedIds = aptQs.slice(0, nextQuestions).map(q => q.id);
-    } else if (trackId === 'All Mix') {
-      const allMcqs = questionBank.filter(q => !isCodingQuestion(q));
-      initialSelectedIds = allMcqs.slice(0, nextQuestions).map(q => q.id);
-    }
-
-    setNewAssessment(prev => ({
-      ...prev,
-      category: nextCategory,
-      totalQuestions: nextQuestions,
-      title: nextTitle,
-      description: nextDesc,
-      durationMinutes: nextDuration,
-      passingScore: nextPassing,
-      tags: nextTags,
-      selectedQuestionIds: initialSelectedIds
-    }));
-  };
-
-  // Handle Sectional Pillar Selection
-  const handleSelectSectionalPillar = (pillarId) => {
-    const pillar = SECTIONAL_PILLARS.find(p => p.id === pillarId);
-    if (!pillar) return;
-
-    const matchingQs = questionBank.filter(q => (q.category || '').trim().toLowerCase() === pillarId.toLowerCase() && !isCodingQuestion(q));
-    const selected = matchingQs.slice(0, newAssessment.totalQuestions || 15).map(q => q.id);
-
-    setNewAssessment(prev => ({
-      ...prev,
-      category: pillar.id,
-      title: `${pillar.name} Assessment`,
-      description: `Evaluates core competencies in ${pillar.desc}.`,
-      selectedQuestionIds: selected
-    }));
-  };
-
-  // Open Wizard for Coding
-  const handleOpenCodingWizard = () => {
+  // Open the single unified wizard — one assessment may contain coding + MCQ
+  const handleOpenUnifiedWizard = () => {
     setEditingAsmId(null);
     const codingQs = questionBank.filter(isCodingQuestion);
+    const mcqQs = questionBank.filter(q => !isCodingQuestion(q));
+    const codingPick = Math.min(codingQs.length, 3);
+    const initialIds = [
+      ...codingQs.slice(0, codingPick).map(q => q.id),
+      ...mcqQs.slice(0, Math.max(0, 10 - codingPick)).map(q => q.id)
+    ];
     setNewAssessment({
-      title: 'Software Engineering Coding Assessment',
-      category: 'Coding',
-      description: 'Hands-on programming and algorithmic challenges in Java, Python, C++, and JavaScript with automated test runner evaluation.',
+      title: 'Comprehensive Job Readiness Assessment',
+      category: 'Full',
+      description: 'Full-length assessment mixing hands-on coding challenges with objective MCQs across Aptitude, Reasoning, Technical, and Verbal.',
       difficulty: 'Medium',
       durationMinutes: 60,
       passingScore: 60,
-      selectedQuestionIds: codingQs.slice(0, 3).map(q => q.id),
-      totalQuestions: Math.max(1, codingQs.length ? Math.min(3, codingQs.length) : 3),
-      tags: ['Algorithms', 'Data Structures', 'Coding']
+      selectedQuestionIds: initialIds,
+      totalQuestions: initialIds.length || 10,
+      tags: ['Coding', 'MCQ', 'Full Assessment']
     });
-    setWizardStep(1);
-    setIsWizardOpen(true);
-  };
-
-  // Open Wizard for Standard MCQ / Sectional
-  const handleOpenSectionalWizard = () => {
-    setEditingAsmId(null);
-    const aptQs = questionBank.filter(q => (q.category || '').trim().toLowerCase() === 'aptitude' && !isCodingQuestion(q));
-    setNewAssessment({
-      title: 'Aptitude & Quantitative Speed Assessment',
-      category: 'Aptitude',
-      description: 'Evaluates quantitative reasoning, problem solving speed, arithmetic, and data interpretation.',
-      difficulty: 'Medium',
-      durationMinutes: 30,
-      passingScore: 65,
-      selectedQuestionIds: aptQs.slice(0, 15).map(q => q.id),
-      totalQuestions: 15,
-      tags: ['Aptitude', 'Arithmetic', 'Speed Test']
-    });
+    setStep2CategoryFilter('all');
     setWizardStep(1);
     setIsWizardOpen(true);
   };
@@ -393,6 +229,41 @@ export const AdminAssessmentsPage = () => {
     });
     const cleanBank = Array.from(uniquePoolMap.values());
 
+    const shuffle = (arr) => {
+      const p = [...arr];
+      for (let i = p.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [p[i], p[j]] = [p[j], p[i]];
+      }
+      return p;
+    };
+
+    // Unified Full track: blend coding challenges with objective MCQs
+    if (category.toLowerCase() === 'full' || isFullTrack) {
+      const codingPool = cleanBank.filter(isCodingQuestion);
+      const mcqPool = cleanBank.filter(q => !isCodingQuestion(q));
+      const codingPick = Math.min(codingPool.length, Math.max(1, Math.round(targetCount * 0.3)));
+      const mcqPick = Math.max(0, targetCount - codingPick);
+      const picked = [
+        ...shuffle(codingPool).slice(0, codingPick),
+        ...shuffle(mcqPool).slice(0, mcqPick)
+      ];
+      if (picked.length < targetCount) {
+        const remaining = cleanBank.filter(q => !picked.some(p => p.id === q.id));
+        picked.push(...shuffle(remaining).slice(0, targetCount - picked.length));
+      }
+      const fullIds = Array.from(new Set(picked.map(q => q.id)));
+
+      if (fullIds.length === 0) {
+        addToast('No questions available in the bank. Add or upload questions first.', 'error');
+        return;
+      }
+
+      setNewAssessment(prev => ({ ...prev, selectedQuestionIds: fullIds }));
+      addToast(`Auto-selected ${fullIds.length} mixed questions (coding + MCQ) from the bank!`, 'success');
+      return;
+    }
+
     const isMix = ['All', 'Full Length', 'All Mix', 'All Mix (Combined)'].some(m => m.toLowerCase() === category.toLowerCase());
 
     let available = [];
@@ -456,13 +327,15 @@ export const AdminAssessmentsPage = () => {
 
   const handleToggleQuestionSelection = (id) => {
     const targetQ = questionBank.find(q => q.id === id);
-    if (!isCodingTrack && targetQ && isCodingQuestion(targetQ)) {
-      addToast('Coding challenges cannot be added to an MCQ Assessment. They belong exclusively in Coding Assessments.', 'warning');
-      return;
-    }
-    if (isCodingTrack && targetQ && !isCodingQuestion(targetQ)) {
-      addToast('Only interactive coding challenges can be added to a Coding Assessment.', 'warning');
-      return;
+    if (!isFullTrack) {
+      if (!isCodingTrack && targetQ && isCodingQuestion(targetQ)) {
+        addToast('Coding challenges cannot be added to an MCQ Assessment. They belong exclusively in Coding Assessments.', 'warning');
+        return;
+      }
+      if (isCodingTrack && targetQ && !isCodingQuestion(targetQ)) {
+        addToast('Only interactive coding challenges can be added to a Coding Assessment.', 'warning');
+        return;
+      }
     }
 
     if (newAssessment.selectedQuestionIds.includes(id)) {
@@ -481,10 +354,12 @@ export const AdminAssessmentsPage = () => {
   const handleEditAssessment = (asm) => {
     setEditingAsmId(asm.id);
     const isEditingCoding = (asm.category || '').toLowerCase() === 'coding';
+    const isEditingFull = (asm.category || '').toLowerCase() === 'full';
 
-    // Strictly sanitize selectedQuestionIds for non-coding assessments (both Sectional and All Mix)
+    // Strictly sanitize selectedQuestionIds for single-track assessments only.
+    // Full (unified) assessments legitimately mix coding + MCQ, so keep both.
     let sanitizedIds = asm.selectedQuestionIds || [];
-    if (!isEditingCoding) {
+    if (!isEditingCoding && !isEditingFull) {
       sanitizedIds = sanitizedIds.filter(id => {
         const q = questionBank.find(item => item.id === id);
         return q && !isCodingQuestion(q);
@@ -513,15 +388,20 @@ export const AdminAssessmentsPage = () => {
       return;
     }
 
-    // Strictly sanitize selectedQuestionIds before saving to ensure zero cross-contamination
+    // Sanitize selectedQuestionIds before saving. Full (unified) keeps coding + MCQ.
     let finalSelectedQuestionIds = [...newAssessment.selectedQuestionIds];
-    if (isCodingTrack) {
+    if (isFullTrack) {
+      finalSelectedQuestionIds = finalSelectedQuestionIds.filter(id => {
+        const q = questionBank.find(item => item.id === id);
+        return !!q;
+      });
+    } else if (isCodingTrack) {
       finalSelectedQuestionIds = finalSelectedQuestionIds.filter(id => {
         const q = questionBank.find(item => item.id === id);
         return q && isCodingQuestion(q);
       });
     } else {
-      // Both Sectional and All Mix strictly purge coding questions
+      // Sectional and All Mix strictly purge coding questions
       finalSelectedQuestionIds = finalSelectedQuestionIds.filter(id => {
         const q = questionBank.find(item => item.id === id);
         return q && !isCodingQuestion(q);
@@ -557,7 +437,7 @@ export const AdminAssessmentsPage = () => {
   return (
     <div className="space-y-8 pb-16">
       
-      {/* HEADER WITH PROMINENT DIFFERENTIATED CREATION BUTTONS */}
+      {/* HEADER WITH SINGLE UNIFIED CREATION BUTTON */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -570,32 +450,21 @@ export const AdminAssessmentsPage = () => {
             Assessments Authoring & Management
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl leading-relaxed">
-            Create and configure specialized <strong>Hands-on Coding Assessments</strong> with live compiler sandboxes, or author <strong>Sectional MCQ Assessments</strong> for Aptitude, Reasoning, Technical, and Verbal skill pillars.
+            Build one unified assessment that mixes <strong>Hands-on Coding Challenges</strong> with <strong>Sectional MCQs</strong> across Aptitude, Reasoning, Technical, and Verbal — pick freely from every category.
           </p>
         </div>
 
-        {/* Differentiated Creation Action Buttons */}
+        {/* Single Unified Creation Action Button */}
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={handleOpenCodingWizard}
-            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-extrabold shadow-md shadow-indigo-600/25 transition-all flex items-center gap-2 border border-indigo-500 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <div className="w-5 h-5 rounded-lg bg-indigo-500/60 flex items-center justify-center">
-              <Code2 className="w-3.5 h-3.5 text-white" />
-            </div>
-            <span>Create Coding Assessment</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleOpenSectionalWizard}
-            className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-extrabold shadow-md shadow-brand-600/20 transition-all flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+            onClick={handleOpenUnifiedWizard}
+            className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-brand-600 hover:from-indigo-700 hover:to-brand-700 text-white rounded-xl text-xs font-extrabold shadow-md shadow-indigo-600/25 transition-all flex items-center gap-2 border border-indigo-500 hover:scale-[1.02] active:scale-[0.98]"
           >
             <div className="w-5 h-5 rounded-lg bg-white/20 flex items-center justify-center">
-              <BookOpen className="w-3.5 h-3.5 text-white" />
+              <Sparkles className="w-3.5 h-3.5 text-white" />
             </div>
-            <span>Create Sectional MCQ Assessment</span>
+            <span>Create Assessment</span>
           </button>
         </div>
       </div>
@@ -611,6 +480,7 @@ export const AdminAssessmentsPage = () => {
             { id: 'Technical', label: 'Technical', count: catalogCounts.technical, icon: Cpu, color: 'text-cyan-600' },
             { id: 'Verbal', label: 'Verbal', count: catalogCounts.verbal, icon: BookOpen, color: 'text-blue-600' },
             { id: 'All Mix', label: 'Hybrid All-Mix', count: catalogCounts.allMix, icon: Sparkles, color: 'text-purple-600' },
+            { id: 'Full', label: 'Full (Coding + MCQ)', count: catalogCounts.full, icon: Layers, color: 'text-emerald-600' },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeCatalogFilter === tab.id;
@@ -643,6 +513,7 @@ export const AdminAssessmentsPage = () => {
         {filteredAssessments.map((asm) => {
           const isCoding = (asm.category || '').toLowerCase() === 'coding';
           const isMix = ['all mix', 'all', 'full length'].includes((asm.category || '').toLowerCase());
+          const isFull = (asm.category || '').toLowerCase() === 'full';
 
           return (
             <div
@@ -650,6 +521,8 @@ export const AdminAssessmentsPage = () => {
               className={`bg-white rounded-2xl border shadow-card p-6 flex flex-col justify-between space-y-4 transition-all hover:shadow-lg ${
                 isCoding
                   ? 'border-t-4 border-t-indigo-500 border-slate-200 hover:border-indigo-400 bg-gradient-to-b from-indigo-50/15 to-white'
+                  : isFull
+                  ? 'border-t-4 border-t-emerald-500 border-slate-200 hover:border-emerald-400 bg-gradient-to-b from-emerald-50/15 to-white'
                   : isMix
                   ? 'border-t-4 border-t-purple-500 border-slate-200 hover:border-purple-400 bg-gradient-to-b from-purple-50/15 to-white'
                   : 'border-t-4 border-t-brand-500 border-slate-200 hover:border-brand-400'
@@ -660,12 +533,14 @@ export const AdminAssessmentsPage = () => {
                   <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1.5 ${
                     isCoding
                       ? 'bg-indigo-100 text-indigo-800 border border-indigo-200'
+                      : isFull
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                       : isMix
                       ? 'bg-purple-100 text-purple-800 border border-purple-200'
                       : 'bg-brand-50 text-brand-800 border border-brand-200'
                   }`}>
-                    {isCoding ? <Code2 className="w-3 h-3 text-indigo-600" /> : isMix ? <Sparkles className="w-3 h-3 text-purple-600" /> : <BookOpen className="w-3 h-3 text-brand-600" />}
-                    <span>{isCoding ? 'CODING SANDBOX' : isMix ? 'HYBRID ALL-MIX' : `${asm.category} MCQ`}</span>
+                    {isCoding ? <Code2 className="w-3 h-3 text-indigo-600" /> : isFull ? <Layers className="w-3 h-3 text-emerald-600" /> : isMix ? <Sparkles className="w-3 h-3 text-purple-600" /> : <BookOpen className="w-3 h-3 text-brand-600" />}
+                    <span>{isCoding ? 'CODING SANDBOX' : isFull ? 'FULL · CODING + MCQ' : isMix ? 'HYBRID ALL-MIX' : `${asm.category} MCQ`}</span>
                   </span>
                   <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                     {asm.status || 'Available'}
@@ -821,88 +696,18 @@ export const AdminAssessmentsPage = () => {
           {wizardStep === 1 && (
             <div className="space-y-5">
               
-              {/* TRACK SELECTOR CARDS */}
-              <div>
-                <label className="block font-bold text-slate-800 mb-2">
-                  Select Assessment Track *
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {TRACKS.map((t) => {
-                    const Icon = t.icon;
-                    const isSelected = (
-                      (t.id === 'Coding' && isCodingTrack) ||
-                      (t.id === 'Sectional' && isSectionalTrack) ||
-                      (t.id === 'All Mix' && isAllMixTrack)
-                    );
-                    return (
-                      <div
-                        key={t.id}
-                        onClick={() => handleSelectTrack(t.id)}
-                        className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between space-y-2.5 ${
-                          isSelected ? t.borderColor : t.inactiveBorder
-                        }`}
-                      >
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                              isSelected ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
-                            }`}>
-                              <Icon className="w-4 h-4" />
-                            </div>
-                            <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase border ${t.badgeColor}`}>
-                              {t.badge}
-                            </span>
-                          </div>
-                          <h4 className="font-extrabold text-slate-900 text-xs mt-2">{t.title}</h4>
-                          <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">{t.description}</p>
-                        </div>
-
-                        <div className="pt-2 border-t border-slate-100 flex flex-wrap gap-1">
-                          {t.features.slice(0, 2).map((feat, idx) => (
-                            <span key={idx} className="text-[9px] font-medium bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-600">
-                              {feat}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
+              {/* UNIFIED ASSESSMENT BANNER */}
+              <div className="p-4 bg-gradient-to-r from-indigo-50 to-brand-50 border border-brand-200 rounded-2xl flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-brand-600 text-white flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-slate-900 text-xs">Unified Assessment — Coding + MCQ</h4>
+                  <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                    This assessment can mix hands-on coding challenges with objective MCQs from any pillar (Aptitude, Reasoning, Technical, Verbal). Pick questions freely in the next step — candidates will be routed per question type automatically.
+                  </p>
                 </div>
               </div>
-
-              {/* IF SECTIONAL: SELECT SECTION PILLAR */}
-              {isSectionalTrack && (
-                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-700 text-xs">Choose MCQ Skill Pillar:</span>
-                    <span className="text-[11px] text-slate-500">Only questions from this pillar will be included</span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {SECTIONAL_PILLARS.map((p) => {
-                      const Icon = p.icon;
-                      const isPillarSelected = (newAssessment.category || '').toLowerCase() === p.id.toLowerCase();
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => handleSelectSectionalPillar(p.id)}
-                          className={`p-2.5 rounded-xl border text-left transition-all flex items-center gap-2 ${
-                            isPillarSelected
-                              ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                              : 'bg-white border-slate-200 text-slate-700 hover:border-brand-300'
-                          }`}
-                        >
-                          <Icon className={`w-4 h-4 ${isPillarSelected ? 'text-white' : 'text-slate-600'}`} />
-                          <div>
-                            <strong className="block text-xs leading-none">{p.name}</strong>
-                            <span className="text-[9px] text-slate-400 block mt-0.5 truncate">{p.desc}</span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
 
               {/* TITLE & DESCRIPTION */}
               <div className="space-y-3">
@@ -966,15 +771,23 @@ export const AdminAssessmentsPage = () => {
             const activeCategory = newAssessment.category || 'Technical';
             const catQuestionsInDb = isCodingTrack
               ? questionBank.filter(isCodingQuestion)
+              : isFullTrack
+              ? questionBank
               : isAllMixTrack
               ? questionBank.filter(q => !isCodingQuestion(q))
               : questionBank.filter(q => (q.category || '').trim().toLowerCase() === activeCategory.toLowerCase() && !isCodingQuestion(q));
 
             const filteredBank = questionBank.filter(q => {
-              if (isCodingTrack) {
-                return isCodingQuestion(q);
+              if (isCodingTrack) return isCodingQuestion(q);
+
+              if (isFullTrack) {
+                if (step2CategoryFilter === 'all') return true;
+                if (step2CategoryFilter === 'coding') return isCodingQuestion(q);
+                if (isCodingQuestion(q)) return false;
+                return (q.category || '').trim().toLowerCase() === step2CategoryFilter.toLowerCase();
               }
-              // Both Sectional and All-Mix tracks strictly exclude all coding questions
+
+              // Sectional and All-Mix tracks strictly exclude all coding questions
               if (isCodingQuestion(q)) return false;
 
               if (isSectionalTrack) {
@@ -1003,7 +816,61 @@ export const AdminAssessmentsPage = () => {
                 </div>
 
                 {/* DIFFERENTIATED TRACK BANNER */}
-                {isCodingTrack ? (
+                {isFullTrack ? (
+                  <div className="p-4 bg-gradient-to-r from-indigo-50/80 to-brand-50/80 border border-brand-200 rounded-2xl space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-brand-700" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                              Full Assessment — Coding + MCQ Repository
+                            </h4>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-200 text-brand-800">
+                              {catQuestionsInDb.length} Available in DB
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-slate-600">
+                            Pick any mix of coding challenges and objective MCQs across all pillars
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleAutoSelectRandomQuestions}
+                        className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-brand-600 hover:from-indigo-700 hover:to-brand-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        <span>Auto-Pick {newAssessment.totalQuestions} Mixed Questions</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1 pt-1 border-t border-brand-200/60 overflow-x-auto">
+                      {[
+                        { id: 'all', label: 'All' },
+                        { id: 'coding', label: 'Coding' },
+                        { id: 'aptitude', label: 'Aptitude' },
+                        { id: 'reasoning', label: 'Reasoning' },
+                        { id: 'technical', label: 'Technical' },
+                        { id: 'verbal', label: 'Verbal' }
+                      ].map(f => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => setStep2CategoryFilter(f.id)}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all whitespace-nowrap ${
+                            step2CategoryFilter === f.id
+                              ? 'bg-slate-900 text-white'
+                              : 'bg-white/80 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          {f.id}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : isCodingTrack ? (
                   <div className="p-4 bg-indigo-50/80 border border-indigo-200 rounded-2xl flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md">
@@ -1227,7 +1094,7 @@ export const AdminAssessmentsPage = () => {
                 3. Execution & Testing Engine Configuration
               </h3>
 
-              {isCodingTrack ? (
+              {(isCodingTrack || isFullTrack) && (
                 <div className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-3">
                   <div className="flex items-center gap-2">
                     <Code2 className="w-4 h-4 text-indigo-600" />
@@ -1266,7 +1133,9 @@ export const AdminAssessmentsPage = () => {
                     </div>
                   </div>
                 </div>
-              ) : (
+              )}
+
+              {!isCodingTrack && (
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                   <div className="flex items-center gap-2">
                     <BookOpen className="w-4 h-4 text-brand-600" />
@@ -1327,10 +1196,12 @@ export const AdminAssessmentsPage = () => {
                 </div>
 
                 <div className={`p-3 rounded-xl border text-[11px] ${
-                  isCodingTrack ? 'bg-indigo-50 border-indigo-200 text-indigo-800' : 'bg-brand-50 border-brand-200 text-brand-800'
+                  isCodingTrack ? 'bg-indigo-50 border-indigo-200 text-indigo-800' : isFullTrack ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-brand-50 border-brand-200 text-brand-800'
                 }`}>
                   {isCodingTrack ? (
                     <span>💡 <strong>Coding Assessment Recommendation</strong>: Algorithmic problems typically require 15 to 20 minutes each. For {newAssessment.totalQuestions} questions, 45 to 60 minutes provides an optimal testing window.</span>
+                  ) : isFullTrack ? (
+                    <span>💡 <strong>Full Assessment Recommendation</strong>: This assessment mixes coding challenges (~15-20 min each) with objective MCQs (~1 min each). For {newAssessment.totalQuestions} questions, 60 to 90 minutes is a realistic window.</span>
                   ) : (
                     <span>💡 <strong>MCQ Assessment Recommendation</strong>: Objective questions typically require 1 to 1.5 minutes per question. For {newAssessment.totalQuestions} questions, 25 to 35 minutes is standard.</span>
                   )}
@@ -1380,12 +1251,14 @@ export const AdminAssessmentsPage = () => {
                   <span className={`px-2.5 py-0.5 rounded-md font-extrabold uppercase text-[10px] border flex items-center gap-1.5 ${
                     isCodingTrack
                       ? 'bg-indigo-100 text-indigo-800 border-indigo-200'
+                      : isFullTrack
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
                       : isAllMixTrack
                       ? 'bg-purple-100 text-purple-800 border-purple-200'
                       : 'bg-brand-100 text-brand-800 border-brand-200'
                   }`}>
-                    {isCodingTrack ? <Code2 className="w-3.5 h-3.5" /> : isAllMixTrack ? <Sparkles className="w-3.5 h-3.5" /> : <BookOpen className="w-3.5 h-3.5" />}
-                    <span>{isCodingTrack ? 'Coding Assessment' : isAllMixTrack ? 'Hybrid All-Mix' : `${newAssessment.category} MCQ`}</span>
+                    {isCodingTrack ? <Code2 className="w-3.5 h-3.5" /> : isFullTrack ? <Layers className="w-3.5 h-3.5" /> : isAllMixTrack ? <Sparkles className="w-3.5 h-3.5" /> : <BookOpen className="w-3.5 h-3.5" />}
+                    <span>{isCodingTrack ? 'Coding Assessment' : isFullTrack ? 'Full · Coding + MCQ' : isAllMixTrack ? 'Hybrid All-Mix' : `${newAssessment.category} MCQ`}</span>
                   </span>
                 </div>
 
@@ -1401,13 +1274,13 @@ export const AdminAssessmentsPage = () => {
 
                 <div className="flex justify-between">
                   <span className="text-slate-500">Questions Assigned:</span>
-                  <strong className={isCodingTrack ? 'text-indigo-600' : 'text-brand-600'}>
-                    {!isCodingTrack
-                      ? newAssessment.selectedQuestionIds.filter(id => {
+                  <strong className={isCodingTrack || isFullTrack ? 'text-indigo-600' : 'text-brand-600'}>
+                    {(isCodingTrack || isFullTrack)
+                      ? newAssessment.selectedQuestionIds.length
+                      : newAssessment.selectedQuestionIds.filter(id => {
                           const q = questionBank.find(item => item.id === id);
                           return q && !isCodingQuestion(q);
-                        }).length
-                      : newAssessment.selectedQuestionIds.length} Questions
+                        }).length} Questions
                   </strong>
                 </div>
 
@@ -1424,6 +1297,8 @@ export const AdminAssessmentsPage = () => {
                 <div className="pt-2 border-t border-slate-200 text-[11px] text-slate-500">
                   {isCodingTrack ? (
                     <span className="text-indigo-700 font-semibold">✓ Interactive Monaco IDE, multi-language sandbox, and confidential testcase grader enabled.</span>
+                  ) : isFullTrack ? (
+                    <span className="text-emerald-700 font-semibold">✓ Mixed engine: coding questions open the Monaco sandbox; MCQ questions get randomization, review palette, and instant scoring.</span>
                   ) : (
                     <span className="text-brand-700 font-semibold">✓ Objective MCQ question randomization, review palette, and instant scoring enabled.</span>
                   )}

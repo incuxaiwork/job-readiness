@@ -2,6 +2,18 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import prisma from '../db/prisma.js';
+import { canReadCandidate } from '../middleware/ownership.js';
+
+/**
+ * Interview session ownership: a session belongs to a candidate user. Access is
+ * allowed for the owner, a platform admin, or a college admin whose college owns
+ * the candidate. Unattributed (guest) sessions have no owner and stay readable.
+ */
+const sessionAccessDenied = async (req, sessionUserId) => {
+  if (!sessionUserId) return false; // guest / unattributed session
+  const { ok } = await canReadCandidate(req, sessionUserId);
+  return !ok;
+};
 
 // Default curated interview questions spanning key categories (3 Questions: Intro, Project Challenges, and Solution Approach)
 const DEFAULT_QUESTIONS = [
@@ -39,7 +51,7 @@ let lastCreatedSessionId = null;
  */
 export const createSession = async (req, res) => {
   const { targetRole = 'Software Engineer', questions: customQuestions } = req.body;
-  const userId = req.user?.id || req.body.userId || null;
+  const userId = req.user?.id || null;
   const sessionId = `isess-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
   const settings = loadSettingsFromDisk();
   const qLimit = Math.max(1, Number(settings?.questionCount) || 1);
@@ -155,6 +167,10 @@ export const getSession = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Interview session not found.' });
     }
 
+    if (await sessionAccessDenied(req, session.userId)) {
+      return res.status(403).json({ success: false, error: 'Access denied: this interview session belongs to another candidate.' });
+    }
+
     const analysis = session.analysis || memoryAnalysis.get(id) || null;
     return res.json({ success: true, session, analysis });
   } catch (error) {
@@ -174,8 +190,28 @@ export const getSession = async (req, res) => {
  */
 export const getLatestSession = async (req, res) => {
   try {
-    const userId = req.user?.id || req.query.userId;
-    const whereClause = userId ? { userId } : {};
+    const requester = req.user;
+    const isAdmin = requester?.role === 'admin';
+    const isCollegeAdmin = requester?.role === 'college_admin';
+
+    let userId;
+    if (isAdmin) {
+      userId = req.query.userId || undefined; // platform admin: any target, or global latest
+    } else if (isCollegeAdmin) {
+      if (!req.query.userId) {
+        return res.status(400).json({ success: false, error: 'userId is required to look up a candidate session.' });
+      }
+      const { ok } = await canReadCandidate(req, req.query.userId);
+      if (!ok) {
+        return res.status(403).json({ success: false, error: 'Access denied: candidate is outside your college.' });
+      }
+      userId = req.query.userId;
+    } else if (requester?.id) {
+      userId = requester.id; // candidates: always scoped to themselves
+    }
+
+    // Scoped query: admin unfiltered → any; everyone else → own id or guest-only
+    const whereClause = userId ? { userId } : (isAdmin ? {} : { userId: null });
 
     let session = null;
     try {
@@ -196,12 +232,15 @@ export const getLatestSession = async (req, res) => {
 
     if (!session) {
       session = latestSessionByUser.get(userId || 'guest') ||
-        (lastCreatedSessionId ? memorySessions.get(lastCreatedSessionId) : null) ||
-        Array.from(memorySessions.values()).reverse()[0];
+        (isAdmin && lastCreatedSessionId ? memorySessions.get(lastCreatedSessionId) : null);
     }
 
     if (!session) {
       return res.status(404).json({ success: false, error: 'No interview session found.' });
+    }
+
+    if (await sessionAccessDenied(req, session.userId)) {
+      return res.status(403).json({ success: false, error: 'Access denied: this interview session belongs to another candidate.' });
     }
 
     const analysis = session.analysis || memoryAnalysis.get(session.id) || null;
@@ -209,9 +248,8 @@ export const getLatestSession = async (req, res) => {
   } catch (error) {
     console.error('Error fetching latest interview session:', error);
     const session = latestSessionByUser.get(req.user?.id || 'guest') ||
-      (lastCreatedSessionId ? memorySessions.get(lastCreatedSessionId) : null) ||
-      Array.from(memorySessions.values()).reverse()[0];
-    if (session) {
+      (req.user?.role === 'admin' && lastCreatedSessionId ? memorySessions.get(lastCreatedSessionId) : null);
+    if (session && !(await sessionAccessDenied(req, session.userId))) {
       const analysis = session.analysis || memoryAnalysis.get(session.id) || null;
       return res.json({ success: true, session, analysis });
     }
@@ -226,6 +264,17 @@ export const getLatestSession = async (req, res) => {
 export const getSessionQuestions = async (req, res) => {
   try {
     const { id } = req.params;
+
+    let ownerId = null;
+    try {
+      const s = await prisma.interviewSession.findUnique({ where: { id }, select: { userId: true } });
+      ownerId = s?.userId ?? null;
+    } catch { /* fall through to memory */ }
+    if (ownerId === null && memorySessions.has(id)) ownerId = memorySessions.get(id).userId ?? null;
+    if (await sessionAccessDenied(req, ownerId)) {
+      return res.status(403).json({ success: false, error: 'Access denied: this interview session belongs to another candidate.' });
+    }
+
     const questions = await prisma.interviewQuestion.findMany({
       where: { sessionId: id },
       orderBy: { questionNumber: 'asc' },
@@ -261,11 +310,15 @@ export const saveTelemetryBatch = async (req, res) => {
     // Verify session existence
     const session = await prisma.interviewSession.findUnique({
       where: { id: sessionId },
-      select: { id: true }
+      select: { id: true, userId: true }
     });
 
     if (!session) {
       return res.status(404).json({ success: false, error: 'Interview session not found.' });
+    }
+
+    if (await sessionAccessDenied(req, session.userId)) {
+      return res.status(403).json({ success: false, error: 'Access denied: this interview session belongs to another candidate.' });
     }
 
     // Format records for batch insert
@@ -326,6 +379,10 @@ export const saveQuestionAnswer = async (req, res) => {
 
     if (!question) {
       return res.status(404).json({ success: false, error: 'Interview question not found.' });
+    }
+
+    if (await sessionAccessDenied(req, question.session?.userId)) {
+      return res.status(403).json({ success: false, error: 'Access denied: this interview session belongs to another candidate.' });
     }
 
     // Evaluate answer content based on transcript length, vocabulary & structure
@@ -491,6 +548,10 @@ export const completeInterview = async (req, res) => {
 
     if (!session) {
       return res.status(404).json({ success: false, error: 'Interview session not found.' });
+    }
+
+    if (await sessionAccessDenied(req, session.userId)) {
+      return res.status(403).json({ success: false, error: 'Access denied: this interview session belongs to another candidate.' });
     }
 
     const telemetry = session.telemetry || [];
@@ -837,6 +898,9 @@ export const getSessionAnalysis = async (req, res) => {
       analysis = memoryAnalysis.get(sessionId);
       if (analysis) {
         const session = memorySessions.get(sessionId) || analysis.session || { id: sessionId };
+        if (await sessionAccessDenied(req, session.userId)) {
+          return res.status(403).json({ success: false, error: 'Access denied: this interview session belongs to another candidate.' });
+        }
         return res.json({
           success: true,
           analysis,
@@ -847,6 +911,10 @@ export const getSessionAnalysis = async (req, res) => {
 
     if (!analysis) {
       return res.status(404).json({ success: false, error: 'Interview session analysis not found.' });
+    }
+
+    if (await sessionAccessDenied(req, analysis.session?.userId)) {
+      return res.status(403).json({ success: false, error: 'Access denied: this interview session belongs to another candidate.' });
     }
 
     return res.json({

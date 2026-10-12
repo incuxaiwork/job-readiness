@@ -2,11 +2,11 @@ import pg from 'pg';
 const { Client } = pg;
 
 const client = new Client({
-  user: 'postgres',
-  password: 'Vishnu@18',
-  host: 'localhost',
-  port: 5432,
-  database: 'postgres'
+  user: process.env.PGUSER || 'postgres',
+  password: process.env.PGPASSWORD,
+  host: process.env.PGHOST || 'localhost',
+  port: parseInt(process.env.PGPORT || '5432', 10),
+  database: process.env.PGDATABASE || 'postgres'
 });
 
 async function main() {

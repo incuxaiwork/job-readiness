@@ -14,6 +14,23 @@ const schemaSQL = `
       updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
 
+    -- 1b. colleges: Tenant institutions onboarded by the platform (multi-tenancy)
+    CREATE TABLE IF NOT EXISTS colleges (
+      id VARCHAR(64) PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      code VARCHAR(32) UNIQUE,
+      domain VARCHAR(128),
+      city VARCHAR(128),
+      state VARCHAR(128),
+      contact_name VARCHAR(255),
+      contact_email VARCHAR(255),
+      contact_phone VARCHAR(32),
+      status VARCHAR(32) DEFAULT 'active',
+      created_by VARCHAR(64) REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    );
+
     -- 2. candidate_profiles: Stores candidate profile information
     CREATE TABLE IF NOT EXISTS candidate_profiles (
       id VARCHAR(64) PRIMARY KEY,
@@ -297,6 +314,9 @@ export const initSchema = async () => {
     await client.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(32) DEFAULT 'active';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS college_id VARCHAR(64) REFERENCES colleges(id) ON DELETE SET NULL;
+      ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS college_id VARCHAR(64) REFERENCES colleges(id) ON DELETE SET NULL;
+      ALTER TABLE assessment_submissions ADD COLUMN IF NOT EXISTS college_id VARCHAR(64) REFERENCES colleges(id) ON DELETE SET NULL;
 
       -- Section-based assessment: per-section strict timer
       ALTER TABLE assessment_sections ADD COLUMN IF NOT EXISTS duration_minutes INT DEFAULT 30;
@@ -443,6 +463,9 @@ export const initSchema = async () => {
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
       CREATE INDEX IF NOT EXISTS idx_candidate_profiles_user_id ON candidate_profiles(user_id);
       CREATE INDEX IF NOT EXISTS idx_candidate_profiles_email ON candidate_profiles(email);
+      CREATE INDEX IF NOT EXISTS idx_users_college ON users(college_id);
+      CREATE INDEX IF NOT EXISTS idx_candidate_profiles_college ON candidate_profiles(college_id);
+      CREATE INDEX IF NOT EXISTS idx_submissions_college ON assessment_submissions(college_id);
       DROP INDEX IF EXISTS idx_candidates_email;
       CREATE INDEX IF NOT EXISTS idx_questions_category_diff ON questions(category, difficulty);
       CREATE INDEX IF NOT EXISTS idx_submissions_candidate_id ON assessment_submissions(candidate_id);
@@ -465,13 +488,19 @@ export const initSchema = async () => {
     console.log('✅ Performance indexes and duplicate submission prevention constraint applied.');
 
     // 6. Ensure permanent single admin account exists
-    const adminHash = await bcrypt.hash('Admin@2026', 10);
-    await client.query(`
-      INSERT INTO users (id, email, password_hash, role, name, status)
-      VALUES ('admin-1', 'admin@readysetjob.com', $1, 'admin', 'HR Administrator', 'active')
-      ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = 'admin', status = 'active';
-    `, [adminHash]);
-    console.log('✅ Permanent single admin credential verified (admin@readysetjob.com).');
+    const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD;
+    const seedAdminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@readysetjob.com';
+    if (seedAdminPassword) {
+      const adminHash = await bcrypt.hash(seedAdminPassword, 10);
+      await client.query(`
+        INSERT INTO users (id, email, password_hash, role, name, status)
+        VALUES ('admin-1', $2, $1, 'admin', 'Site Administrator', 'active')
+        ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = 'admin', name = 'Site Administrator', status = 'active';
+      `, [adminHash, seedAdminEmail]);
+      console.log('✅ Permanent single admin credential verified.');
+    } else {
+      console.log('ℹ️ SEED_ADMIN_PASSWORD not set — skipping admin password seeding (existing admin unchanged).');
+    }
 
     // 7. Seed standard company eligibility criteria
     const criteria = [

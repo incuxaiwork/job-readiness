@@ -543,9 +543,12 @@ export const AIMockInterviewPage = () => {
   const elevenLabsAbortRef = useRef(null);
   const elevenLabsSourceRef = useRef(null);
 
-  // ElevenLabs config from Vite env
-  const ELEVEN_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY || '';
-  const ELEVEN_VOICE_ID = import.meta.env.VITE_ELEVENLABS_VOICE_ID || 'pNInz6obpgDQGcFmaJgB';
+  // ElevenLabs TTS is proxied through the backend (`/api/tts/speak`). The API key
+  // lives server-side only and is never bundled into the browser.
+  const ttsAuthHeaders = () => {
+    const token = localStorage.getItem('rsj_token') || localStorage.getItem('token');
+    return { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+  };
 
   const currentQ = questions[currentQIndex] || questions[0];
   const isFinalQuestion = currentQIndex >= questions.length - 1;
@@ -1107,17 +1110,9 @@ export const AIMockInterviewPage = () => {
       elevenLabsSourceRef.current = null;
     }
 
-    // Check if ElevenLabs key is valid (not empty, not placeholder)
-    const isElevenValid = ELEVEN_API_KEY &&
-      ELEVEN_API_KEY.trim() !== '' &&
-      !ELEVEN_API_KEY.includes('your_elevenlabs_api_key') &&
-      !ELEVEN_API_KEY.includes('placeholder');
-
-    // If no valid ElevenLabs key is present, immediately use the browser's native TTS
-    if (!isElevenValid) {
-      speakAIBrowserFallback(cleanText, expectedDurationMs, onFinished);
-      return;
-    }
+    const ttsEndpoint = (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.startsWith('http'))
+      ? `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/tts/speak`
+      : '/api/tts/speak';
 
     getAudioContext();
     setIsAISpeaking(true);
@@ -1126,31 +1121,15 @@ export const AIMockInterviewPage = () => {
       const abortCtrl = new AbortController();
       elevenLabsAbortRef.current = abortCtrl;
 
-      const response = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${ELEVEN_VOICE_ID}/stream`,
-        {
-          method: 'POST',
-          signal: abortCtrl.signal,
-          headers: {
-            'Accept': 'audio/mpeg',
-            'xi-api-key': ELEVEN_API_KEY,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            text: cleanText,
-            model_id: 'eleven_multilingual_v2',
-            voice_settings: {
-              stability: 0.45,
-              similarity_boost: 0.82,
-              style: 0.25,
-              use_speaker_boost: true,
-            },
-          }),
-        }
-      );
+      const response = await fetch(ttsEndpoint, {
+        method: 'POST',
+        signal: abortCtrl.signal,
+        headers: { ...ttsAuthHeaders(), 'Accept': 'audio/mpeg' },
+        body: JSON.stringify({ text: cleanText }),
+      });
 
       if (!response.ok) {
-        console.warn('ElevenLabs TTS error, falling back to browser TTS. Status:', response.status);
+        console.warn('TTS proxy unavailable, falling back to browser TTS. Status:', response.status);
         speakAIBrowserFallback(cleanText, expectedDurationMs, onFinished);
         return;
       }

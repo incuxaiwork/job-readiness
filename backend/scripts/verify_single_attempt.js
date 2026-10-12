@@ -1,6 +1,12 @@
 // Verification script for Single Attempt Policy enforcement
 
 const API_BASE = 'http://localhost:5000/api';
+const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@readysetjob.com';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+  console.error('TEST_ADMIN_PASSWORD is required to run this verification script.');
+  process.exit(1);
+}
 
 async function runTests() {
   console.log('=== RUNNING SINGLE ATTEMPT POLICY VERIFICATION TESTS ===\n');
@@ -104,7 +110,7 @@ async function runTests() {
   const adminLoginRes = await fetch(`${API_BASE}/auth/admin/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'admin@readysetjob.com', password: 'Admin@2026' })
+    body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
   });
   const adminData = await adminLoginRes.json();
   const adminToken = adminData.token;

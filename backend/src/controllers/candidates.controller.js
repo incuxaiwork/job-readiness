@@ -1,5 +1,7 @@
 import { pool, getDbStatus } from '../db/pool.js';
 import { fallbackCandidates } from '../mockFallback.js';
+import { resolveCollegeScope } from '../middleware/collegeScope.js';
+import { serverError } from '../utils/httpError.js';
 
 let candidatesCache = null;
 let lastCandidatesFetch = 0;
@@ -16,6 +18,13 @@ export const getAllCandidates = async (req, res) => {
     if (!pool || !getDbStatus()) {
       return res.json({ success: true, data: [], total: 0 });
     }
+
+    const { collegeId, enforced } = resolveCollegeScope(req);
+    if (enforced && !collegeId) {
+      return res.status(403).json({ success: false, error: 'No college scope for this account.' });
+    }
+    const scopeClause = enforced ? 'AND COALESCE(cp.college_id, u.college_id) = $1' : '';
+    const params = enforced ? [collegeId] : [];
 
     const result = await pool.query(`
       SELECT 
@@ -74,17 +83,20 @@ export const getAllCandidates = async (req, res) => {
         GROUP BY candidate_id, LOWER(candidate_email)
       ) s ON cp.id = s.candidate_id OR cp.user_id = s.candidate_id OR u.id = s.candidate_id OR (cp.email IS NOT NULL AND LOWER(cp.email) = s.norm_email) OR (u.email IS NOT NULL AND LOWER(u.email) = s.norm_email)
       WHERE (u.role = 'candidate' OR u.role IS NULL) AND COALESCE(cp.id, u.id, c.id) IS NOT NULL
+        ${scopeClause}
       ORDER BY created_at DESC
-    `);
+    `, params);
     const responsePayload = { success: true, data: result.rows, total: result.rowCount };
 
-    candidatesCache = responsePayload;
-    lastCandidatesFetch = Date.now();
+    if (!enforced) {
+      candidatesCache = responsePayload;
+      lastCandidatesFetch = Date.now();
+    }
 
     res.json(responsePayload);
   } catch (err) {
     console.error('getAllCandidates error:', err.message);
-    res.status(500).json({ error: err.message });
+    serverError(res, err, 'candidates.controller');
   }
 };
 
@@ -94,6 +106,7 @@ export const getCandidateById = async (req, res) => {
     const result = await pool.query(`
       SELECT 
         COALESCE(cp.id, c.id) as id,
+        COALESCE(cp.college_id, u.college_id) as college_id,
         COALESCE(cp.name, u.name, 'Candidate') as name,
         COALESCE(cp.email, u.email) as email,
         cp.mobile,
@@ -134,15 +147,15 @@ export const getCandidateById = async (req, res) => {
           SUM(COALESCE(obtained_marks, score)) as total_obtained,
           SUM(COALESCE(total_marks, 40)) as total_possible,
           ROUND(AVG(score)) as avg_score,
-          MAX(CASE WHEN LOWER(category) LIKE '%tech%' OR LOWER(assessment_title) LIKE '%tech%' THEN score 
+          MAX(CASE WHEN LOWER(assessment_title) LIKE '%tech%' THEN score 
                    WHEN (category_scores->>'technical') IS NOT NULL AND (category_scores->>'technical')::int > 0 THEN (category_scores->>'technical')::int ELSE NULL END) as tech_score,
-          MAX(CASE WHEN LOWER(category) LIKE '%apt%' OR LOWER(assessment_title) LIKE '%apt%' THEN score 
+          MAX(CASE WHEN LOWER(assessment_title) LIKE '%apt%' THEN score 
                    WHEN (category_scores->>'aptitude') IS NOT NULL AND (category_scores->>'aptitude')::int > 0 THEN (category_scores->>'aptitude')::int ELSE NULL END) as apt_score,
-          MAX(CASE WHEN LOWER(category) LIKE '%reason%' OR LOWER(assessment_title) LIKE '%reason%' THEN score 
+          MAX(CASE WHEN LOWER(assessment_title) LIKE '%reason%' THEN score 
                    WHEN (category_scores->>'reasoning') IS NOT NULL AND (category_scores->>'reasoning')::int > 0 THEN (category_scores->>'reasoning')::int ELSE NULL END) as reason_score,
-          MAX(CASE WHEN LOWER(category) LIKE '%code%' OR LOWER(assessment_title) LIKE '%code%' THEN score 
+          MAX(CASE WHEN LOWER(assessment_title) LIKE '%code%' THEN score 
                    WHEN (category_scores->>'coding') IS NOT NULL AND (category_scores->>'coding')::int > 0 THEN (category_scores->>'coding')::int ELSE NULL END) as code_score,
-          MAX(CASE WHEN LOWER(category) LIKE '%verb%' OR LOWER(assessment_title) LIKE '%verb%' THEN score 
+          MAX(CASE WHEN LOWER(assessment_title) LIKE '%verb%' THEN score 
                    WHEN (category_scores->>'verbal') IS NOT NULL AND (category_scores->>'verbal')::int > 0 THEN (category_scores->>'verbal')::int ELSE NULL END) as verb_score
         FROM assessment_submissions
         GROUP BY candidate_id, LOWER(candidate_email)
@@ -151,9 +164,12 @@ export const getCandidateById = async (req, res) => {
       LIMIT 1
     `, [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Candidate not found.' });
+    if (req.user?.role === 'college_admin' && result.rows[0].college_id !== req.user.college_id) {
+      return res.status(403).json({ error: 'Access denied: candidate is not in your college.' });
+    }
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    serverError(res, err, 'candidates.controller');
   }
 };
 
@@ -176,7 +192,7 @@ export const updateCandidate = async (req, res) => {
     );
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    serverError(res, err, 'candidates.controller');
   }
 };
 
@@ -290,7 +306,7 @@ export const deleteCandidate = async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     console.error(`❌ Error deleting candidate ${candidateId}:`, err.message);
-    return res.status(500).json({ success: false, error: err.message });
+    return serverError(res, err, 'candidates.controller');
   } finally {
     client.release();
   }
@@ -312,7 +328,7 @@ export const getCandidateSubmissions = async (req, res) => {
     );
     res.json({ success: true, data: result.rows });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    serverError(res, err, 'candidates.controller');
   }
 };
 
@@ -322,7 +338,7 @@ export const getCompanyEligibilityCriteria = async (req, res) => {
     const result = await pool.query('SELECT * FROM company_eligibility_criteria ORDER BY company ASC, role ASC');
     res.json({ success: true, data: result.rows });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    serverError(res, err, 'candidates.controller');
   }
 };
 
@@ -421,7 +437,7 @@ export const updateAcademicMarks = async (req, res) => {
     });
   } catch (err) {
     console.error('updateAcademicMarks error:', err.message);
-    res.status(500).json({ success: false, error: err.message });
+    serverError(res, err, 'candidates.controller');
   }
 };
 
@@ -562,7 +578,7 @@ export const resetCandidateAttempt = async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     console.error(`❌ Error resetting candidate attempt:`, err.message);
-    return res.status(500).json({ success: false, error: err.message });
+    return serverError(res, err, 'candidates.controller');
   } finally {
     client.release();
   }

@@ -23,6 +23,7 @@ import {
 export const Header = ({ onToggleSidebar }) => {
   const {
     currentUser,
+    adminUser,
     role,
     currentView,
     navigateTo,
@@ -30,6 +31,12 @@ export const Header = ({ onToggleSidebar }) => {
     addToast,
     isInterviewUnlocked
   } = useApp();
+
+  const isCollegeAdmin = role === 'admin' && adminUser?.role === 'college_admin';
+  const adminDisplayName = isCollegeAdmin
+    ? (adminUser?.college_name || adminUser?.name || 'College Admin')
+    : 'Site Administrator';
+  const adminRoleLabel = isCollegeAdmin ? 'College Administrator' : 'Super Administrator';
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -159,7 +166,7 @@ export const Header = ({ onToggleSidebar }) => {
                   </span> */}
                 </div>
                 <span className="text-[10px] text-slate-500 font-medium hidden sm:block">
-                  {role === 'admin' ? 'Recruiter & University Management' : 'AI-Powered Assessment & Readiness'}
+                  {role === 'admin' ? 'Platform & University Management' : 'AI-Powered Assessment & Readiness'}
                 </span>
               </div>
             </div>
@@ -297,10 +304,10 @@ export const Header = ({ onToggleSidebar }) => {
                     </div>
                     <div className="hidden lg:flex flex-col text-left">
                       <span className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[120px]">
-                        {role === 'admin' ? 'HR Admin' : currentUser?.name || 'Student'}
+                        {role === 'admin' ? adminDisplayName : currentUser?.name || 'Student'}
                       </span>
                       <span className="text-[10px] text-slate-500 font-medium capitalize">
-                        {role === 'admin' ? 'Portal Administrator' : `Class of ${currentUser?.graduationYear || '2026'}`}
+                        {role === 'admin' ? adminRoleLabel : `Class of ${currentUser?.graduationYear || '2026'}`}
                       </span>
                     </div>
                     <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
@@ -310,10 +317,10 @@ export const Header = ({ onToggleSidebar }) => {
                     <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="px-4 py-2 border-b border-slate-100">
                         <p className="text-xs font-bold text-slate-900">
-                          {role === 'admin' ? 'Administrator' : currentUser?.name || 'Student'}
+                          {role === 'admin' ? adminRoleLabel : currentUser?.name || 'Student'}
                         </p>
                         <p className="text-[11px] text-slate-500 truncate">
-                          {role === 'admin' ? 'admin@readysetjob.com' : currentUser?.email || 'student@university.edu'}
+                          {role === 'admin' ? (adminUser?.email || 'admin@readysetjob.com') : currentUser?.email || 'student@university.edu'}
                         </p>
                       </div>
 

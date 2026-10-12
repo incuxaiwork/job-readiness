@@ -1,6 +1,7 @@
 import { pool, getDbStatus } from '../db/pool.js';
 import crypto from 'crypto';
 import { evaluateSubmission } from '../services/evaluationService.js';
+import { canReadCandidate } from '../middleware/ownership.js';
 import {
   fallbackSubmissions,
   getMySubmissionsFallback,
@@ -8,6 +9,7 @@ import {
   saveProctoringEventFallback,
   getProctoringEventsFallback
 } from '../mockFallback.js';
+import { serverError } from '../utils/httpError.js';
 
 // POST /api/submissions
 export const submitAssessment = async (req, res) => {
@@ -298,7 +300,7 @@ export const submitAssessment = async (req, res) => {
       });
     }
     console.error('Submission controller error:', err.message);
-    res.status(500).json({ success: false, error: err.message });
+    serverError(res, err, 'submissions.controller');
   } finally {
     client.release();
   }
@@ -379,7 +381,6 @@ export const logProctoringEvent = async (req, res) => {
     }
     const {
       attemptId,
-      candidateId: bodyCandId,
       assessmentId,
       type, // 'NO_FACE' | 'LOOKING_AWAY' | 'MULTIPLE_FACES'
       timestamp,
@@ -390,7 +391,7 @@ export const logProctoringEvent = async (req, res) => {
       return res.status(400).json({ success: false, error: 'attemptId and type are required' });
     }
 
-    const candidateId = req.user?.id || bodyCandId || null;
+    const candidateId = req.user.id;
     const asmId = assessmentId || null;
     const eventId = `pe-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
     const eventTime = timestamp ? new Date(timestamp) : new Date();
@@ -439,10 +440,26 @@ export const getProctoringEvents = async (req, res) => {
       [attemptId]
     );
 
+    // Object-level authorization: a platform admin sees everything; a college admin
+    // sees only their college's candidates; a candidate sees only their own events.
+    let rows = result.rows;
+    if (req.user?.role !== 'admin') {
+      if (req.user?.role === 'college_admin') {
+        const allowed = [];
+        for (const row of rows) {
+          const { ok } = await canReadCandidate(req, row.candidate_id);
+          if (ok) allowed.push(row);
+        }
+        rows = allowed;
+      } else {
+        rows = rows.filter((row) => String(row.candidate_id) === String(req.user?.id));
+      }
+    }
+
     return res.status(200).json({
       success: true,
-      count: result.rows.length,
-      data: result.rows
+      count: rows.length,
+      data: rows
     });
   } catch (err) {
     console.error('Error fetching proctoring events:', err);

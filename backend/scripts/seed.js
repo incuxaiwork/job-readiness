@@ -9,14 +9,19 @@ const runSeed = async () => {
   await initSchema();
 
   // 1. Seed Admin User
-  const adminHash = await bcrypt.hash('Admin@2026', 10);
+  const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@readysetjob.com';
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  if (!adminPassword) {
+    throw new Error('SEED_ADMIN_PASSWORD is required to seed the admin user (no default password is provided).');
+  }
+  const adminHash = await bcrypt.hash(adminPassword, 10);
 
   await pool.query(`
     INSERT INTO users (id, email, password_hash, role, name, status)
     VALUES 
-      ('admin-1', 'admin@readysetjob.com', $1, 'admin', 'HR Administrator', 'active')
+      ('admin-1', $2, $1, 'admin', 'HR Administrator', 'active')
     ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash;
-  `, [adminHash]);
+  `, [adminHash, adminEmail]);
   console.log('✅ 1. Admin User seeded (Candidate seeding skipped).');
 
   // 3. Seed Topics

@@ -13,10 +13,22 @@ if (!connectionString) {
 const isProduction = process.env.NODE_ENV === 'production';
 const isLocalhost = Boolean(connectionString) && (connectionString.includes('localhost') || connectionString.includes('127.0.0.1'));
 
+// TLS policy for remote database connections.
+// - Localhost: no TLS.
+// - Remote: TLS ON with certificate validation ENABLED by default. A private CA may be
+//   pinned via DATABASE_SSL_CA (PEM contents or a path). Verification may only be
+//   disabled explicitly and deliberately with DATABASE_SSL_REJECT_UNAUTHORIZED=false.
+const buildSslConfig = () => {
+  if (isLocalhost) return false;
+  const rejectUnauthorized = process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false';
+  const ca = process.env.DATABASE_SSL_CA;
+  return { rejectUnauthorized, ...(ca ? { ca } : {}) };
+};
+
 export const pool = connectionString
   ? new Pool({
       connectionString,
-      ssl: isLocalhost ? false : { rejectUnauthorized: false },
+      ssl: buildSslConfig(),
       connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || process.env.DB_CONNECTION_TIMEOUT || '10000', 10),
       idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT || process.env.DB_IDLE_TIMEOUT || '10000', 10),
       keepAlive: true,

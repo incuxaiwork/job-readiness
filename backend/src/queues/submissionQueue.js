@@ -50,7 +50,8 @@ class InMemorySubmissionQueue extends EventEmitter {
       status: job.status,
       progress: job.progress,
       result: job.result,
-      error: job.error
+      error: job.error,
+      clientKey: job.data?.clientKey ?? null
     };
   }
 
@@ -192,7 +193,8 @@ export const getSubmissionJob = async (jobId) => {
           status: state, // 'waiting', 'active', 'completed', 'failed'
           progress: job.progress,
           result: job.returnvalue || null,
-          error: job.failedReason || null
+          error: job.failedReason || null,
+          clientKey: job.data?.clientKey ?? null
         };
       }
     } catch (err) {

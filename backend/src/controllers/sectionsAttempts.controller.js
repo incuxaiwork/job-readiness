@@ -2,6 +2,7 @@ import { pool, getDbStatus } from '../db/pool.js';
 import crypto from 'crypto';
 import { clearAssessmentsCache } from './assessments.controller.js';
 import { fallbackAssessments, fallbackQuestions } from '../mockFallback.js';
+import { serverError } from '../utils/httpError.js';
 
 const newId = (prefix) => `${prefix}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
 
@@ -98,7 +99,7 @@ export const getAssessmentSections = async (req, res) => {
 
     res.json({ success: true, data });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    serverError(res, err, 'sectionsAttempts.controller');
   }
 };
 
@@ -203,7 +204,7 @@ export const replaceAssessmentSections = async (req, res) => {
     res.json({ success: true, data });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
-    res.status(500).json({ error: err.message });
+    serverError(res, err, 'sectionsAttempts.controller');
   } finally {
     client.release();
   }
@@ -385,7 +386,7 @@ export const startAssessmentAttempt = async (req, res) => {
     res.status(resumed ? 200 : 201).json({ success: true, data: payload });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
-    res.status(500).json({ error: err.message });
+    serverError(res, err, 'sectionsAttempts.controller');
   } finally {
     client.release();
   }
@@ -437,7 +438,7 @@ export const saveAnswer = async (req, res) => {
 
     res.json({ success: true, saved: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    serverError(res, err, 'sectionsAttempts.controller');
   }
 };
 
@@ -531,7 +532,7 @@ export const completeSection = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    serverError(res, err, 'sectionsAttempts.controller');
   }
 };
 
@@ -736,7 +737,7 @@ export const submitAssessmentAttempt = async (req, res) => {
     });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
-    res.status(500).json({ error: err.message });
+    serverError(res, err, 'sectionsAttempts.controller');
   } finally {
     client.release();
   }
@@ -792,6 +793,6 @@ export const getAttemptStatus = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    serverError(res, err, 'sectionsAttempts.controller');
   }
 };

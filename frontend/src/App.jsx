@@ -23,7 +23,7 @@ import { AdminQuestionBankPage } from './pages/admin/AdminQuestionBankPage';
 import { AdminAssessmentsPage } from './pages/admin/AdminAssessmentsPage';
 import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
 import { AdminInterviewsPage } from './pages/admin/AdminInterviewsPage';
-
+import { AdminCollegesPage } from './pages/admin/AdminCollegesPage';
 import { JobReadinessHero } from './pages/JobReadinessHero';
 import { ShieldAlert, Lock } from 'lucide-react';
 import { isInterviewLocked } from './utils/interviewLock';
@@ -52,6 +52,22 @@ function RequireAdmin({ children }) {
 
   if (!isAdmin) {
     return <Navigate to="/admin" state={{ from: location }} replace />;
+  }
+  return children;
+}
+
+function RequireSuperAdmin({ children }) {
+  const { role, adminUser } = useApp();
+  const location = useLocation();
+  const savedAdmin = typeof window !== 'undefined' ? localStorage.getItem('rsj_admin_user') : null;
+  const resolvedAdmin = adminUser || (savedAdmin ? (() => { try { return JSON.parse(savedAdmin); } catch { return null; } })() : null);
+  const isSuperAdmin = role === 'admin' && (resolvedAdmin?.role === 'admin' || !resolvedAdmin?.role);
+
+  if (role !== 'admin') {
+    return <Navigate to="/admin" state={{ from: location }} replace />;
+  }
+  if (!isSuperAdmin) {
+    return <Navigate to="/admin/candidates" state={{ from: location }} replace />;
   }
   return children;
 }
@@ -246,31 +262,31 @@ export default function App() {
         <Route
           path="/admin/questions"
           element={
-            <RequireAdmin>
+            <RequireSuperAdmin>
               <ShellLayout>
                 <AdminQuestionBankPage />
               </ShellLayout>
-            </RequireAdmin>
+            </RequireSuperAdmin>
           }
         />
         <Route
           path="/admin/assessments"
           element={
-            <RequireAdmin>
+            <RequireSuperAdmin>
               <ShellLayout>
                 <AdminAssessmentsPage />
               </ShellLayout>
-            </RequireAdmin>
+            </RequireSuperAdmin>
           }
         />
         <Route
           path="/admin/interviews"
           element={
-            <RequireAdmin>
+            <RequireSuperAdmin>
               <ShellLayout>
                 <AdminInterviewsPage />
               </ShellLayout>
-            </RequireAdmin>
+            </RequireSuperAdmin>
           }
         />
         <Route
@@ -281,6 +297,17 @@ export default function App() {
                 <AdminAnalyticsPage />
               </ShellLayout>
             </RequireAdmin>
+          }
+        />
+
+        <Route
+          path="/admin/colleges"
+          element={
+            <RequireSuperAdmin>
+              <ShellLayout>
+                <AdminCollegesPage />
+              </ShellLayout>
+            </RequireSuperAdmin>
           }
         />
 

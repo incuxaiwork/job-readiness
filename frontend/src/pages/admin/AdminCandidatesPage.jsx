@@ -38,7 +38,8 @@ import {
 } from 'lucide-react';
 
 export const AdminCandidatesPage = () => {
-  const { candidatesList, deleteCandidate, resetCandidateAttempt, addToast, navigateTo, assessments, fetchCandidates } = useApp();
+  const { candidatesList, deleteCandidate, resetCandidateAttempt, addToast, navigateTo, assessments, fetchCandidates, adminUser, role } = useApp();
+  const isSuperAdmin = role === 'admin' && (adminUser?.role === 'admin' || !adminUser?.role);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCollege, setSelectedCollege] = useState('All');
@@ -60,12 +61,16 @@ export const AdminCandidatesPage = () => {
   const [candidateInterviewSession, setCandidateInterviewSession] = useState(null);
   const [loadingInterview, setLoadingInterview] = useState(false);
 
-  // Fetch all recorded interview sessions & refresh candidate roster for admin visibility
+  // Fetch all recorded interview sessions & refresh candidate roster for admin visibility.
+  // Super-admin only: interview sessions are a platform-wide module, not part of the college portal.
   const fetchAllInterviewSessions = () => {
-    fetch('/api/interview/admin/sessions')
-      .then(res => res.json())
+    if (!isSuperAdmin) return;
+    const token = localStorage.getItem('rsj_token') || localStorage.getItem('token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    fetch('/api/interview/admin/sessions', { headers })
+      .then(res => (res.ok ? res.json() : null))
       .then(data => {
-        if (data.success && Array.isArray(data.sessions)) {
+        if (data?.success && Array.isArray(data.sessions)) {
           setAllInterviewSessions(data.sessions);
         }
       })
@@ -77,7 +82,7 @@ export const AdminCandidatesPage = () => {
     if (fetchCandidates) {
       fetchCandidates();
     }
-  }, [fetchCandidates]);
+  }, [fetchCandidates, isSuperAdmin]);
 
   // Helper to match a candidate to their AI Mock Interview session
   const getCandidateInterview = (cand) => {
@@ -233,7 +238,7 @@ export const AdminCandidatesPage = () => {
     link.setAttribute('download', `Candidate_Roster_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
     addToast(`Exported ${filteredCandidates.length} candidate record(s) to CSV.`, 'success');
   };
 
@@ -404,6 +409,8 @@ export const AdminCandidatesPage = () => {
                       >
                         <Eye className="w-3.5 h-3.5" />
                       </button>
+                      {isSuperAdmin && (
+                      <>
                       <button
                         type="button"
                         onClick={(e) => {
@@ -430,6 +437,8 @@ export const AdminCandidatesPage = () => {
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
+                      </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -885,6 +894,7 @@ export const AdminCandidatesPage = () => {
                           <span>Submitted: {new Date(sub.created_at || Date.now()).toLocaleDateString()}</span>
                         </div>
                       </div>
+                      {isSuperAdmin && (
                       <button
                         type="button"
                         onClick={async () => {
@@ -903,6 +913,7 @@ export const AdminCandidatesPage = () => {
                         <Unlock className="w-3 h-3" />
                         <span>Unlock Exam</span>
                       </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -915,6 +926,7 @@ export const AdminCandidatesPage = () => {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+              {isSuperAdmin && (
               <button
                 type="button"
                 onClick={async () => {
@@ -930,6 +942,7 @@ export const AdminCandidatesPage = () => {
                 <Unlock className="w-3.5 h-3.5" />
                 <span>Unlock All Exams</span>
               </button>
+              )}
 
               <div className="flex items-center gap-2">
                 <button

@@ -1,0 +1,867 @@
+{
+  "section": "Coding",
+  "version": 1,
+  "questions": [
+    {
+      "id": "code-q-array-sum-01",
+      "section": "Coding",
+      "topic": "Arrays & Algorithms",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Sum of Array Elements\n\nGiven an array of integers, compute and return the sum of all its elements.\n\n#### Input Format\n- The first line contains an integer **N** — the number of elements.\n- The second line contains **N** space-separated integers.\n\n#### Output Format\n- Print a single integer: the sum of the array elements.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= N <= 10^4\n-10^6 <= arr[i] <= 10^6\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef arraySum(nums):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    nums = [int(x) for x in data[1:1 + n]]\n    print(arraySum(nums))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction arraySum(nums) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    const nums = data.slice(1, 1 + n).map(Number);\n    console.log(arraySum(nums));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <vector>\n#include <string>\n\nusing namespace std;\n\n\nlong long arraySum(const vector<long long>& nums) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    int n;\n    if (!(cin >> n)) return 0;\n    vector<long long> nums(n);\n    for (int i = 0; i < n; i++) cin >> nums[i];\n    cout << arraySum(nums) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long arraySum(long[] nums) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextInt()) return;\n        int n = scanner.nextInt();\n        long[] nums = new long[n];\n        for (int i = 0; i < n; i++) nums[i] = scanner.nextLong();\n        System.out.println(arraySum(nums));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "3\n1 2 3",
+          "expectedOutput": "6",
+          "isHidden": false,
+          "explanation": "1 + 2 + 3 = 6"
+        },
+        {
+          "id": 2,
+          "input": "5\n10 20 30 40 50",
+          "expectedOutput": "150",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "4\n-5 5 -10 10",
+          "expectedOutput": "0",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "1\n1000",
+          "expectedOutput": "1000",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-array-max-04",
+      "section": "Coding",
+      "topic": "Arrays & Algorithms",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Maximum Element\n\nFind and return the largest number in the array.\n\n#### Input Format\n- The first line contains an integer **N**.\n- The second line contains **N** space-separated integers.\n\n#### Output Format\n- Print the maximum element.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= N <= 10^4\n-10^9 <= arr[i] <= 10^9\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef arrayMax(nums):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    nums = [int(x) for x in data[1:1 + n]]\n    print(arrayMax(nums))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction arrayMax(nums) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    const nums = data.slice(1, 1 + n).map(Number);\n    console.log(arrayMax(nums));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <vector>\n#include <string>\n\nusing namespace std;\n\n\nlong long arrayMax(const vector<long long>& nums) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    int n;\n    if (!(cin >> n)) return 0;\n    vector<long long> nums(n);\n    for (int i = 0; i < n; i++) cin >> nums[i];\n    cout << arrayMax(nums) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long arrayMax(long[] nums) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextInt()) return;\n        int n = scanner.nextInt();\n        long[] nums = new long[n];\n        for (int i = 0; i < n; i++) nums[i] = scanner.nextLong();\n        System.out.println(arrayMax(nums));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "5\n3 7 2 9 4",
+          "expectedOutput": "9",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "4\n-5 -1 -9 -3",
+          "expectedOutput": "-1",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "1\n42",
+          "expectedOutput": "42",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "6\n0 0 0 0 0 0",
+          "expectedOutput": "0",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-array-reverse-05",
+      "section": "Coding",
+      "topic": "Arrays & Algorithms",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Reverse an Array\n\nReturn the array reversed, as a single space-separated string.\n\n#### Input Format\n- The first line contains an integer **N**.\n- The second line contains **N** space-separated integers.\n\n#### Output Format\n- Print the elements in reverse order, separated by single spaces.\n\n_Example:_ for the array \\`1 2 3 4\\` print \\`4 3 2 1\\`.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= N <= 10^5\n-10^6 <= arr[i] <= 10^6\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef reverseArray(nums):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    nums = [int(x) for x in data[1:1 + n]]\n    print(reverseArray(nums))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction reverseArray(nums) {\n    // TODO: implement your solution here and return the answer\n    return '';\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    const nums = data.slice(1, 1 + n).map(Number);\n    console.log(reverseArray(nums));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <vector>\n#include <string>\n\nusing namespace std;\n\n\nstring reverseArray(const vector<long long>& nums) {\n    // TODO: implement your solution here and return the answer\n    return \"\";\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    int n;\n    if (!(cin >> n)) return 0;\n    vector<long long> nums(n);\n    for (int i = 0; i < n; i++) cin >> nums[i];\n    cout << reverseArray(nums) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static String reverseArray(long[] nums) {\n        // TODO: implement your solution here and return the answer\n        return \"\";\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextInt()) return;\n        int n = scanner.nextInt();\n        long[] nums = new long[n];\n        for (int i = 0; i < n; i++) nums[i] = scanner.nextLong();\n        System.out.println(reverseArray(nums));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "4\n1 2 3 4",
+          "expectedOutput": "4 3 2 1",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "3\n7 8 9",
+          "expectedOutput": "9 8 7",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "1\n5",
+          "expectedOutput": "5",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "5\n-1 -2 -3 -4 -5",
+          "expectedOutput": "-5 -4 -3 -2 -1",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-array-even-count-06",
+      "section": "Coding",
+      "topic": "Arrays & Algorithms",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Count Even Numbers\n\nCount how many numbers in the array are even. Zero counts as even.\n\n#### Input Format\n- The first line contains an integer **N**.\n- The second line contains **N** space-separated integers.\n\n#### Output Format\n- Print the count of even numbers.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= N <= 10^5\n-10^6 <= arr[i] <= 10^6\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef countEven(nums):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    nums = [int(x) for x in data[1:1 + n]]\n    print(countEven(nums))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction countEven(nums) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    const nums = data.slice(1, 1 + n).map(Number);\n    console.log(countEven(nums));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <vector>\n#include <string>\n\nusing namespace std;\n\n\nlong long countEven(const vector<long long>& nums) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    int n;\n    if (!(cin >> n)) return 0;\n    vector<long long> nums(n);\n    for (int i = 0; i < n; i++) cin >> nums[i];\n    cout << countEven(nums) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long countEven(long[] nums) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextInt()) return;\n        int n = scanner.nextInt();\n        long[] nums = new long[n];\n        for (int i = 0; i < n; i++) nums[i] = scanner.nextLong();\n        System.out.println(countEven(nums));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "5\n1 2 3 4 5",
+          "expectedOutput": "2",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "4\n2 4 6 8",
+          "expectedOutput": "4",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "3\n1 3 5",
+          "expectedOutput": "0",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "4\n0 7 -2 9",
+          "expectedOutput": "2",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-array-positive-sum-07",
+      "section": "Coding",
+      "topic": "Arrays & Algorithms",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Sum of Positive Numbers\n\nReturn the sum of all strictly positive values in the array. Ignore zero and negative values.\n\n#### Input Format\n- The first line contains an integer **N**.\n- The second line contains **N** space-separated integers.\n\n#### Output Format\n- Print the sum of the positive elements.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= N <= 10^5\n-10^6 <= arr[i] <= 10^6\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef sumPositive(nums):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    nums = [int(x) for x in data[1:1 + n]]\n    print(sumPositive(nums))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction sumPositive(nums) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    const nums = data.slice(1, 1 + n).map(Number);\n    console.log(sumPositive(nums));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <vector>\n#include <string>\n\nusing namespace std;\n\n\nlong long sumPositive(const vector<long long>& nums) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    int n;\n    if (!(cin >> n)) return 0;\n    vector<long long> nums(n);\n    for (int i = 0; i < n; i++) cin >> nums[i];\n    cout << sumPositive(nums) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long sumPositive(long[] nums) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextInt()) return;\n        int n = scanner.nextInt();\n        long[] nums = new long[n];\n        for (int i = 0; i < n; i++) nums[i] = scanner.nextLong();\n        System.out.println(sumPositive(nums));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "5\n1 -2 3 -4 5",
+          "expectedOutput": "9",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "4\n10 20 30 40",
+          "expectedOutput": "100",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "3\n-1 -2 -3",
+          "expectedOutput": "0",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "4\n0 7 0 7",
+          "expectedOutput": "14",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-palindrome-02",
+      "section": "Coding",
+      "topic": "String Manipulation",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Palindrome Check\n\nDetermine whether a string reads the same forwards and backwards. The check is **case-insensitive**.\n\n#### Input Format\n- A single word **S** (no spaces).\n\n#### Output Format\n- Print \\`true\\` if **S** is a palindrome, otherwise \\`false\\`.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= |S| <= 10^5\nCase-insensitive comparison\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef isPalindrome(s):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    s = data[0]\n    print(isPalindrome(s))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction isPalindrome(s) {\n    // TODO: implement your solution here and return the answer\n    return '';\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const s = data[0];\n    console.log(isPalindrome(s));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <string>\n\nusing namespace std;\n\n\nstring isPalindrome(const string& s) {\n    // TODO: implement your solution here and return the answer\n    return \"\";\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    string s;\n    if (!(cin >> s)) return 0;\n    cout << isPalindrome(s) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static String isPalindrome(String s) {\n        // TODO: implement your solution here and return the answer\n        return \"\";\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNext()) return;\n        String s = scanner.next();\n        System.out.println(isPalindrome(s));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "racecar",
+          "expectedOutput": "true",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "hello",
+          "expectedOutput": "false",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "Madam",
+          "expectedOutput": "true",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "a",
+          "expectedOutput": "true",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-string-reverse-08",
+      "section": "Coding",
+      "topic": "String Manipulation",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Reverse a String\n\nReturn the string reversed.\n\n#### Input Format\n- A single word **S** (no spaces).\n\n#### Output Format\n- Print **S** backwards.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= |S| <= 10^5\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef reverseString(s):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    s = data[0]\n    print(reverseString(s))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction reverseString(s) {\n    // TODO: implement your solution here and return the answer\n    return '';\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const s = data[0];\n    console.log(reverseString(s));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <string>\n\nusing namespace std;\n\n\nstring reverseString(const string& s) {\n    // TODO: implement your solution here and return the answer\n    return \"\";\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    string s;\n    if (!(cin >> s)) return 0;\n    cout << reverseString(s) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static String reverseString(String s) {\n        // TODO: implement your solution here and return the answer\n        return \"\";\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNext()) return;\n        String s = scanner.next();\n        System.out.println(reverseString(s));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "hello",
+          "expectedOutput": "olleh",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "World",
+          "expectedOutput": "dlroW",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "a",
+          "expectedOutput": "a",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "racecar",
+          "expectedOutput": "racecar",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-string-vowel-count-09",
+      "section": "Coding",
+      "topic": "String Manipulation",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Count Vowels\n\nCount the vowels (a, e, i, o, u) in a string. Treat uppercase and lowercase letters the same.\n\n#### Input Format\n- A single word **S** (no spaces).\n\n#### Output Format\n- Print the number of vowels.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= |S| <= 10^5\nVowels: a, e, i, o, u (case-insensitive)\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef countVowels(s):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    s = data[0]\n    print(countVowels(s))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction countVowels(s) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const s = data[0];\n    console.log(countVowels(s));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <string>\n\nusing namespace std;\n\n\nlong long countVowels(const string& s) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    string s;\n    if (!(cin >> s)) return 0;\n    cout << countVowels(s) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long countVowels(String s) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNext()) return;\n        String s = scanner.next();\n        System.out.println(countVowels(s));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "hello",
+          "expectedOutput": "2",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "AEIOU",
+          "expectedOutput": "5",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "rhythm",
+          "expectedOutput": "0",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "programming",
+          "expectedOutput": "3",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-string-upper-10",
+      "section": "Coding",
+      "topic": "String Manipulation",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Uppercase a String\n\nReturn the string with every letter converted to uppercase.\n\n#### Input Format\n- A single token **S** (no spaces).\n\n#### Output Format\n- Print the uppercased string.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= |S| <= 10^5\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef toUpperStr(s):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    s = data[0]\n    print(toUpperStr(s))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction toUpperStr(s) {\n    // TODO: implement your solution here and return the answer\n    return '';\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const s = data[0];\n    console.log(toUpperStr(s));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <string>\n\nusing namespace std;\n\n\nstring toUpperStr(const string& s) {\n    // TODO: implement your solution here and return the answer\n    return \"\";\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    string s;\n    if (!(cin >> s)) return 0;\n    cout << toUpperStr(s) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static String toUpperStr(String s) {\n        // TODO: implement your solution here and return the answer\n        return \"\";\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNext()) return;\n        String s = scanner.next();\n        System.out.println(toUpperStr(s));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "hello",
+          "expectedOutput": "HELLO",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "World",
+          "expectedOutput": "WORLD",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "aBc123",
+          "expectedOutput": "ABC123",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "xyz",
+          "expectedOutput": "XYZ",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-string-length-11",
+      "section": "Coding",
+      "topic": "String Manipulation",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### String Length\n\nReturn the number of characters in the string.\n\n#### Input Format\n- A single word **S** (no spaces).\n\n#### Output Format\n- Print the length of **S**.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= |S| <= 10^5\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef stringLength(s):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    s = data[0]\n    print(stringLength(s))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction stringLength(s) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const s = data[0];\n    console.log(stringLength(s));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <string>\n\nusing namespace std;\n\n\nlong long stringLength(const string& s) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    string s;\n    if (!(cin >> s)) return 0;\n    cout << stringLength(s) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long stringLength(String s) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNext()) return;\n        String s = scanner.next();\n        System.out.println(stringLength(s));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "hello",
+          "expectedOutput": "5",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "abcdef",
+          "expectedOutput": "6",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "a",
+          "expectedOutput": "1",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "programming",
+          "expectedOutput": "11",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-number-even-odd-12",
+      "section": "Coding",
+      "topic": "Numbers & Math",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Even or Odd\n\nDetermine whether a non-negative integer is even or odd.\n\n#### Input Format\n- A single integer **N**.\n\n#### Output Format\n- Print \\`Even\\` if **N** is even, otherwise print \\`Odd\\`.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "0 <= N <= 10^9\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef evenOrOdd(n):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    print(evenOrOdd(n))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction evenOrOdd(n) {\n    // TODO: implement your solution here and return the answer\n    return '';\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    console.log(evenOrOdd(n));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n\nusing namespace std;\n\n\nstring evenOrOdd(long long n) {\n    // TODO: implement your solution here and return the answer\n    return \"\";\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    long long n;\n    if (!(cin >> n)) return 0;\n    cout << evenOrOdd(n) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static String evenOrOdd(long n) {\n        // TODO: implement your solution here and return the answer\n        return \"\";\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextLong()) return;\n        long n = scanner.nextLong();\n        System.out.println(evenOrOdd(n));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "4",
+          "expectedOutput": "Even",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "7",
+          "expectedOutput": "Odd",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "0",
+          "expectedOutput": "Even",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "999",
+          "expectedOutput": "Odd",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-number-digit-sum-13",
+      "section": "Coding",
+      "topic": "Numbers & Math",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Sum of Digits\n\nReturn the sum of the digits of a non-negative integer.\n\n#### Input Format\n- A single integer **N**.\n\n#### Output Format\n- Print the sum of its digits.\n\n_Example:_ \\`1234\\` -> \\`1 + 2 + 3 + 4 = 10\\`.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "0 <= N <= 10^18\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef sumDigits(n):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    print(sumDigits(n))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction sumDigits(n) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    console.log(sumDigits(n));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n\nusing namespace std;\n\n\nlong long sumDigits(long long n) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    long long n;\n    if (!(cin >> n)) return 0;\n    cout << sumDigits(n) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long sumDigits(long n) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextLong()) return;\n        long n = scanner.nextLong();\n        System.out.println(sumDigits(n));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "1234",
+          "expectedOutput": "10",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "9",
+          "expectedOutput": "9",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "1000",
+          "expectedOutput": "1",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "99999",
+          "expectedOutput": "45",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-number-reverse-14",
+      "section": "Coding",
+      "topic": "Numbers & Math",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Reverse a Number\n\nReturn the integer obtained by reversing the digits of **N**. Leading zeros disappear naturally.\n\n#### Input Format\n- A single non-negative integer **N**.\n\n#### Output Format\n- Print the reversed number.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "0 <= N <= 10^9\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef reverseNumber(n):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    print(reverseNumber(n))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction reverseNumber(n) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    console.log(reverseNumber(n));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n\nusing namespace std;\n\n\nlong long reverseNumber(long long n) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    long long n;\n    if (!(cin >> n)) return 0;\n    cout << reverseNumber(n) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long reverseNumber(long n) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextLong()) return;\n        long n = scanner.nextLong();\n        System.out.println(reverseNumber(n));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "1234",
+          "expectedOutput": "4321",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "120",
+          "expectedOutput": "21",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "7",
+          "expectedOutput": "7",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "1000",
+          "expectedOutput": "1",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-number-prime-15",
+      "section": "Coding",
+      "topic": "Numbers & Math",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Prime Check\n\nDetermine whether a number is prime. A prime number is greater than 1 and has no divisors other than 1 and itself.\n\n#### Input Format\n- A single integer **N**.\n\n#### Output Format\n- Print \\`true\\` if **N** is prime, otherwise \\`false\\`.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "0 <= N <= 10^9\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef isPrime(n):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    print(isPrime(n))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction isPrime(n) {\n    // TODO: implement your solution here and return the answer\n    return '';\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    console.log(isPrime(n));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n\nusing namespace std;\n\n\nstring isPrime(long long n) {\n    // TODO: implement your solution here and return the answer\n    return \"\";\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    long long n;\n    if (!(cin >> n)) return 0;\n    cout << isPrime(n) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static String isPrime(long n) {\n        // TODO: implement your solution here and return the answer\n        return \"\";\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextLong()) return;\n        long n = scanner.nextLong();\n        System.out.println(isPrime(n));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "7",
+          "expectedOutput": "true",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "10",
+          "expectedOutput": "false",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "1",
+          "expectedOutput": "false",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "2",
+          "expectedOutput": "true",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-number-digit-count-16",
+      "section": "Coding",
+      "topic": "Numbers & Math",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Count Digits\n\nReturn how many digits a non-negative integer has. The number \\`0\\` has one digit.\n\n#### Input Format\n- A single non-negative integer **N**.\n\n#### Output Format\n- Print the number of digits.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "0 <= N <= 10^18\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef countDigits(n):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    print(countDigits(n))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction countDigits(n) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    console.log(countDigits(n));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n\nusing namespace std;\n\n\nlong long countDigits(long long n) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    long long n;\n    if (!(cin >> n)) return 0;\n    cout << countDigits(n) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long countDigits(long n) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextLong()) return;\n        long n = scanner.nextLong();\n        System.out.println(countDigits(n));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "1234",
+          "expectedOutput": "4",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "9",
+          "expectedOutput": "1",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "100000",
+          "expectedOutput": "6",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "0",
+          "expectedOutput": "1",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-factorial-03",
+      "section": "Coding",
+      "topic": "Recursion & Math",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Factorial\n\nCompute the factorial of a non-negative integer **N** ($N! = N \\times (N-1) \\times \\dots \\times 1$, and $0! = 1$).\n\n#### Input Format\n- A single integer **N**.\n\n#### Output Format\n- Print the factorial of **N**.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "0 <= N <= 20\nResult fits in a 64-bit integer\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef factorial(n):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    print(factorial(n))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction factorial(n) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    console.log(factorial(n));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n\nusing namespace std;\n\n\nlong long factorial(long long n) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    long long n;\n    if (!(cin >> n)) return 0;\n    cout << factorial(n) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long factorial(long n) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextLong()) return;\n        long n = scanner.nextLong();\n        System.out.println(factorial(n));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "5",
+          "expectedOutput": "120",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "0",
+          "expectedOutput": "1",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "10",
+          "expectedOutput": "3628800",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "15",
+          "expectedOutput": "1307674368000",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-recursion-sum-n-17",
+      "section": "Coding",
+      "topic": "Recursion & Math",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Sum from 1 to N\n\nReturn the sum of all integers from 1 to **N** (inclusive).\n\n#### Input Format\n- A single integer **N**.\n\n#### Output Format\n- Print the total sum.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= N <= 10^6\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef sumToN(n):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    print(sumToN(n))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction sumToN(n) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    console.log(sumToN(n));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n\nusing namespace std;\n\n\nlong long sumToN(long long n) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    long long n;\n    if (!(cin >> n)) return 0;\n    cout << sumToN(n) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long sumToN(long n) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextLong()) return;\n        long n = scanner.nextLong();\n        System.out.println(sumToN(n));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "5",
+          "expectedOutput": "15",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "10",
+          "expectedOutput": "55",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "1",
+          "expectedOutput": "1",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "100",
+          "expectedOutput": "5050",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-recursion-gcd-18",
+      "section": "Coding",
+      "topic": "Recursion & Math",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Greatest Common Divisor\n\nReturn the greatest common divisor (GCD) of two positive integers **A** and **B**.\n\n#### Input Format\n- A single line with two integers **A** and **B**.\n\n#### Output Format\n- Print the GCD of **A** and **B**.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= A, B <= 10^9\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef gcd(a, b):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    a = int(data[0])\n    b = int(data[1])\n    print(gcd(a, b))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction gcd(a, b) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const a = parseInt(data[0], 10);\n    const b = parseInt(data[1], 10);\n    console.log(gcd(a, b));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n\nusing namespace std;\n\n\nlong long gcd(long long a, long long b) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    long long a, b;\n    if (!(cin >> a >> b)) return 0;\n    cout << gcd(a, b) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long gcd(long a, long b) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextLong()) return;\n        long a = scanner.nextLong();\n        long b = scanner.nextLong();\n        System.out.println(gcd(a, b));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "12 10",
+          "expectedOutput": "2",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "100 75",
+          "expectedOutput": "25",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "17 5",
+          "expectedOutput": "1",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "36 24",
+          "expectedOutput": "12",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-recursion-power-19",
+      "section": "Coding",
+      "topic": "Recursion & Math",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Power of a Number\n\nCompute **A** raised to the power **B** ($A^B$). Any number raised to the power 0 equals 1.\n\n#### Input Format\n- A single line with two non-negative integers **A** and **B**.\n\n#### Output Format\n- Print the value of $A^B$.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "0 <= A <= 100\n0 <= B <= 12\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef power(a, b):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    a = int(data[0])\n    b = int(data[1])\n    print(power(a, b))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction power(a, b) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const a = parseInt(data[0], 10);\n    const b = parseInt(data[1], 10);\n    console.log(power(a, b));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n\nusing namespace std;\n\n\nlong long power(long long a, long long b) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    long long a, b;\n    if (!(cin >> a >> b)) return 0;\n    cout << power(a, b) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long power(long a, long b) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextLong()) return;\n        long a = scanner.nextLong();\n        long b = scanner.nextLong();\n        System.out.println(power(a, b));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "2 10",
+          "expectedOutput": "1024",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "3 4",
+          "expectedOutput": "81",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "5 0",
+          "expectedOutput": "1",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "1 100",
+          "expectedOutput": "1",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-recursion-fibonacci-20",
+      "section": "Coding",
+      "topic": "Recursion & Math",
+      "difficulty": "Easy",
+      "type": "Coding",
+      "question": "### Fibonacci Number\n\nReturn the **N**-th Fibonacci number, where the sequence is defined by $F(1) = 0$, $F(2) = 1$ and $F(n) = F(n-1) + F(n-2)$.\n\n#### Input Format\n- A single integer **N**.\n\n#### Output Format\n- Print the **N**-th Fibonacci number.\n\n_Sequence:_ 0, 1, 1, 2, 3, 5, 8, 13, ...",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= N <= 30\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef fibonacciN(n):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    print(fibonacciN(n))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction fibonacciN(n) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    console.log(fibonacciN(n));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n\nusing namespace std;\n\n\nlong long fibonacciN(long long n) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    long long n;\n    if (!(cin >> n)) return 0;\n    cout << fibonacciN(n) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long fibonacciN(long n) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextLong()) return;\n        long n = scanner.nextLong();\n        System.out.println(fibonacciN(n));\n        scanner.close();\n    }\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "1",
+          "expectedOutput": "0",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "7",
+          "expectedOutput": "8",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "10",
+          "expectedOutput": "34",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "12",
+          "expectedOutput": "89",
+          "isHidden": true
+        }
+      ]
+    }
+  ]
+}

@@ -19,6 +19,11 @@ let _memoryToken = localStorage.getItem("rsj_token"); // seed from localStorage 
 const getToken      = () => _memoryToken;
 const saveMemToken  = (t) => { _memoryToken = t; };
 
+// Notify the app that the session is no longer valid so it can log the user out.
+const emitAuthExpired = () => {
+  try { window.dispatchEvent(new Event("rsj:auth-expired")); } catch { /* noop */ }
+};
+
 // -- Auth headers --
 const authHeaders = () => ({
   "Content-Type": "application/json",
@@ -65,11 +70,16 @@ async function request(method, path, body, _retry = false) {
       } catch {
         // Refresh failed — clear everything and let caller handle 401
         api.clearToken();
+        emitAuthExpired();
       }
     }
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
+      // Protected endpoint rejected an unauthenticated request — surface a session expiry.
+      if (res.status === 401 && !path.includes("/auth/")) {
+        emitAuthExpired();
+      }
       const err = new Error(data.error || data.message || (res.status === 500 ? "Server connection issue. Please ensure the backend is running." : "HTTP " + res.status));
       err.status = res.status;
       err.data = data;
@@ -266,6 +276,31 @@ export const api = {
       return request("GET", "/admin/analytics" + (qs ? "?" + qs : ""));
     },
     reports:   ()           => request("GET", "/admin/reports"),
+    exportResults: async (params = {}) => {
+      const qs = new URLSearchParams(params).toString();
+      const res = await fetch(`${BASE}/admin/reports/export${qs ? "?" + qs : ""}`, {
+        headers: authHeaders(),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Export failed. Please try again.");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `results-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    },
+    colleges: {
+      list:        ()                    => request("GET",   "/admin/colleges"),
+      create:      (body)                => request("POST",  "/admin/colleges", body),
+      update:      (id, body)            => request("PATCH", "/admin/colleges/" + id, body),
+      admins:      (id)                  => request("GET",   "/admin/colleges/" + id + "/admins"),
+      createAdmin: (id, body)            => request("POST",  "/admin/colleges/" + id + "/admins", body),
+      updateAdmin: (id, userId, body)    => request("PATCH", "/admin/colleges/" + id + "/admins/" + userId, body),
+    },
   },
 
   // Token management

@@ -29,13 +29,56 @@ import adminRoutes from './routes/admin.routes.js';
 import codeRoutes from './routes/code.routes.js';
 import interviewRoutes from './routes/interview.routes.js';
 import attemptsRoutes from './routes/attempts.routes.js';
+import ttsRoutes from './routes/tts.routes.js';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '5000', 10);
 const HOST = '0.0.0.0';
 
+// ─── Security: Proxy trust for accurate client IPs ──────────────────────────
+// The production deploy sits behind a TLS-terminating reverse proxy (Railway edge),
+// so request socket addresses are the proxy's. Trusting a BOUNDED number of hops lets
+// the rate limiters see the real client IP without honoring a client-supplied
+// X-Forwarded-For. Never use the boolean `true` (that trusts any hop and is spoofable).
+const trustProxyEnv = process.env.TRUST_PROXY;
+if (trustProxyEnv !== undefined) {
+  app.set('trust proxy', trustProxyEnv === 'false' ? false : (parseInt(trustProxyEnv, 10) || 1));
+} else if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // ─── Security: Defensive HTTP Headers (Helmet) ──────────────────────────────
-app.use(helmet());
+// Single global middleware setting CSP, HSTS, X-Frame-Options (DENY),
+// X-Content-Type-Options, and Referrer-Policy on every response.
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: false,
+    directives: {
+      defaultSrc: ["'self'"],
+      baseUri: ["'self'"],
+      // Vite/React bootstrap + MediaPipe runtime loaded from CDNs.
+      scriptSrc: ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+      fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
+      connectSrc: ["'self'", 'https://cdn.jsdelivr.net', 'https://storage.googleapis.com', 'https://ce.judge0.com', 'blob:', 'data:'],
+      mediaSrc: ["'self'", 'blob:', 'data:'],
+      workerSrc: ["'self'", 'blob:'],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      formAction: ["'self'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+  strictTransportSecurity: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+  },
+  frameguard: { action: 'deny' },          // X-Frame-Options: DENY
+  noSniff: true,                            // X-Content-Type-Options: nosniff
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  crossOriginEmbedderPolicy: false,         // keep CDN media/model loads working
+}));
 
 // ─── Security: Hardened CORS Policy ─────────────────────────────────────────
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000')
@@ -49,7 +92,8 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin) || (process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost:'))) {
       callback(null, true);
     } else {
-      callback(new Error('Blocked by CORS security policy'));
+      console.warn('[CORS] Blocked origin:', origin);
+      callback(null, false);
     }
   },
   credentials: true,
@@ -114,6 +158,7 @@ app.use(['/api/admin', '/admin'], adminRoutes);
 app.use(['/api/code', '/code'], codeRoutes);
 app.use(['/api/interview', '/interview'], interviewRoutes);
 app.use(['/api/attempts', '/attempts'], attemptsRoutes);
+app.use(['/api/tts', '/tts'], ttsRoutes);
 
 // ─── Static Files & SPA Fallback ─────────────────────────────────────────────
 if (fs.existsSync(distPath)) {

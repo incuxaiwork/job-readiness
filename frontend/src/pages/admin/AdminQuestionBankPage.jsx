@@ -92,6 +92,16 @@ const FOLDERS = [
   }
 ];
 
+// MCQ options arrive either as plain strings (seeded questions) or as
+// { id, text } objects (UI-created). Normalize both to { id, text }.
+const normalizeOption = (opt, idx) => {
+  const fallbackId = String.fromCharCode(65 + idx);
+  if (opt && typeof opt === 'object') {
+    return { id: opt.id || fallbackId, text: opt.text ?? opt.label ?? '' };
+  }
+  return { id: fallbackId, text: String(opt ?? '') };
+};
+
 export const AdminQuestionBankPage = () => {
   const { questionBank, addQuestion, addQuestionsBatch, updateQuestion, deleteQuestion, addToast } = useApp();
 
@@ -600,11 +610,12 @@ export const AdminQuestionBankPage = () => {
                               </div>
                             ) : q.options && q.options.length > 0 ? (
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 mt-1 text-[11px]">
-                                {q.options.map((opt) => {
-                                  const isCorrect = opt.id === q.correctAnswer;
+                                {q.options.map((opt, idx) => {
+                                  const { id: optId, text: optText } = normalizeOption(opt, idx);
+                                  const isCorrect = optId === q.correctAnswer;
                                   return (
                                     <div
-                                      key={opt.id}
+                                      key={optId}
                                       className={`px-2 py-0.5 rounded-lg border font-medium flex items-center gap-1.5 ${
                                         isCorrect
                                           ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold'
@@ -614,9 +625,9 @@ export const AdminQuestionBankPage = () => {
                                       <span className={`w-4 h-4 rounded-md text-[10px] flex items-center justify-center font-bold ${
                                         isCorrect ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'
                                       }`}>
-                                        {opt.id}
+                                        {optId}
                                       </span>
-                                      <span className="truncate">{opt.text}</span>
+                                      <span className="truncate">{optText}</span>
                                       {isCorrect && <CheckCircle2 className="w-3 h-3 text-emerald-600 ml-auto flex-shrink-0" />}
                                     </div>
                                   );
@@ -1155,24 +1166,27 @@ export const AdminQuestionBankPage = () => {
             ) : (
               <div className="space-y-2">
                 <span className="font-bold text-slate-400 uppercase text-[10px]">Options</span>
-                {previewQuestion.options?.map(opt => (
-                  <div
-                    key={opt.id}
-                    className={`p-3 rounded-xl border flex items-center gap-3 ${
-                      opt.id === previewQuestion.correctAnswer
-                        ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
-                        : 'bg-white border-slate-200 text-slate-700'
-                    }`}
-                  >
-                    <span className="w-5 h-5 rounded-md bg-slate-200 flex items-center justify-center text-xs font-bold">
-                      {opt.id}
-                    </span>
-                    <span>{opt.text}</span>
-                    {opt.id === previewQuestion.correctAnswer && (
-                      <span className="ml-auto text-[10px] uppercase font-bold text-emerald-600">Correct Answer</span>
-                    )}
-                  </div>
-                ))}
+                {previewQuestion.options?.map((opt, idx) => {
+                  const { id: optId, text: optText } = normalizeOption(opt, idx);
+                  return (
+                    <div
+                      key={optId}
+                      className={`p-3 rounded-xl border flex items-center gap-3 ${
+                        optId === previewQuestion.correctAnswer
+                          ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
+                          : 'bg-white border-slate-200 text-slate-700'
+                      }`}
+                    >
+                      <span className="w-5 h-5 rounded-md bg-slate-200 flex items-center justify-center text-xs font-bold">
+                        {optId}
+                      </span>
+                      <span>{optText}</span>
+                      {optId === previewQuestion.correctAnswer && (
+                        <span className="ml-auto text-[10px] uppercase font-bold text-emerald-600">Correct Answer</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 

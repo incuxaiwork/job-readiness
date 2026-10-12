@@ -28,7 +28,34 @@ const MIME = {
   '.wasm': 'application/wasm',
 };
 
+const CSP = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "connect-src 'self' https://cdn.jsdelivr.net https://storage.googleapis.com https://ce.judge0.com blob: data:",
+  "media-src 'self' blob: data:",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+  "upgrade-insecure-requests",
+].join('; ');
+
+function setSecurityHeaders(res) {
+  res.setHeader('Content-Security-Policy', CSP);
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+}
+
 const server = http.createServer((req, res) => {
+  setSecurityHeaders(res);
   try {
     const urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
     let filePath = path.join(DIST, urlPath === '/' ? 'index.html' : urlPath);

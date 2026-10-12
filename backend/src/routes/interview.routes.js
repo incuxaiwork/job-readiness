@@ -13,18 +13,24 @@ import {
   getInterviewSettings,
   updateInterviewSettings
 } from '../controllers/interview.controller.js';
-import { optionalAuthToken } from '../middleware/auth.js';
+import { authenticateToken } from '../middleware/auth.js';
+import { requireRole } from '../middleware/rbac.js';
 
 const router = Router();
 
-// Allow authenticated candidate session attribution or guest mode
-router.use(optionalAuthToken);
+// Public, non-sensitive: interview configuration (lock state, question count).
+router.get('/settings', getInterviewSettings);
+
+// Every other interview endpoint returns or mutates candidate interview data and
+// therefore requires authentication. Admin endpoints additionally require the
+// platform super-admin role.
+router.use(authenticateToken);
 
 // Session endpoints
 router.post('/session', createSession);
-router.get('/admin/sessions', getAdminSessions);
-router.get('/settings', getInterviewSettings);
-router.post('/admin/settings', updateInterviewSettings);
+// Platform super-admin only — exposes every candidate's interview session across all colleges
+router.get('/admin/sessions', requireRole('admin'), getAdminSessions);
+router.post('/admin/settings', requireRole('admin'), updateInterviewSettings);
 router.get('/session/latest/user', getLatestSession);
 router.get('/session/:id', getSession);
 router.get('/session/:id/questions', getSessionQuestions);

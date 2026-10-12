@@ -669,7 +669,7 @@ const memoryUsers = new Map([
   }],
   ['admin@readysetjob.com', {
     id: 'admin-1',
-    name: 'Admin Director',
+    name: 'Site Administrator',
     email: 'admin@readysetjob.com',
     role: 'admin'
   }],

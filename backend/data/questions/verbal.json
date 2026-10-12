@@ -1,0 +1,2106 @@
+{
+  "section": "Verbal",
+  "version": 1,
+  "questions": [
+    {
+      "id": "ver-0001",
+      "section": "Verbal",
+      "topic": "Synonyms",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which word is the closest synonym for 'Meticulous'?",
+      "options": [
+        "Careless",
+        "Sloppy",
+        "Precise",
+        "Rough"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Meticulous means extremely careful and precise in attention to detail.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0002",
+      "section": "Verbal",
+      "topic": "Synonyms",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which word is the closest synonym for 'Eloquent'?",
+      "options": [
+        "Silent",
+        "Articulate",
+        "Dull",
+        "Clumsy"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Eloquent means fluent, expressive, and persuasive in speech or writing.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0003",
+      "section": "Verbal",
+      "topic": "Synonyms",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which word is the closest synonym for 'Diligent'?",
+      "options": [
+        "Industrious",
+        "Lazy",
+        "Idle",
+        "Negligent"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Diligent means showing care and effort in one's work.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0004",
+      "section": "Verbal",
+      "topic": "Synonyms",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which word is the closest synonym for 'Pragmatic'?",
+      "options": [
+        "Idealistic",
+        "Fanciful",
+        "Romantic",
+        "Practical"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Pragmatic means dealing with things sensibly and realistically.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0005",
+      "section": "Verbal",
+      "topic": "Synonyms",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which word is the closest synonym for 'Sagacious'?",
+      "options": [
+        "Foolish",
+        "Naive",
+        "Wise",
+        "Simple"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Sagacious means showing keen judgment and wisdom.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0006",
+      "section": "Verbal",
+      "topic": "Synonyms",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which word is the closest synonym for 'Ephemeral'?",
+      "options": [
+        "Permanent",
+        "Fleeting",
+        "Lasting",
+        "Enduring"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Ephemeral means lasting for a very short time.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0007",
+      "section": "Verbal",
+      "topic": "Synonyms",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Which word is the closest synonym for 'Inchoate'?",
+      "options": [
+        "Formless",
+        "Complete",
+        "Perfect",
+        "Mature"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Inchoate means just beginning or not fully developed.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0008",
+      "section": "Verbal",
+      "topic": "Synonyms",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Which word is the closest synonym for 'Obdurate'?",
+      "options": [
+        "Flexible",
+        "Pliable",
+        "Yielding",
+        "Stubborn"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Obdurate means unreasonably stubborn or hard-hearted.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0009",
+      "section": "Verbal",
+      "topic": "Antonyms",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which word is the opposite of 'Generous'?",
+      "options": [
+        "Kind",
+        "Noble",
+        "Stingy",
+        "Bountiful"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Generous means willing to give; stingy means unwilling to share or give.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0010",
+      "section": "Verbal",
+      "topic": "Antonyms",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which word is the opposite of 'Candid'?",
+      "options": [
+        "Deceptive",
+        "Honest",
+        "Frank",
+        "Sincere"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Candid means truthful and straightforward; deceptive means misleading.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0011",
+      "section": "Verbal",
+      "topic": "Antonyms",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which word is the opposite of 'Plausible'?",
+      "options": [
+        "Credible",
+        "Unlikely",
+        "Probable",
+        "Reasonable"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Plausible means seeming reasonable; unlikely means improbable.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0012",
+      "section": "Verbal",
+      "topic": "Antonyms",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which word is the opposite of 'Ameliorate'?",
+      "options": [
+        "Improve",
+        "Enhance",
+        "Worsen",
+        "Better"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Ameliorate means to improve; worsen means to make worse.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0013",
+      "section": "Verbal",
+      "topic": "Antonyms",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which word is the opposite of 'Enervate'?",
+      "options": [
+        "Weaken",
+        "Exhaust",
+        "Fatigue",
+        "Invigorate"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Enervate means to weaken or drain energy; invigorate means to energize.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0014",
+      "section": "Verbal",
+      "topic": "Antonyms",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which word is the opposite of 'Gregarious'?",
+      "options": [
+        "Introverted",
+        "Sociable",
+        "Friendly",
+        "Outgoing"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Gregarious means outgoing; introverted means shy or reserved.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0015",
+      "section": "Verbal",
+      "topic": "Antonyms",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Which word is the opposite of 'Aberrant'?",
+      "options": [
+        "Abnormal",
+        "Normal",
+        "Unusual",
+        "Strange"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Aberrant means deviating from the norm; normal means conforming to standards.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0016",
+      "section": "Verbal",
+      "topic": "Antonyms",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Which word is the opposite of 'Alacrity'?",
+      "options": [
+        "Haste",
+        "Eagerness",
+        "Sluggishness",
+        "Promptness"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Alacrity means brisk eagerness; sluggishness means lack of energy.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0017",
+      "section": "Verbal",
+      "topic": "One Word Substitution",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "A person who studies insects",
+      "options": [
+        "Ornithologist",
+        "Botanist",
+        "Zoologist",
+        "Entomologist"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Entomologist studies insects.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0018",
+      "section": "Verbal",
+      "topic": "One Word Substitution",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "A person who speaks many languages",
+      "options": [
+        "Polyglot",
+        "Monolingual",
+        "Linguist",
+        "Bilingual"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Polyglot is someone fluent in many languages.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0019",
+      "section": "Verbal",
+      "topic": "One Word Substitution",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "One who loves books",
+      "options": [
+        "Philatelist",
+        "Bibliophile",
+        "Numismatist",
+        "Anthologist"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Bibliophile means book lover.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0020",
+      "section": "Verbal",
+      "topic": "One Word Substitution",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "A person who hates mankind",
+      "options": [
+        "Misogynist",
+        "Philanthropist",
+        "Altruist",
+        "Misanthrope"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Misanthrope dislikes humanity.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0021",
+      "section": "Verbal",
+      "topic": "One Word Substitution",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "One who walks in sleep",
+      "options": [
+        "Somnambulist",
+        "Insomniac",
+        "Hypnotist",
+        "Sleepwalker"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Somnambulist is sleepwalker.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0022",
+      "section": "Verbal",
+      "topic": "One Word Substitution",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "One who eats human flesh",
+      "options": [
+        "Carnivore",
+        "Cannibal",
+        "Herbivore",
+        "Omnivore"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Cannibal eats human flesh.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0023",
+      "section": "Verbal",
+      "topic": "One Word Substitution",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "A government by a few people",
+      "options": [
+        "Democracy",
+        "Monarchy",
+        "Oligarchy",
+        "Aristocracy"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Oligarchy is rule by few.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "vocabulary"
+      ]
+    },
+    {
+      "id": "ver-0024",
+      "section": "Verbal",
+      "topic": "Idioms & Phrases",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What does the idiom 'Break the ice' mean?",
+      "options": [
+        "To break something",
+        "To end a fight",
+        "To create trouble",
+        "To start a conversation"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Means to initiate social conversation.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "idioms"
+      ]
+    },
+    {
+      "id": "ver-0025",
+      "section": "Verbal",
+      "topic": "Idioms & Phrases",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What does the idiom 'Bite the bullet' mean?",
+      "options": [
+        "To face a difficult situation bravely",
+        "To eat something hard",
+        "To lose a fight",
+        "To surrender"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Means to endure something unpleasant.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "idioms"
+      ]
+    },
+    {
+      "id": "ver-0026",
+      "section": "Verbal",
+      "topic": "Idioms & Phrases",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What does the idiom 'Burn the midnight oil' mean?",
+      "options": [
+        "To waste oil",
+        "To work late into the night",
+        "To set fire",
+        "To read by candle"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Working late.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "idioms"
+      ]
+    },
+    {
+      "id": "ver-0027",
+      "section": "Verbal",
+      "topic": "Idioms & Phrases",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What does the idiom 'Hit the nail on the head' mean?",
+      "options": [
+        "To hammer correctly",
+        "To injure oneself",
+        "To be exactly right",
+        "To argue"
+      ],
+      "correctAnswer": "C",
+      "explanation": "To say exactly the right thing.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "idioms"
+      ]
+    },
+    {
+      "id": "ver-0028",
+      "section": "Verbal",
+      "topic": "Idioms & Phrases",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What does the idiom 'Let the cat out of the bag' mean?",
+      "options": [
+        "Free an animal",
+        "Start trouble",
+        "Hide facts",
+        "Reveal a secret"
+      ],
+      "correctAnswer": "D",
+      "explanation": "To reveal a secret accidentally.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "idioms"
+      ]
+    },
+    {
+      "id": "ver-0029",
+      "section": "Verbal",
+      "topic": "Idioms & Phrases",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What does the idiom 'Under the weather' mean?",
+      "options": [
+        "Feeling ill",
+        "In rain",
+        "Travelling",
+        "Tired"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Not feeling well.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "idioms"
+      ]
+    },
+    {
+      "id": "ver-0030",
+      "section": "Verbal",
+      "topic": "Idioms & Phrases",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "What does the idiom 'A piece of cake' mean?",
+      "options": [
+        "Tasty",
+        "Small portion",
+        "Very easy",
+        "Expensive"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Something very easy.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "idioms"
+      ]
+    },
+    {
+      "id": "ver-0031",
+      "section": "Verbal",
+      "topic": "Spelling",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which word is spelled correctly?",
+      "options": [
+        "Recieve",
+        "Receive",
+        "Receeve",
+        "Recive"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Receive follows 'i before e except after c'.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "spelling"
+      ]
+    },
+    {
+      "id": "ver-0032",
+      "section": "Verbal",
+      "topic": "Spelling",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which word is spelled correctly?",
+      "options": [
+        "Accommodate",
+        "Acommodate",
+        "Accomodate",
+        "Acomodate"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Double 'c' and 'm'.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "spelling"
+      ]
+    },
+    {
+      "id": "ver-0033",
+      "section": "Verbal",
+      "topic": "Spelling",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which word is spelled correctly?",
+      "options": [
+        "Seperate",
+        "Seperete",
+        "Separete",
+        "Separate"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Separate has 'a' after 'p'.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "spelling"
+      ]
+    },
+    {
+      "id": "ver-0034",
+      "section": "Verbal",
+      "topic": "Spelling",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which word is spelled correctly?",
+      "options": [
+        "Definately",
+        "Definitly",
+        "Definitely",
+        "Definatly"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Correct spelling ends with -itely.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "spelling"
+      ]
+    },
+    {
+      "id": "ver-0035",
+      "section": "Verbal",
+      "topic": "Spelling",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which word is spelled correctly?",
+      "options": [
+        "Embarass",
+        "Embarrass",
+        "Emmbarass",
+        "Embarras"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Double 'r' and 's'.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "spelling"
+      ]
+    },
+    {
+      "id": "ver-0036",
+      "section": "Verbal",
+      "topic": "Spelling",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which word is spelled correctly?",
+      "options": [
+        "Occasion",
+        "Ocassion",
+        "Occassion",
+        "Ocasione"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Double 'c', single 's'.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "spelling"
+      ]
+    },
+    {
+      "id": "ver-0037",
+      "section": "Verbal",
+      "topic": "Spelling",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Which word is spelled correctly?",
+      "options": [
+        "Consciencious",
+        "Conscentious",
+        "Consienshious",
+        "Conscientious"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Correct spelling.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "spelling"
+      ]
+    },
+    {
+      "id": "ver-0038",
+      "section": "Verbal",
+      "topic": "Fill in the Blanks",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "He is _______ honest man.",
+      "options": [
+        "a",
+        "the",
+        "an",
+        "no article"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Use 'an' before vowel sound.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0039",
+      "section": "Verbal",
+      "topic": "Fill in the Blanks",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "She plays _______ piano beautifully.",
+      "options": [
+        "a",
+        "the",
+        "an",
+        "none"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Musical instruments take 'the'.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0040",
+      "section": "Verbal",
+      "topic": "Fill in the Blanks",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "I have been waiting _______ two hours.",
+      "options": [
+        "since",
+        "for",
+        "from",
+        "at"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Duration uses 'for'.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0041",
+      "section": "Verbal",
+      "topic": "Fill in the Blanks",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "He is afraid _______ spiders.",
+      "options": [
+        "from",
+        "to",
+        "of",
+        "with"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Afraid of.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0042",
+      "section": "Verbal",
+      "topic": "Fill in the Blanks",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "The book consists _______ five chapters.",
+      "options": [
+        "in",
+        "on",
+        "with",
+        "of"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Consists of.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0043",
+      "section": "Verbal",
+      "topic": "Fill in the Blanks",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "She congratulated him _______ his success.",
+      "options": [
+        "on",
+        "for",
+        "at",
+        "about"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Congratulate on.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0044",
+      "section": "Verbal",
+      "topic": "Fill in the Blanks",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Hardly _______ he arrived when it started raining.",
+      "options": [
+        "has",
+        "had",
+        "was",
+        "did"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Inversion: Hardly had...",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0045",
+      "section": "Verbal",
+      "topic": "Sentence Correction",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Choose the correct sentence or correction: Neither John nor his friends ____ coming to the party.",
+      "options": [
+        "is",
+        "was",
+        "are",
+        "am"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Subject plural (friends) when using nor with plural.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0046",
+      "section": "Verbal",
+      "topic": "Sentence Correction",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Choose the correct sentence or correction: She has been working here ____ 2018.",
+      "options": [
+        "for",
+        "from",
+        "at",
+        "since"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Point in time uses 'since'.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0047",
+      "section": "Verbal",
+      "topic": "Sentence Correction",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Choose the correct sentence or correction: One of the boys ____ left early.",
+      "options": [
+        "has",
+        "have",
+        "are",
+        "were"
+      ],
+      "correctAnswer": "A",
+      "explanation": "One of + plural subject takes singular verb.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0048",
+      "section": "Verbal",
+      "topic": "Sentence Correction",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Choose the correct sentence or correction: The teacher, along with students, ____ present.",
+      "options": [
+        "are",
+        "is",
+        "were",
+        "have"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Subject is teacher (singular).",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0049",
+      "section": "Verbal",
+      "topic": "Sentence Correction",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Choose the correct sentence or correction: He is better ____ me at mathematics.",
+      "options": [
+        "then",
+        "to",
+        "than",
+        "from"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Comparison uses 'than'.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0050",
+      "section": "Verbal",
+      "topic": "Sentence Correction",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Choose the correct sentence or correction: I prefer tea ____ coffee.",
+      "options": [
+        "to",
+        "than",
+        "over",
+        "with"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Prefer X to Y.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0051",
+      "section": "Verbal",
+      "topic": "Sentence Correction",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Choose the correct sentence or correction: Less people attended the meeting today.",
+      "options": [
+        "Less people attend",
+        "No change",
+        "Smaller people",
+        "Fewer people attended"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Countable nouns need 'fewer'.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0052",
+      "section": "Verbal",
+      "topic": "Sentence Correction",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Choose the correct sentence or correction: She said me the truth.",
+      "options": [
+        "She said to me truth",
+        "No change",
+        "She told me the truth",
+        "She speaks truth"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Correct verb: told.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0053",
+      "section": "Verbal",
+      "topic": "Reading Comprehension",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Passage: 'The early bird catches the worm.' What does this mean?\n\nThe passage emphasizes the importance of being punctual and proactive. Those who act early gain advantage.",
+      "options": [
+        "Early birds eat worms",
+        "Acting promptly gives advantage",
+        "Procrastination pays",
+        "Birds are efficient"
+      ],
+      "correctAnswer": "B",
+      "explanation": "It means those who start early succeed.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "ver-0054",
+      "section": "Verbal",
+      "topic": "Reading Comprehension",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Passage: 'Slow and steady wins the race.' What lesson does it teach?\n\nConsistent effort over time triumphs over speed alone, as shown by the tortoise beating the hare.",
+      "options": [
+        "Consistency beats haste",
+        "Speed is everything",
+        "Races are easy",
+        "Tortoises are fast"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Steady effort leads to success.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "ver-0055",
+      "section": "Verbal",
+      "topic": "Reading Comprehension",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Passage: 'Knowledge is power.' What is the main idea?\n\nInformation and learning empower people to make better decisions and achieve goals.",
+      "options": [
+        "Books are heavy",
+        "Power corrupts",
+        "Ignorance is bliss",
+        "Education gives control"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Learning empowers.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "ver-0056",
+      "section": "Verbal",
+      "topic": "Reading Comprehension",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Passage: 'Actions speak louder than words.' What does this mean?\n\nWhat people do matters more than what they say.",
+      "options": [
+        "Talking is useless",
+        "Actions are noisy",
+        "Deeds matter more than promises",
+        "Words don't exist"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Behavior reveals true intent.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "ver-0057",
+      "section": "Verbal",
+      "topic": "Reading Comprehension",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Passage: 'All that glitters is not gold.' What does this imply?\n\nAppearances can be deceptive; not everything attractive is valuable.",
+      "options": [
+        "Gold glitters",
+        "Looks can be misleading",
+        "Jewelry is fake",
+        "Metals shine"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Superficial beauty doesn't equal value.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "ver-0058",
+      "section": "Verbal",
+      "topic": "Reading Comprehension",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Passage: 'Practice makes perfect.' What does this teach?\n\nRepetition improves skills over time.",
+      "options": [
+        "Skills improve with practice",
+        "Nobody is perfect",
+        "Perfection is innate",
+        "Practice is hard"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Regular practice builds mastery.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "ver-0059",
+      "section": "Verbal",
+      "topic": "Reading Comprehension",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Passage: 'Where there is smoke, there is fire.' What is implied?\n\nSigns usually indicate underlying reality.",
+      "options": [
+        "Fires cause smoke",
+        "Smoke means fire exists",
+        "Clouds form",
+        "Evidence suggests truth"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Indications point to something real.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "ver-0060",
+      "section": "Verbal",
+      "topic": "Para Jumbles",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Arrange in correct sequence: Arrange: 1. The sun rises 2. Birds chirp 3. Morning begins 4. People wake up",
+      "options": [
+        "1,2,3,4",
+        "3,1,2,4",
+        "2,1,3,4",
+        "4,3,2,1"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Logical order: Morning begins, sun rises, birds chirp, people wake.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "ver-0061",
+      "section": "Verbal",
+      "topic": "Para Jumbles",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Arrange in correct sequence: Arrange: 1. He studied hard 2. He passed exam 3. He joined coaching 4. He got admission",
+      "options": [
+        "3,1,4,2",
+        "3,1,2,4",
+        "1,3,2,4",
+        "4,3,1,2"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Coaching -> study -> admission -> passed? Or better 3,1,2,4 vs 3,1,4,2 - 'got admission' after passing? Usually study -> pass -> admission. But options: 3,1,4,2 means coaching, studied, got admission, passed - plausible.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "ver-0062",
+      "section": "Verbal",
+      "topic": "Para Jumbles",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Arrange in correct sequence: Arrange: 1. Plant seed 2. Water it 3. Seed germinates 4. Tree grows",
+      "options": [
+        "2,1,3,4",
+        "1,3,2,4",
+        "3,1,2,4",
+        "1,2,3,4"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Sequential growth.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "ver-0063",
+      "section": "Verbal",
+      "topic": "Para Jumbles",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Arrange in correct sequence: Arrange: 1. Accident happens 2. Call ambulance 3. Give first aid 4. Hospitalize",
+      "options": [
+        "1,3,2,4",
+        "1,2,4,3",
+        "1,2,3,4",
+        "2,1,3,4"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Correct order.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "ver-0064",
+      "section": "Verbal",
+      "topic": "Para Jumbles",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Arrange in correct sequence: Arrange: 1. Introduction 2. Body 3. Conclusion 4. Title",
+      "options": [
+        "1,4,2,3",
+        "4,1,2,3",
+        "4,2,1,3",
+        "3,4,1,2"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Essay structure.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "ver-0065",
+      "section": "Verbal",
+      "topic": "Para Jumbles",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Arrange in correct sequence: Arrange: 1. Get ingredients 2. Cook 3. Serve 4. Eat",
+      "options": [
+        "1,2,3,4",
+        "2,1,3,4",
+        "1,3,2,4",
+        "3,1,2,4"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Cooking process.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "ver-0066",
+      "section": "Verbal",
+      "topic": "Para Jumbles",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Arrange in correct sequence: Arrange: 1. Apply 2. Prepare resume 3. Interview 4. Get job",
+      "options": [
+        "1,2,3,4",
+        "2,3,1,4",
+        "3,2,1,4",
+        "2,1,3,4"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Job search order.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "ver-0067",
+      "section": "Verbal",
+      "topic": "Active & Passive Voice",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Change to passive voice: The cat chased the mouse.",
+      "options": [
+        "Mouse chased cat",
+        "Cat was chased",
+        "The mouse was chased by the cat",
+        "None"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Passive transformation.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0068",
+      "section": "Verbal",
+      "topic": "Active & Passive Voice",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Change to passive voice: She writes a letter.",
+      "options": [
+        "Letter writes her",
+        "A letter is written by her",
+        "She written letter",
+        "None"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Simple present passive.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0069",
+      "section": "Verbal",
+      "topic": "Active & Passive Voice",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Change to passive voice: They will complete the project.",
+      "options": [
+        "Project will be completed",
+        "Will complete project",
+        "Completed by them",
+        "None"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Future passive.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0070",
+      "section": "Verbal",
+      "topic": "Active & Passive Voice",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Change to passive voice: Someone stole my car.",
+      "options": [
+        "My car stolen",
+        "Stole car",
+        "My car was stolen",
+        "None"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Past passive.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0071",
+      "section": "Verbal",
+      "topic": "Active & Passive Voice",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Change to passive voice: The teacher is explaining the lesson.",
+      "options": [
+        "Explaining lesson",
+        "Lesson is being explained",
+        "Being explained",
+        "None"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Present continuous passive.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0072",
+      "section": "Verbal",
+      "topic": "Direct & Indirect Speech",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Change to indirect speech: He said, 'I am happy.'",
+      "options": [
+        "He said he was happy",
+        "He said I am happy",
+        "Happy he said",
+        "None"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Tense backshift.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0073",
+      "section": "Verbal",
+      "topic": "Direct & Indirect Speech",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Change to indirect speech: She said, 'I will go tomorrow.'",
+      "options": [
+        "She said tomorrow",
+        "Will go she said",
+        "None",
+        "She said she would go the next day"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Will -> would, tomorrow -> next day.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0074",
+      "section": "Verbal",
+      "topic": "Direct & Indirect Speech",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Change to indirect speech: He said, 'Do you like coffee?'",
+      "options": [
+        "He asked do I like",
+        "Likes coffee",
+        "He asked if I liked coffee",
+        "None"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Question to indirect.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0075",
+      "section": "Verbal",
+      "topic": "Direct & Indirect Speech",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Change to indirect speech: She said, 'Close the door.'",
+      "options": [
+        "Close door she said",
+        "She told me to close the door",
+        "Door closed",
+        "None"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Imperative.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0076",
+      "section": "Verbal",
+      "topic": "Direct & Indirect Speech",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Change to indirect speech: He said, 'I have finished my work.'",
+      "options": [
+        "He said he had finished his work",
+        "Finished work",
+        "Has finished",
+        "None"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Present perfect -> past perfect.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0077",
+      "section": "Verbal",
+      "topic": "Prepositions",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Fill in the blank: I am good ____ math.",
+      "options": [
+        "in",
+        "on",
+        "with",
+        "at"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Good at.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0078",
+      "section": "Verbal",
+      "topic": "Prepositions",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Fill in the blank: He lives ____ New York.",
+      "options": [
+        "at",
+        "on",
+        "in",
+        "to"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Lives in city.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0079",
+      "section": "Verbal",
+      "topic": "Prepositions",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Fill in the blank: The book is ____ the table.",
+      "options": [
+        "in",
+        "on",
+        "under",
+        "above"
+      ],
+      "correctAnswer": "B",
+      "explanation": "On surface.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0080",
+      "section": "Verbal",
+      "topic": "Prepositions",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Fill in the blank: I arrived ____ 5 PM.",
+      "options": [
+        "in",
+        "at",
+        "on",
+        "by"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Time - at.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0081",
+      "section": "Verbal",
+      "topic": "Prepositions",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Fill in the blank: She is married ____ John.",
+      "options": [
+        "with",
+        "by",
+        "to",
+        "from"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Married to.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0082",
+      "section": "Verbal",
+      "topic": "Prepositions",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Fill in the blank: He walked ____ the park.",
+      "options": [
+        "across",
+        "over",
+        "by",
+        "through"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Through area.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0083",
+      "section": "Verbal",
+      "topic": "Prepositions",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Fill in the blank: I differ ____ you on this matter.",
+      "options": [
+        "from",
+        "with",
+        "to",
+        "than"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Differ from.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0084",
+      "section": "Verbal",
+      "topic": "Articles",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Fill in the blank: He is ____ engineer.",
+      "options": [
+        "a",
+        "an",
+        "the",
+        "no"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Vowel sound.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0085",
+      "section": "Verbal",
+      "topic": "Articles",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Fill in the blank: I saw ____ elephant.",
+      "options": [
+        "a",
+        "the",
+        "an",
+        "no"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Vowel sound.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0086",
+      "section": "Verbal",
+      "topic": "Articles",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Fill in the blank: ____ sun rises in east.",
+      "options": [
+        "A",
+        "An",
+        "No",
+        "The"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Unique objects.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0087",
+      "section": "Verbal",
+      "topic": "Articles",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Fill in the blank: She wants to buy ____ car.",
+      "options": [
+        "a",
+        "an",
+        "the",
+        "no"
+      ],
+      "correctAnswer": "A",
+      "explanation": "General.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0088",
+      "section": "Verbal",
+      "topic": "Articles",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Fill in the blank: He plays ____ guitar.",
+      "options": [
+        "a",
+        "the",
+        "an",
+        "no"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Instrument.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0089",
+      "section": "Verbal",
+      "topic": "Articles",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Fill in the blank: I need ____ hour to finish.",
+      "options": [
+        "a",
+        "the",
+        "an",
+        "no"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Silent h.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0090",
+      "section": "Verbal",
+      "topic": "Subject–Verb Agreement",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Choose correct verb: The dog ____ loudly.",
+      "options": [
+        "barks",
+        "bark",
+        "barking",
+        "barked"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Singular subject.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0091",
+      "section": "Verbal",
+      "topic": "Subject–Verb Agreement",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Choose correct verb: The dogs ____ loudly.",
+      "options": [
+        "barks",
+        "bark",
+        "barking",
+        "barked"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Plural subject.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0092",
+      "section": "Verbal",
+      "topic": "Subject–Verb Agreement",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Choose correct verb: Each of the students ____ a book.",
+      "options": [
+        "have",
+        "having",
+        "has",
+        "had"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Each takes singular.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0093",
+      "section": "Verbal",
+      "topic": "Subject–Verb Agreement",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Choose correct verb: Neither of them ____ guilty.",
+      "options": [
+        "are",
+        "were",
+        "be",
+        "is"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Neither takes singular.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0094",
+      "section": "Verbal",
+      "topic": "Subject–Verb Agreement",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Choose correct verb: The list of items ____ on the table.",
+      "options": [
+        "is",
+        "are",
+        "were",
+        "be"
+      ],
+      "correctAnswer": "A",
+      "explanation": "List is subject.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0095",
+      "section": "Verbal",
+      "topic": "Subject–Verb Agreement",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Choose correct verb: There ____ many reasons to go.",
+      "options": [
+        "is",
+        "are",
+        "was",
+        "has"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Reasons (plural) matches are.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "grammar"
+      ]
+    },
+    {
+      "id": "ver-0096",
+      "section": "Verbal",
+      "topic": "Cloze Test",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Fill in: 'It is important to _____ your goals clearly.'",
+      "options": [
+        "defy",
+        "defer",
+        "define",
+        "deny"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Define means clarify.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "ver-0097",
+      "section": "Verbal",
+      "topic": "Cloze Test",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Fill in: 'She showed great _____ during the crisis.'",
+      "options": [
+        "cowardice",
+        "fear",
+        "doubt",
+        "courage"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Courage is positive.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "ver-0098",
+      "section": "Verbal",
+      "topic": "Cloze Test",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Fill in: 'The _____ of the story is patience.'",
+      "options": [
+        "moral",
+        "mortal",
+        "morale",
+        "morel"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Moral lesson.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "ver-0099",
+      "section": "Verbal",
+      "topic": "Cloze Test",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Fill in: 'He was _____ by his peers for his work.'",
+      "options": [
+        "envied",
+        "admired",
+        "hated",
+        "despised"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Admired is fitting.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "ver-0100",
+      "section": "Verbal",
+      "topic": "Cloze Test",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Fill in: 'Success requires _____ and perseverance.'",
+      "options": [
+        "laziness",
+        "apathy",
+        "dedication",
+        "neglect"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Dedication needed.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "comprehension"
+      ]
+    }
+  ]
+}

@@ -203,54 +203,6 @@ export const AdminInterviewsPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with Navigation and Quick Lock Status */}
-      {/* Quick Testing Action Banner for Lock/Unlock */}
-      <div className={`p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all shadow-sm ${
-        settings.isLocked
-          ? 'bg-rose-50 border-rose-200 text-rose-950'
-          : 'bg-emerald-50 border-emerald-200 text-emerald-950'
-      }`}>
-        <div className="flex items-center gap-3.5">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${
-            settings.isLocked ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'
-          }`}>
-            {settings.isLocked ? <Lock className="w-6 h-6 animate-pulse" /> : <Unlock className="w-6 h-6" />}
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className={`text-xs font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                settings.isLocked ? 'bg-rose-200 text-rose-900' : 'bg-emerald-200 text-emerald-900'
-              }`}>
-                Session Status: {settings.isLocked ? 'LOCKED' : 'UNLOCKED & ACTIVE'}
-              </span>
-            </div>
-            <h3 className="text-base font-black tracking-tight mt-0.5">
-              {settings.isLocked
-                ? 'AI Mock Interview Submissions are Currently LOCKED'
-                : 'AI Mock Interview Submissions are Open & Available'}
-            </h3>
-            <p className="text-xs text-slate-600 mt-0.5">
-              {settings.isLocked
-                ? 'Candidates are currently shown the locked screen. Click "Unlock Interview Now" below for testing.'
-                : 'Candidates can freely enter, test vocal responses, and complete mock interview evaluations.'}
-            </p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleToggleLock}
-          className={`px-6 py-3 rounded-xl font-black text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer flex-shrink-0 ${
-            settings.isLocked
-              ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 hover:scale-105'
-              : 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30'
-          }`}
-        >
-          {settings.isLocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-          <span>{settings.isLocked ? '🔓 Unlock Interview Now' : '🔒 Lock Interview Session'}</span>
-        </button>
-      </div>
-
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
           <div className="flex items-center gap-2 mb-1">

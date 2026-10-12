@@ -46,7 +46,8 @@ ChartJS.register(
 );
 
 export const AdminAnalyticsPage = () => {
-  const { addToast } = useApp();
+  const { addToast, adminUser, role } = useApp();
+  const isCollegeAdmin = role === 'admin' && adminUser?.role === 'college_admin';
 
   const [dateFilter, setDateFilter] = useState('All Time');
   const [collegeFilter, setCollegeFilter] = useState('All');
@@ -256,9 +257,24 @@ export const AdminAnalyticsPage = () => {
     link.setAttribute('download', `ReadySetJob_Analytics_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
 
     addToast('Analytics report exported as CSV.', 'success');
+  };
+
+  // Server-side scoped results export (respects college-admin scope)
+  const handleExportResults = async () => {
+    try {
+      const params = {};
+      const rangeMap = { 'Last 7 Days': '7d', 'Last 30 Days': '30d', 'Current Semester (90d)': '90d' };
+      if (rangeMap[dateFilter]) params.dateRange = rangeMap[dateFilter];
+      if (assessmentFilter && assessmentFilter !== 'All') params.assessmentId = assessmentFilter;
+      if (!isCollegeAdmin && collegeFilter && collegeFilter !== 'All') params.college = collegeFilter;
+      await api.admin.exportResults(params);
+      addToast('Results exported as CSV.', 'success');
+    } catch (err) {
+      addToast(err.message || 'Export failed.', 'error');
+    }
   };
 
   // Dynamic filter lists from backend
@@ -306,20 +322,29 @@ export const AdminAnalyticsPage = () => {
             </select>
           </div>
 
-          {/* College Filter */}
-          <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs shadow-2xs">
-            <Building className="w-3.5 h-3.5 text-slate-400" />
-            <select
-              value={collegeFilter}
-              onChange={(e) => setCollegeFilter(e.target.value)}
-              className="bg-transparent font-semibold text-slate-700 outline-none cursor-pointer max-w-[140px] truncate"
-            >
-              <option value="All">All Universities</option>
-              {availableColleges.map((col, idx) => (
-                <option key={idx} value={col}>{col}</option>
-              ))}
-            </select>
-          </div>
+          {/* College Filter — locked to own college for college admins */}
+          {isCollegeAdmin ? (
+            <div className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs shadow-2xs">
+              <Building className="w-3.5 h-3.5 text-slate-400" />
+              <span className="font-semibold text-slate-600 max-w-[160px] truncate" title={adminUser?.college_name || 'Your college'}>
+                College: {adminUser?.college_name || availableColleges[0] || 'Your college'}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs shadow-2xs">
+              <Building className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={collegeFilter}
+                onChange={(e) => setCollegeFilter(e.target.value)}
+                className="bg-transparent font-semibold text-slate-700 outline-none cursor-pointer max-w-[140px] truncate"
+              >
+                <option value="All">All Universities</option>
+                {availableColleges.map((col, idx) => (
+                  <option key={idx} value={col}>{col}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Assessment Filter */}
           <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs shadow-2xs">
@@ -349,10 +374,21 @@ export const AdminAnalyticsPage = () => {
           {/* CSV Export Button */}
           <button
             onClick={handleExportCSV}
-            className="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
+            className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-2xs transition-all flex items-center gap-1.5"
+            title="Export the on-screen analytics summary"
           >
             <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Export CSV</span>
+            <span className="hidden sm:inline">Summary</span>
+          </button>
+
+          {/* Server-side scoped results CSV */}
+          <button
+            onClick={handleExportResults}
+            className="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
+            title="Download the candidate results sheet (CSV)"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Export Results</span>
           </button>
         </div>
       </div>

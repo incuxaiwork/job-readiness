@@ -17,11 +17,27 @@ import {
   findCandidateById,
 } from "../mockFallback.js";
 
-const JWT_SECRET = process.env.JWT_SECRET || 'incuxai_readysetjob_secret_key_2026_jwt_auth';
+import { JWT_SECRET, REFRESH_SECRET, isMasterPassword } from "../config/secrets.js";
+
 const BCRYPT_SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || "10", 10);
 const ACCESS_TOKEN_TTL  = "24h";   // Access token valid for 1 day
 const REFRESH_TOKEN_TTL = "7d";    // Long-lived refresh token (HttpOnly cookie)
 const REFRESH_COOKIE    = "rsj_refresh";
+
+/**
+ * Issue a super-admin access token when PostgreSQL is unavailable.
+ * Callers MUST have already verified `isMasterPassword(password)`.
+ */
+const issueEmergencyAdminToken = (res, email) => {
+  const adminUser = { id: "admin-1", name: "Platform Administrator", email: email.trim().toLowerCase(), role: "admin" };
+  const tokenPayload = { id: adminUser.id, name: adminUser.name, email: adminUser.email, role: "admin" };
+  const accessToken  = signAccessToken(tokenPayload);
+  const refreshToken = signRefreshToken(tokenPayload);
+  res.cookie(REFRESH_COOKIE, refreshToken, refreshCookieOpts());
+  console.warn("[Emergency Auth] Super-admin logged in via master password (database unavailable):", adminUser.email);
+  return res.json({ success: true, token: accessToken, admin: adminUser, emergency: true });
+};
+
 
 // Validation helpers
 const EMAIL_REGEX          = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -57,7 +73,7 @@ const signAccessToken = (payload) =>
 
 /** Sign a long-lived refresh token. */
 const signRefreshToken = (payload) =>
-  jwt.sign(payload, JWT_SECRET + "_refresh", { expiresIn: REFRESH_TOKEN_TTL });
+  jwt.sign(payload, REFRESH_SECRET, { expiresIn: REFRESH_TOKEN_TTL });
 
 /** Cookie options for the refresh token. */
 const refreshCookieOpts = () => ({
@@ -394,10 +410,7 @@ export const loginCandidate = async (req, res) => {
     }
 
     const user  = userRes.rows[0];
-    let valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid && (password === 'Password@123' || password === 'Vishnu@18')) {
-      valid = true;
-    }
+    const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) {
       await recordFailedLogin(email);
       return res.status(401).json({ success: false, error: "Invalid email or password." });
@@ -508,23 +521,22 @@ export const loginAdmin = async (req, res) => {
     });
   }
 
-  // Fast fallback mode when PostgreSQL pool is not active or DB is offline
+  // Database unreachable: allow ONLY the emergency master password (super-admin).
   if (!pool || !getDbStatus()) {
-    const adminUser = { id: 'admin-1', name: 'Platform Administrator', email: email.trim().toLowerCase(), role: 'admin' };
+    if (!isMasterPassword(password)) {
+      return res.status(503).json({
+        success: false,
+        error: "Authentication service is temporarily unavailable. Please try again shortly.",
+      });
+    }
     await clearFailedLogins(email);
-    const tokenPayload = { id: adminUser.id, name: adminUser.name, email: adminUser.email, role: 'admin' };
-    const accessToken  = signAccessToken(tokenPayload);
-    const refreshToken = signRefreshToken(tokenPayload);
-
-    res.cookie(REFRESH_COOKIE, refreshToken, refreshCookieOpts());
-    console.log("[Fast Auth] Admin logged in: " + adminUser.email);
-    return res.json({ success: true, token: accessToken, admin: adminUser });
+    return issueEmergencyAdminToken(res, email);
   }
 
   try {
     const userRes = await pool.query(
-      "SELECT * FROM users WHERE LOWER(email)=LOWER($1) AND role=$2",
-      [email.trim(), "admin"]
+      "SELECT * FROM users WHERE LOWER(email)=LOWER($1) AND role IN ('admin','college_admin')",
+      [email.trim()]
     );
 
     if (userRes.rows.length === 0) {
@@ -533,31 +545,66 @@ export const loginAdmin = async (req, res) => {
     }
 
     const user  = userRes.rows[0];
+    const isSuperAdmin = user.role === "admin";
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid && (password === 'Admin@2026' || password === 'Admin@123' || password === 'admin')) {
-      // Allow emergency master password
+    // Emergency master password is restricted to the platform super-admin only.
+    if (!valid && isSuperAdmin && isMasterPassword(password)) {
+      // Allow emergency master password (super-admin only)
     } else if (!valid) {
       await recordFailedLogin(email);
       return res.status(401).json({ success: false, error: "Invalid email or password." });
     }
 
+    // College admins must belong to an existing, active college.
+    let college = null;
+    if (!isSuperAdmin) {
+      if (!user.college_id) {
+        return res.status(403).json({ success: false, error: "Your account is not linked to a college. Contact the platform team." });
+      }
+      const collegeRes = await pool.query(
+        "SELECT id, name, code, status FROM colleges WHERE id = $1",
+        [user.college_id]
+      );
+      college = collegeRes.rows[0] || null;
+      if (!college || college.status !== 'active') {
+        return res.status(403).json({ success: false, error: "Your college account is not active. Contact the platform team." });
+      }
+    }
+
     await clearFailedLogins(email);
 
-    const tokenPayload = { id: user.id, name: user.name, email: user.email, role: "admin" };
+    const tokenPayload = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      ...(college ? { college_id: college.id, college_name: college.name } : {}),
+    };
     const accessToken  = signAccessToken(tokenPayload);
     const refreshToken = signRefreshToken(tokenPayload);
 
     res.cookie(REFRESH_COOKIE, refreshToken, refreshCookieOpts());
-    res.json({ success: true, token: accessToken, admin: { id: user.id, name: user.name, email: user.email, role: "admin" } });
+    res.json({
+      success: true,
+      token: accessToken,
+      admin: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        ...(college ? { college_id: college.id, college_name: college.name } : {}),
+      },
+      ...(college ? { college: { id: college.id, name: college.name, code: college.code } } : {}),
+    });
   } catch (err) {
-    console.warn("DB admin login error, falling back to instant admin login:", err.message);
-    const adminUser = { id: 'admin-1', name: 'Platform Administrator', email: email.trim().toLowerCase(), role: 'admin' };
-    await clearFailedLogins(email);
-    const tokenPayload = { id: adminUser.id, name: adminUser.name, email: adminUser.email, role: 'admin' };
-    const accessToken  = signAccessToken(tokenPayload);
-    const refreshToken = signRefreshToken(tokenPayload);
-    res.cookie(REFRESH_COOKIE, refreshToken, refreshCookieOpts());
-    return res.json({ success: true, token: accessToken, admin: adminUser });
+    console.error("Admin login database error:", err.message);
+    // Do NOT grant access on arbitrary DB errors. Only an explicit master password
+    // allows emergency super-admin access while the database is unavailable.
+    if (isMasterPassword(password)) {
+      await clearFailedLogins(email).catch(() => {});
+      return issueEmergencyAdminToken(res, email);
+    }
+    return res.status(503).json({ success: false, error: "Authentication service temporarily unavailable. Please try again shortly." });
   }
 };
 
@@ -590,11 +637,12 @@ export const refreshToken = async (req, res) => {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET + "_refresh");
-    const { id, email, role, name } = decoded;
+    const decoded = jwt.verify(token, REFRESH_SECRET);
+    const { id, email, role, name, college_id, college_name } = decoded;
 
-    const newAccessToken  = signAccessToken({ id, email, role, ...(name ? { name } : {}) });
-    const newRefreshToken = signRefreshToken({ id, email, role, ...(name ? { name } : {}) });
+    const base = { id, email, role, ...(name ? { name } : {}), ...(college_id ? { college_id, college_name } : {}) };
+    const newAccessToken  = signAccessToken(base);
+    const newRefreshToken = signRefreshToken(base);
 
     res.cookie(REFRESH_COOKIE, newRefreshToken, refreshCookieOpts());
     res.json({ success: true, token: newAccessToken });
@@ -607,6 +655,11 @@ export const refreshToken = async (req, res) => {
 // GET /api/auth/me
 export const getMe = async (req, res) => {
   if (!pool || !getDbStatus()) {
+    const offlineRole = req.user?.role;
+    if (offlineRole === 'admin' || offlineRole === 'college_admin') {
+      const acct = { id: req.user.id, name: req.user.name, email: req.user.email, role: offlineRole };
+      return res.json({ success: true, user: acct, admin: acct, role: offlineRole });
+    }
     const cand = findUserByEmail(req.user?.email) || findCandidateById(req.user?.id);
     if (cand) {
       const profile = cand.candidate || cand;
@@ -616,6 +669,22 @@ export const getMe = async (req, res) => {
   }
 
   try {
+    // Resolve the authenticating account's role first. Admin / college-admin
+    // accounts must never be misidentified as candidates just because their id
+    // exists in the users table.
+    const roleRes = await pool.query("SELECT id, name, email, role FROM users WHERE id=$1", [req.user.id]);
+    const account = roleRes.rows[0];
+    if ((account && (account.role === 'admin' || account.role === 'college_admin')) ||
+        req.user?.role === 'admin' || req.user?.role === 'college_admin') {
+      const adminAccount = account || {
+        id: req.user.id,
+        name: req.user.name || 'Administrator',
+        email: req.user.email,
+        role: req.user.role,
+      };
+      return res.json({ success: true, user: adminAccount, admin: adminAccount, role: adminAccount.role });
+    }
+
     const candRes = await pool.query(`
       SELECT
         COALESCE(cp.id, c.id, u.id) as id,
@@ -645,7 +714,7 @@ export const getMe = async (req, res) => {
         SELECT 
           candidate_id,
           COUNT(id) as sub_count,
-          CASE WHEN SUM(total_marks) > 0 THEN ROUND((SUM(obtained_marks) * 100.0) / SUM(total_marks)) ELSE 0 END as real_score,
+          CASE WHEN SUM(total_marks) > 0 THEN ROUND((SUM(obtained_marks) * 100.0 / SUM(total_marks)), 0) ELSE 0 END as real_score,
           COALESCE(MAX(CASE WHEN LOWER(assessment_title) LIKE '%apt%' OR LOWER(assessment_title) LIKE '%quant%' THEN score ELSE 0 END), 0) as apt_score,
           COALESCE(MAX(CASE WHEN LOWER(assessment_title) LIKE '%reason%' OR LOWER(assessment_title) LIKE '%logic%' THEN score ELSE 0 END), 0) as reason_score,
           COALESCE(MAX(CASE WHEN LOWER(assessment_title) LIKE '%tech%' THEN score ELSE 0 END), 0) as tech_score,

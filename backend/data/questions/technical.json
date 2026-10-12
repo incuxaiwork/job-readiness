@@ -1,0 +1,2200 @@
+{
+  "section": "Technical",
+  "version": 1,
+  "questions": [
+    {
+      "id": "tec-0001",
+      "section": "Technical",
+      "topic": "Operating Systems",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What is the primary difference between a process and a thread in modern operating systems?",
+      "options": [
+        "Processes share the same address space while threads have separate memory",
+        "A thread cannot be scheduled independently by the operating system kernel",
+        "Processes have significantly lower context switching overhead than threads",
+        "Threads within a process share the same memory space and address range"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Threads within the same process share code, data, and OS resources such as open files, whereas processes run in distinct address spaces.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "os",
+        "processes"
+      ]
+    },
+    {
+      "id": "tec-0002",
+      "section": "Technical",
+      "topic": "Computer Networks",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which HTTP response status code indicates that the client request cannot be completed because authentication credentials are required?",
+      "options": [
+        "401 Unauthorized",
+        "400 Bad Request",
+        "403 Forbidden",
+        "404 Not Found"
+      ],
+      "correctAnswer": "A",
+      "explanation": "HTTP 401 Unauthorized indicates that the request requires user authentication or that the provided credentials are invalid.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "networking",
+        "http"
+      ]
+    },
+    {
+      "id": "tec-0003",
+      "section": "Technical",
+      "topic": "DBMS & SQL",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "In relational database transactions, what does the ACID property of Atomicity guarantee?",
+      "options": [
+        "Transactions execute independently without interleaved race conditions",
+        "All operations within a transaction succeed completely or none take effect",
+        "Data remains strictly consistent across all distributed nodes at all times",
+        "Committed transactions survive subsequent server crashes or power failures"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Atomicity enforces an all-or-nothing rule: if any part of a transaction fails, the entire transaction is rolled back.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "dbms",
+        "acid"
+      ]
+    },
+    {
+      "id": "tec-0004",
+      "section": "Technical",
+      "topic": "Algorithms",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which sorting algorithm degrades to O(n^2) worst-case time when the array is already sorted and the last element is always chosen as the pivot?",
+      "options": [
+        "Merge Sort",
+        "Heap Sort",
+        "Quick Sort",
+        "Radix Sort"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Standard Quick Sort partitions poorly when an already sorted array is pivoted on an extreme boundary element, producing O(n^2) work.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "algorithms",
+        "sorting"
+      ]
+    },
+    {
+      "id": "tec-0005",
+      "section": "Technical",
+      "topic": "Web Technologies",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "In the JavaScript and Node.js runtime, which mechanism allows asynchronous operations without freezing execution on the single thread?",
+      "options": [
+        "Multi-threaded preemptive kernel scheduling",
+        "Synchronous bytecode execution in separate threads",
+        "Automatic CPU affinity core allocation",
+        "Event loop and non-blocking I/O callback queue"
+      ],
+      "correctAnswer": "D",
+      "explanation": "JavaScript uses the event loop model with a call stack and callback/microtask queues to orchestrate asynchronous non-blocking tasks.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "web",
+        "javascript"
+      ]
+    },
+    {
+      "id": "tec-0006",
+      "section": "Technical",
+      "topic": "DBMS & SQL",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which SQL keyword is used to return only unique, non-repeating values in a query result set?",
+      "options": [
+        "DISTINCT",
+        "UNIQUE",
+        "DIFFERENT",
+        "EXCLUSIVE"
+      ],
+      "correctAnswer": "A",
+      "explanation": "The DISTINCT keyword in SQL eliminates duplicate records from the query result set.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "sql"
+      ]
+    },
+    {
+      "id": "tec-0007",
+      "section": "Technical",
+      "topic": "Data Structures",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which data structure follows the Last In, First Out (LIFO) order of execution?",
+      "options": [
+        "Queue",
+        "Stack",
+        "Linked List",
+        "Binary Tree"
+      ],
+      "correctAnswer": "B",
+      "explanation": "A Stack follows the Last In, First Out (LIFO) protocol where elements are pushed and popped from the top.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "data-structures",
+        "stack"
+      ]
+    },
+    {
+      "id": "tec-0008",
+      "section": "Technical",
+      "topic": "Object-Oriented Programming",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "In Object-Oriented Programming, when a child class provides a specific implementation of a method already defined in its superclass, this is known as:",
+      "options": [
+        "Method Overloading",
+        "Data Abstraction",
+        "Method Overriding",
+        "Information Hiding"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Method Overriding occurs when a subclass redefines a method from its superclass with the same signature.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "oop",
+        "polymorphism"
+      ]
+    },
+    {
+      "id": "tec-0009",
+      "section": "Technical",
+      "topic": "Data Structures",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What is the average time complexity of searching for an element in a balanced Binary Search Tree (BST)?",
+      "options": [
+        "O(1)",
+        "O(n)",
+        "O(n log n)",
+        "O(log n)"
+      ],
+      "correctAnswer": "D",
+      "explanation": "In a balanced BST with n nodes the height is about log2(n), yielding an average search complexity of O(log n).",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "data-structures",
+        "bst"
+      ]
+    },
+    {
+      "id": "tec-0010",
+      "section": "Technical",
+      "topic": "DBMS & SQL",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Which normal form requires removing transitive dependencies so that non-key attributes depend only on the primary key?",
+      "options": [
+        "1NF",
+        "2NF",
+        "Boyce-Codd NF",
+        "3NF"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Third Normal Form (3NF) mandates that a table is in 2NF and contains no transitive functional dependencies.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "dbms",
+        "normalization"
+      ]
+    },
+    {
+      "id": "tec-0011",
+      "section": "Technical",
+      "topic": "Programming Fundamentals",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "In most programming languages that distinguish integer from floating-point arithmetic (such as C or Java), what is the value of the expression 7 / 2 when both operands are integers?",
+      "options": [
+        "3",
+        "3.5",
+        "4",
+        "0"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Integer division discards (truncates) the fractional part, so 7 / 2 evaluates to 3.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "programming",
+        "arithmetic"
+      ]
+    },
+    {
+      "id": "tec-0012",
+      "section": "Technical",
+      "topic": "Programming Fundamentals",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which data type is designed to store a single logical value of either true or false?",
+      "options": [
+        "int",
+        "boolean",
+        "char",
+        "string"
+      ],
+      "correctAnswer": "B",
+      "explanation": "A boolean represents one of two truth values, true or false.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "programming",
+        "types"
+      ]
+    },
+    {
+      "id": "tec-0013",
+      "section": "Technical",
+      "topic": "Programming Fundamentals",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "In most programming languages, what does the boolean expression true && false evaluate to?",
+      "options": [
+        "true",
+        "0",
+        "false",
+        "null"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Logical AND yields true only when both operands are true; here one operand is false, so the result is false.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "programming",
+        "operators"
+      ]
+    },
+    {
+      "id": "tec-0014",
+      "section": "Technical",
+      "topic": "Programming Fundamentals",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "A variable that is declared inside a function and can only be accessed within that function is said to have which kind of scope?",
+      "options": [
+        "Global scope",
+        "Static scope",
+        "Dynamic scope",
+        "Local scope"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Variables declared inside a function are local to that function and are not visible outside it.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "programming",
+        "scope"
+      ]
+    },
+    {
+      "id": "tec-0015",
+      "section": "Technical",
+      "topic": "Programming Fundamentals",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What is the primary purpose of a symbol table in a compiler?",
+      "options": [
+        "To track identifiers such as variables and functions along with their attributes",
+        "To store machine code instructions for the target CPU",
+        "To allocate physical memory for running programs",
+        "To schedule threads on the CPU"
+      ],
+      "correctAnswer": "A",
+      "explanation": "A symbol table records identifiers and their properties, such as type, scope, and storage location, as the compiler analyzes the program.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "programming",
+        "compilers"
+      ]
+    },
+    {
+      "id": "tec-0016",
+      "section": "Technical",
+      "topic": "Programming Fundamentals",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which programming technique describes a function that calls itself as part of its own execution?",
+      "options": [
+        "Iteration",
+        "Recursion",
+        "Encapsulation",
+        "Polymorphism"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Recursion is when a function invokes itself, typically with a base case that stops the chain of calls.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "programming",
+        "recursion"
+      ]
+    },
+    {
+      "id": "tec-0017",
+      "section": "Technical",
+      "topic": "Programming Fundamentals",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What does it mean for a function argument to be passed by reference?",
+      "options": [
+        "The function receives a copy of the argument's value",
+        "The argument is always converted to a string before being passed",
+        "The function receives access to the caller's original variable, so changes affect the caller",
+        "The function can only read the argument and can never modify it"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Passing by reference gives the function access to the original variable, so modifications made inside the function are visible to the caller.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "programming",
+        "functions"
+      ]
+    },
+    {
+      "id": "tec-0018",
+      "section": "Technical",
+      "topic": "Programming Fundamentals",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "In a language that uses short-circuit evaluation, what is the result of evaluating the expression false && (1 / 0 == 0)?",
+      "options": [
+        "It raises a division-by-zero error",
+        "It evaluates to true",
+        "It evaluates to null",
+        "It evaluates to false because the right operand is never evaluated"
+      ],
+      "correctAnswer": "D",
+      "explanation": "With short-circuit AND, once the left operand is false the result is false and the right operand is not evaluated, avoiding the division by zero.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "programming",
+        "operators"
+      ]
+    },
+    {
+      "id": "tec-0019",
+      "section": "Technical",
+      "topic": "Data Structures",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which data structure processes elements in First In, First Out (FIFO) order?",
+      "options": [
+        "Queue",
+        "Stack",
+        "Binary heap",
+        "Graph"
+      ],
+      "correctAnswer": "A",
+      "explanation": "A queue inserts at the rear and removes from the front, giving First In, First Out behavior.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "data-structures",
+        "queue"
+      ]
+    },
+    {
+      "id": "tec-0020",
+      "section": "Technical",
+      "topic": "Data Structures",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "In a singly linked list, which operation can be performed in O(1) time when you already hold a pointer to a node?",
+      "options": [
+        "Inserting a new node immediately after the given node",
+        "Searching for a value by key",
+        "Accessing the k-th element by index",
+        "Finding the middle element"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Inserting after a known node only requires a few pointer updates, whereas searching and indexing require traversal.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "data-structures",
+        "linked-list"
+      ]
+    },
+    {
+      "id": "tec-0021",
+      "section": "Technical",
+      "topic": "Data Structures",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which data structure most directly models the call stack used to track function invocations in most programming languages?",
+      "options": [
+        "Queue",
+        "Stack",
+        "Hash table",
+        "Graph"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Function calls follow Last In, First Out semantics: the most recently called function must return before its caller resumes, which is a stack.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "data-structures",
+        "stack"
+      ]
+    },
+    {
+      "id": "tec-0022",
+      "section": "Technical",
+      "topic": "Data Structures",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which statement correctly distinguishes a min-heap from a binary search tree (BST)?",
+      "options": [
+        "A min-heap is always perfectly balanced, while a BST never is",
+        "A min-heap supports O(log n) search for an arbitrary value just like a BST",
+        "A min-heap keeps each parent less than or equal to its children but does not order left versus right, while a BST orders all left descendants before the node and all right descendants after it",
+        "A min-heap stores elements in sorted order when its backing array is traversed front to back"
+      ],
+      "correctAnswer": "C",
+      "explanation": "A heap only guarantees the parent-child ordering (the heap property); it does not maintain a global left/right ordering, so arbitrary search is not O(log n).",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "data-structures",
+        "heap"
+      ]
+    },
+    {
+      "id": "tec-0023",
+      "section": "Technical",
+      "topic": "Data Structures",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What is the average-case time complexity of looking up a key in a well-implemented hash table?",
+      "options": [
+        "O(log n)",
+        "O(n)",
+        "O(n log n)",
+        "O(1)"
+      ],
+      "correctAnswer": "D",
+      "explanation": "With a good hash function and a low load factor, keys spread evenly and lookups take constant expected time.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "data-structures",
+        "hash-table"
+      ]
+    },
+    {
+      "id": "tec-0024",
+      "section": "Technical",
+      "topic": "Data Structures",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "In an AVL tree, what is the maximum allowed difference between the heights of the left and right subtrees of any node?",
+      "options": [
+        "1",
+        "0",
+        "2",
+        "log n"
+      ],
+      "correctAnswer": "A",
+      "explanation": "The AVL balance condition requires the balance factor of every node to be -1, 0, or +1, meaning subtree heights differ by at most 1.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "data-structures",
+        "avl"
+      ]
+    },
+    {
+      "id": "tec-0025",
+      "section": "Technical",
+      "topic": "Data Structures",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which traversal of a binary search tree visits its nodes in ascending key order?",
+      "options": [
+        "Pre-order",
+        "In-order",
+        "Post-order",
+        "Level-order"
+      ],
+      "correctAnswer": "B",
+      "explanation": "An in-order traversal (left, node, right) of a BST visits keys in sorted ascending order.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "data-structures",
+        "traversal"
+      ]
+    },
+    {
+      "id": "tec-0026",
+      "section": "Technical",
+      "topic": "Algorithms",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which algorithm is commonly used to find the shortest path from one source vertex to all other vertices in a graph with non-negative edge weights?",
+      "options": [
+        "Kruskal's algorithm",
+        "Floyd-Warshall algorithm",
+        "Dijkstra's algorithm",
+        "Depth-first search"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Dijkstra's algorithm greedily expands the nearest unvisited vertex and works correctly when edge weights are non-negative.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "algorithms",
+        "graphs"
+      ]
+    },
+    {
+      "id": "tec-0027",
+      "section": "Technical",
+      "topic": "Algorithms",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What precondition must an array satisfy before binary search can be applied?",
+      "options": [
+        "It must contain only unique elements",
+        "It must have an even number of elements",
+        "It must be stored as a linked list",
+        "It must be sorted"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Binary search repeatedly halves the search range by comparing the target with the middle element, which is only valid if the data is sorted.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "algorithms",
+        "searching"
+      ]
+    },
+    {
+      "id": "tec-0028",
+      "section": "Technical",
+      "topic": "Algorithms",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What is the time complexity of binary search on a sorted array of n elements?",
+      "options": [
+        "O(log n)",
+        "O(1)",
+        "O(n)",
+        "O(n log n)"
+      ],
+      "correctAnswer": "A",
+      "explanation": "The search interval halves with each comparison, giving about log2(n) steps.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "algorithms",
+        "searching"
+      ]
+    },
+    {
+      "id": "tec-0029",
+      "section": "Technical",
+      "topic": "Algorithms",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which algorithmic paradigm does merge sort use?",
+      "options": [
+        "Greedy",
+        "Divide and conquer",
+        "Dynamic programming",
+        "Backtracking"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Merge sort divides the array into halves, sorts them recursively, and merges the sorted halves.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "algorithms",
+        "sorting"
+      ]
+    },
+    {
+      "id": "tec-0030",
+      "section": "Technical",
+      "topic": "Algorithms",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which algorithm computes a minimum spanning tree of a connected, weighted, undirected graph?",
+      "options": [
+        "Dijkstra's algorithm",
+        "Floyd-Warshall algorithm",
+        "A* search",
+        "Kruskal's algorithm"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Kruskal's algorithm builds a minimum spanning tree by repeatedly adding the cheapest edge that does not create a cycle.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "algorithms",
+        "graphs"
+      ]
+    },
+    {
+      "id": "tec-0031",
+      "section": "Technical",
+      "topic": "Algorithms",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "What does the Floyd-Warshall algorithm compute?",
+      "options": [
+        "The single shortest path in a graph that may contain negative cycles",
+        "The maximum flow through a network",
+        "The shortest paths between all pairs of vertices in a weighted graph",
+        "A topological ordering of a directed acyclic graph"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Floyd-Warshall uses dynamic programming over intermediate vertices to compute all-pairs shortest paths in O(V^3) time.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "algorithms",
+        "graphs"
+      ]
+    },
+    {
+      "id": "tec-0032",
+      "section": "Technical",
+      "topic": "Algorithms",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Which of the following decision problems is NP-complete?",
+      "options": [
+        "Sorting a list of numbers",
+        "The Boolean satisfiability problem (SAT)",
+        "Finding the shortest path between two nodes",
+        "Computing the greatest common divisor of two integers"
+      ],
+      "correctAnswer": "B",
+      "explanation": "The Cook-Levin theorem establishes that SAT is NP-complete; the other listed problems are solvable in polynomial time.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "algorithms",
+        "complexity"
+      ]
+    },
+    {
+      "id": "tec-0033",
+      "section": "Technical",
+      "topic": "DBMS & SQL",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "In SQL, which clause is used to filter individual rows before any grouping takes place?",
+      "options": [
+        "WHERE",
+        "HAVING",
+        "ORDER BY",
+        "GROUP BY"
+      ],
+      "correctAnswer": "A",
+      "explanation": "WHERE filters rows as they are read, whereas HAVING filters groups after aggregation.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "sql"
+      ]
+    },
+    {
+      "id": "tec-0034",
+      "section": "Technical",
+      "topic": "DBMS & SQL",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which SQL statement is used to retrieve data from one or more tables?",
+      "options": [
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "SELECT"
+      ],
+      "correctAnswer": "D",
+      "explanation": "SELECT queries rows and columns from tables; the other statements modify stored data.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "sql"
+      ]
+    },
+    {
+      "id": "tec-0035",
+      "section": "Technical",
+      "topic": "DBMS & SQL",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What is the purpose of a JOIN in SQL?",
+      "options": [
+        "To remove duplicate rows from a result",
+        "To sort the result set",
+        "To combine rows from two or more tables based on a related column",
+        "To create a new database"
+      ],
+      "correctAnswer": "C",
+      "explanation": "A JOIN links rows across tables using a matching condition, typically a primary-key to foreign-key relationship.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "sql",
+        "joins"
+      ]
+    },
+    {
+      "id": "tec-0036",
+      "section": "Technical",
+      "topic": "DBMS & SQL",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which type of join returns all rows from the left table and the matching rows from the right table, filling unmatched right-side columns with NULL?",
+      "options": [
+        "INNER JOIN",
+        "LEFT OUTER JOIN",
+        "RIGHT OUTER JOIN",
+        "CROSS JOIN"
+      ],
+      "correctAnswer": "B",
+      "explanation": "A LEFT OUTER JOIN preserves every row of the left table, filling unmatched right-side columns with NULL.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "sql",
+        "joins"
+      ]
+    },
+    {
+      "id": "tec-0037",
+      "section": "Technical",
+      "topic": "DBMS & SQL",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Why can adding too many indexes to a database table reduce write performance?",
+      "options": [
+        "Every INSERT, UPDATE, or DELETE must also update each affected index",
+        "Indexes compress the table's data and lose rows",
+        "Indexes prevent the use of transactions",
+        "Indexes force the table to be stored in memory only"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Indexes speed up reads but must be maintained on every write, so each additional index adds overhead to insert, update, and delete operations.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "dbms",
+        "indexing"
+      ]
+    },
+    {
+      "id": "tec-0038",
+      "section": "Technical",
+      "topic": "Operating Systems",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What is the main responsibility of an operating system's CPU scheduler?",
+      "options": [
+        "Translating virtual addresses to physical addresses",
+        "Managing the file system's directory structure",
+        "Encrypting data written to disk",
+        "Deciding which ready process or thread runs on the CPU next"
+      ],
+      "correctAnswer": "D",
+      "explanation": "The scheduler selects among ready tasks to allocate CPU time according to a scheduling policy.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "os",
+        "scheduling"
+      ]
+    },
+    {
+      "id": "tec-0039",
+      "section": "Technical",
+      "topic": "Operating Systems",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What is the primary purpose of virtual memory?",
+      "options": [
+        "To increase the clock speed of the CPU",
+        "To let all programs run without any memory protection",
+        "To let programs use an address space larger than the available physical memory",
+        "To eliminate the need for a file system"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Virtual memory maps program addresses to physical frames and can page data to disk, allowing programs to exceed physical RAM.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "os",
+        "memory"
+      ]
+    },
+    {
+      "id": "tec-0040",
+      "section": "Technical",
+      "topic": "Operating Systems",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What is thrashing in an operating system?",
+      "options": [
+        "When two processes permanently block each other",
+        "When the disk controller fails",
+        "When the CPU spends most of its time servicing page faults instead of executing useful work",
+        "When a process runs to completion without interruption"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Thrashing occurs when excessive paging keeps the system busy swapping pages, driving CPU utilization down.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "os",
+        "memory"
+      ]
+    },
+    {
+      "id": "tec-0041",
+      "section": "Technical",
+      "topic": "Operating Systems",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which of the following is NOT one of the four necessary conditions for deadlock?",
+      "options": [
+        "Mutual exclusion",
+        "Hold and wait",
+        "Circular wait",
+        "Preemption"
+      ],
+      "correctAnswer": "D",
+      "explanation": "The four Coffman conditions are mutual exclusion, hold and wait, no preemption, and circular wait; 'preemption' is the opposite of the no-preemption condition.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "os",
+        "deadlock"
+      ]
+    },
+    {
+      "id": "tec-0042",
+      "section": "Technical",
+      "topic": "Operating Systems",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "In a paged memory system, what does the page table map?",
+      "options": [
+        "Virtual page numbers to physical frame numbers",
+        "File names to inode numbers",
+        "Process IDs to CPU cores",
+        "Port numbers to sockets"
+      ],
+      "correctAnswer": "A",
+      "explanation": "The page table translates each virtual page to the physical frame that currently holds it.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "os",
+        "paging"
+      ]
+    },
+    {
+      "id": "tec-0043",
+      "section": "Technical",
+      "topic": "Operating Systems",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "What is the key advantage of a multilevel feedback queue (MLFQ) scheduler?",
+      "options": [
+        "It guarantees every process a fixed, unchanging priority",
+        "It learns from a process's observed behavior and moves it between priority queues accordingly",
+        "It eliminates the need for context switching",
+        "It only schedules real-time tasks with hard deadlines"
+      ],
+      "correctAnswer": "B",
+      "explanation": "MLFQ uses feedback such as CPU usage and I/O behavior to demote CPU-bound jobs and reward interactive ones by moving processes between queues.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "os",
+        "scheduling"
+      ]
+    },
+    {
+      "id": "tec-0044",
+      "section": "Technical",
+      "topic": "Operating Systems",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "What does journaling provide in a file system?",
+      "options": [
+        "Faster disk rotation speeds",
+        "Automatic encryption of all files",
+        "Crash consistency by logging changes before writing them to their final locations",
+        "Deduplication of identical blocks"
+      ],
+      "correctAnswer": "C",
+      "explanation": "A journal records intended updates first, so after a crash the file system can replay or discard incomplete transactions and remain consistent.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "os",
+        "filesystems"
+      ]
+    },
+    {
+      "id": "tec-0045",
+      "section": "Technical",
+      "topic": "Computer Networks",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "In computer networking, what does the abbreviation IP stand for?",
+      "options": [
+        "Internal Packet",
+        "Interface Port",
+        "Interconnect Path",
+        "Internet Protocol"
+      ],
+      "correctAnswer": "D",
+      "explanation": "IP is the Internet Protocol, responsible for addressing and routing packets across networks.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "networking",
+        "ip"
+      ]
+    },
+    {
+      "id": "tec-0046",
+      "section": "Technical",
+      "topic": "Computer Networks",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which transport-layer protocol is connection-oriented and provides reliable, ordered delivery?",
+      "options": [
+        "TCP",
+        "UDP",
+        "ICMP",
+        "ARP"
+      ],
+      "correctAnswer": "A",
+      "explanation": "TCP establishes a connection, acknowledges data, and retransmits lost segments, providing reliable ordered delivery, whereas UDP is connectionless.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "networking",
+        "tcp"
+      ]
+    },
+    {
+      "id": "tec-0047",
+      "section": "Technical",
+      "topic": "Computer Networks",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What is the primary purpose of the Domain Name System (DNS)?",
+      "options": [
+        "To encrypt web traffic",
+        "To translate human-readable domain names into IP addresses",
+        "To assign MAC addresses to network cards",
+        "To route packets between autonomous systems"
+      ],
+      "correctAnswer": "B",
+      "explanation": "DNS resolves names such as example.com to the numeric IP addresses used by network devices.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "networking",
+        "dns"
+      ]
+    },
+    {
+      "id": "tec-0048",
+      "section": "Technical",
+      "topic": "Computer Networks",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which TCP port is used by HTTPS by default?",
+      "options": [
+        "80",
+        "22",
+        "443",
+        "8080"
+      ],
+      "correctAnswer": "C",
+      "explanation": "HTTPS uses port 443 by default, while plain HTTP uses port 80.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "networking",
+        "http"
+      ]
+    },
+    {
+      "id": "tec-0049",
+      "section": "Technical",
+      "topic": "Computer Networks",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "At which OSI model layer does a router primarily operate?",
+      "options": [
+        "Physical layer (Layer 1)",
+        "Data link layer (Layer 2)",
+        "Transport layer (Layer 4)",
+        "Network layer (Layer 3)"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Routers forward packets based on IP addresses, which is the network layer (Layer 3).",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "networking",
+        "osi"
+      ]
+    },
+    {
+      "id": "tec-0050",
+      "section": "Technical",
+      "topic": "Computer Networks",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What is the purpose of the TCP three-way handshake?",
+      "options": [
+        "To compress data before transmission",
+        "To establish a connection by synchronizing sequence numbers with SYN, SYN-ACK, and ACK",
+        "To resolve domain names to IP addresses",
+        "To detect the maximum transmission unit (MTU) of the link"
+      ],
+      "correctAnswer": "B",
+      "explanation": "The handshake exchanges SYN and ACK segments so both sides agree on initial sequence numbers before data transfer begins.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "networking",
+        "tcp"
+      ]
+    },
+    {
+      "id": "tec-0051",
+      "section": "Technical",
+      "topic": "Computer Networks",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "What does a subnet mask define for an IPv4 address?",
+      "options": [
+        "Which portion of the address identifies the network and which identifies the host",
+        "The maximum transmission unit of the link",
+        "The encryption algorithm used on the subnet",
+        "The physical MAC address of the gateway"
+      ],
+      "correctAnswer": "A",
+      "explanation": "A subnet mask is a 32-bit value whose 1-bits mark the network prefix and 0-bits mark the host portion of an IPv4 address.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "networking",
+        "subnetting"
+      ]
+    },
+    {
+      "id": "tec-0052",
+      "section": "Technical",
+      "topic": "Object-Oriented Programming",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What does encapsulation mean in object-oriented programming?",
+      "options": [
+        "Allowing one interface to represent many implementations",
+        "Deriving new classes from existing ones",
+        "Splitting a program into multiple files",
+        "Bundling data with the methods that operate on it and restricting direct outside access"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Encapsulation hides internal state behind a public interface, typically using private fields and accessor methods.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "oop",
+        "encapsulation"
+      ]
+    },
+    {
+      "id": "tec-0053",
+      "section": "Technical",
+      "topic": "Object-Oriented Programming",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which object-oriented principle allows different types to respond to the same method call in their own way?",
+      "options": [
+        "Inheritance",
+        "Encapsulation",
+        "Polymorphism",
+        "Composition"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Polymorphism lets a single interface or method name behave differently depending on the actual object type, for example through overriding.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "oop",
+        "polymorphism"
+      ]
+    },
+    {
+      "id": "tec-0054",
+      "section": "Technical",
+      "topic": "Object-Oriented Programming",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What does inheritance allow in object-oriented programming?",
+      "options": [
+        "A variable to hold several unrelated types at once",
+        "A class to acquire the fields and methods of a parent class",
+        "A method to call itself",
+        "A program to run on multiple operating systems"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Inheritance creates an is-a relationship in which a subclass reuses and extends the behavior of a superclass.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "oop",
+        "inheritance"
+      ]
+    },
+    {
+      "id": "tec-0055",
+      "section": "Technical",
+      "topic": "Object-Oriented Programming",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What is method overloading?",
+      "options": [
+        "Defining multiple methods with the same name but different parameter lists in the same class",
+        "Redefining a superclass method with an identical signature in a subclass",
+        "Hiding a field by giving it the same name as a local variable",
+        "Calling a method before it is defined"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Overloading distinguishes methods by their parameter signatures at compile time, whereas overriding replaces an inherited method with the same signature.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "oop",
+        "overloading"
+      ]
+    },
+    {
+      "id": "tec-0056",
+      "section": "Technical",
+      "topic": "Object-Oriented Programming",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What is a class that cannot be instantiated directly and is designed to be subclassed called?",
+      "options": [
+        "A final class",
+        "A static class",
+        "A singleton class",
+        "An abstract class"
+      ],
+      "correctAnswer": "D",
+      "explanation": "An abstract class may declare abstract methods and cannot be instantiated on its own; concrete subclasses must implement its abstract members.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "oop",
+        "abstraction"
+      ]
+    },
+    {
+      "id": "tec-0057",
+      "section": "Technical",
+      "topic": "Object-Oriented Programming",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "What does the Liskov Substitution Principle state?",
+      "options": [
+        "A class should have only one reason to change",
+        "High-level modules should depend directly on low-level modules",
+        "Objects of a superclass should be replaceable with objects of a subclass without breaking the correctness of the program",
+        "An interface should be split into smaller, more specific interfaces"
+      ],
+      "correctAnswer": "C",
+      "explanation": "LSP requires subtypes to preserve the behavior promised by their supertype so that client code can use them interchangeably.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "oop",
+        "solid"
+      ]
+    },
+    {
+      "id": "tec-0058",
+      "section": "Technical",
+      "topic": "Software Engineering",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "In the software development life cycle, what is the main deliverable of the requirements phase?",
+      "options": [
+        "The compiled executable program",
+        "A specification describing what the system should do",
+        "The source code repository",
+        "The hardware purchase order"
+      ],
+      "correctAnswer": "B",
+      "explanation": "The requirements phase produces a documented description of the desired functionality and constraints before design and coding begin.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "software-engineering",
+        "sdlc"
+      ]
+    },
+    {
+      "id": "tec-0059",
+      "section": "Technical",
+      "topic": "Software Engineering",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "In software engineering, what does the acronym DRY stand for?",
+      "options": [
+        "Don't Repeat Yourself",
+        "Define, Refactor, Yield",
+        "Design, Review, Yields",
+        "Data, Runtime, Yields"
+      ],
+      "correctAnswer": "A",
+      "explanation": "DRY advises against duplicating knowledge or logic, so each piece of behavior has a single authoritative representation.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "software-engineering",
+        "principles"
+      ]
+    },
+    {
+      "id": "tec-0060",
+      "section": "Technical",
+      "topic": "Software Engineering",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What is unit testing?",
+      "options": [
+        "Testing individual functions or components in isolation",
+        "Testing the entire system with real users",
+        "Measuring the speed of the network",
+        "Reviewing code by reading it without executing it"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Unit tests exercise small, isolated pieces of code to verify their behavior independently of the rest of the system.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "software-engineering",
+        "testing"
+      ]
+    },
+    {
+      "id": "tec-0061",
+      "section": "Technical",
+      "topic": "Software Engineering",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "In Agile software development, what is a sprint?",
+      "options": [
+        "A permanent phase that never ends",
+        "A tool for compiling source code",
+        "A type of database transaction",
+        "A fixed, short time-boxed iteration of development work"
+      ],
+      "correctAnswer": "D",
+      "explanation": "A sprint is a short, time-boxed period, often two to four weeks, during which a team completes a set of planned work.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "software-engineering",
+        "agile"
+      ]
+    },
+    {
+      "id": "tec-0062",
+      "section": "Technical",
+      "topic": "Software Engineering",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What is the primary goal of refactoring?",
+      "options": [
+        "To add new user-visible features",
+        "To reduce the number of developers needed",
+        "To improve the internal structure of code without changing its external behavior",
+        "To rewrite the application in a different language"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Refactoring restructures existing code to make it cleaner and more maintainable while preserving its observable behavior.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "software-engineering",
+        "refactoring"
+      ]
+    },
+    {
+      "id": "tec-0063",
+      "section": "Technical",
+      "topic": "Software Engineering",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "What does Continuous Integration (CI) primarily involve?",
+      "options": [
+        "Deploying every change straight to production without tests",
+        "Frequently merging developers' changes and automatically building and testing the integrated code",
+        "Writing documentation before writing any code",
+        "Freezing the codebase for long periods"
+      ],
+      "correctAnswer": "B",
+      "explanation": "CI automates building and testing whenever changes are integrated, catching integration problems early.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "software-engineering",
+        "ci"
+      ]
+    },
+    {
+      "id": "tec-0064",
+      "section": "Technical",
+      "topic": "Web Technologies",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What does HTML stand for?",
+      "options": [
+        "HyperText Markup Language",
+        "High-level Text Machine Language",
+        "Home Tool Markup Language",
+        "Hyperlink Tracking Meta Language"
+      ],
+      "correctAnswer": "A",
+      "explanation": "HTML (HyperText Markup Language) is the standard language for structuring content on web pages.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "web",
+        "html"
+      ]
+    },
+    {
+      "id": "tec-0065",
+      "section": "Technical",
+      "topic": "Web Technologies",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which language is primarily used to style the appearance of web pages?",
+      "options": [
+        "SQL",
+        "XML",
+        "Bash",
+        "CSS"
+      ],
+      "correctAnswer": "D",
+      "explanation": "CSS (Cascading Style Sheets) controls the layout, colors, and typography of HTML documents.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "web",
+        "css"
+      ]
+    },
+    {
+      "id": "tec-0066",
+      "section": "Technical",
+      "topic": "Web Technologies",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What does the HTTP status code 404 indicate?",
+      "options": [
+        "The server encountered an internal error",
+        "The request succeeded",
+        "The requested resource was not found",
+        "The client is not authenticated"
+      ],
+      "correctAnswer": "C",
+      "explanation": "404 Not Found means the server could not locate the requested resource.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "web",
+        "http"
+      ]
+    },
+    {
+      "id": "tec-0067",
+      "section": "Technical",
+      "topic": "Web Technologies",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "In web development, what does REST describe?",
+      "options": [
+        "A database normalization rule",
+        "An architectural style for web APIs that uses HTTP methods and stateless communication",
+        "A JavaScript build tool",
+        "A type of encryption cipher"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Representational State Transfer (REST) organizes APIs around resources addressed by URLs and manipulated with standard HTTP methods.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "web",
+        "rest"
+      ]
+    },
+    {
+      "id": "tec-0068",
+      "section": "Technical",
+      "topic": "Web Technologies",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What is an HTTP cookie primarily used for?",
+      "options": [
+        "Storing small pieces of client-side data so the server can maintain state across requests",
+        "Encrypting the entire web page",
+        "Compiling JavaScript on the server",
+        "Resolving domain names"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Because HTTP is stateless, cookies let servers recognize clients across multiple requests, for example to keep a user logged in.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "web",
+        "cookies"
+      ]
+    },
+    {
+      "id": "tec-0069",
+      "section": "Technical",
+      "topic": "Web Technologies",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "According to the HTTP specification, which of these request methods is idempotent?",
+      "options": [
+        "POST",
+        "PATCH",
+        "CONNECT",
+        "PUT"
+      ],
+      "correctAnswer": "D",
+      "explanation": "PUT, like DELETE and the safe methods, is idempotent: repeating an identical request has the same intended effect as a single one, whereas POST is not.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "web",
+        "http"
+      ]
+    },
+    {
+      "id": "tec-0070",
+      "section": "Technical",
+      "topic": "Security Basics",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What does the security principle of least privilege mean?",
+      "options": [
+        "All users should share one administrator account",
+        "Users and processes should be granted only the minimum access needed to perform their tasks",
+        "Passwords should be stored in plain text",
+        "Encryption should be disabled for speed"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Least privilege limits the access rights of users and programs to reduce the potential damage from errors or compromise.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "security",
+        "principles"
+      ]
+    },
+    {
+      "id": "tec-0071",
+      "section": "Technical",
+      "topic": "Security Basics",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What is encryption?",
+      "options": [
+        "Compressing data to save disk space",
+        "Deleting data permanently",
+        "Encoding data so that only authorized parties can read it",
+        "Backing data up to a remote server"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Encryption transforms plaintext into ciphertext using a key so that only holders of the correct key can recover the original data.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "security",
+        "cryptography"
+      ]
+    },
+    {
+      "id": "tec-0072",
+      "section": "Technical",
+      "topic": "Security Basics",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Which attack inserts malicious SQL statements through unsanitized user input?",
+      "options": [
+        "Cross-site scripting",
+        "Denial of service",
+        "Phishing",
+        "SQL injection"
+      ],
+      "correctAnswer": "D",
+      "explanation": "SQL injection occurs when untrusted input is concatenated into a query, allowing an attacker to alter its logic; parameterized queries prevent it.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "security",
+        "injection"
+      ]
+    },
+    {
+      "id": "tec-0073",
+      "section": "Technical",
+      "topic": "Security Basics",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "Why is a unique random salt added before hashing a password?",
+      "options": [
+        "So identical passwords produce different hashes and precomputed rainbow tables cannot be reused",
+        "To make the stored password shorter",
+        "To allow the password to be reversed later",
+        "To encrypt the entire database"
+      ],
+      "correctAnswer": "A",
+      "explanation": "A per-password salt makes precomputed hash tables impractical and hides the fact that two users chose the same password.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "security",
+        "passwords"
+      ]
+    },
+    {
+      "id": "tec-0074",
+      "section": "Technical",
+      "topic": "Security Basics",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "In HTTPS/TLS, what is the role of a Certificate Authority (CA)?",
+      "options": [
+        "It encrypts all traffic between the client and server",
+        "It signs digital certificates vouching for the binding between a public key and an identity",
+        "It stores the server's private key",
+        "It assigns IP addresses to servers"
+      ],
+      "correctAnswer": "B",
+      "explanation": "A trusted CA digitally signs a server's certificate, letting clients verify that the public key belongs to the claimed identity.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "security",
+        "tls"
+      ]
+    },
+    {
+      "id": "tec-0075",
+      "section": "Technical",
+      "topic": "Security Basics",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "What is a man-in-the-middle (MITM) attack?",
+      "options": [
+        "An attacker floods a server with traffic until it becomes unavailable",
+        "An attacker guesses passwords by trying common dictionary words",
+        "An attacker secretly relays and possibly alters communication between two parties who believe they are talking directly to each other",
+        "An attacker reads data from a discarded hard drive"
+      ],
+      "correctAnswer": "C",
+      "explanation": "In a MITM attack the adversary positions itself between two communicating parties and can eavesdrop on or modify their traffic.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "security",
+        "mitm"
+      ]
+    },
+    {
+      "id": "tec-0076",
+      "section": "Technical",
+      "topic": "Cloud & DevOps",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "In computing, what does 'the cloud' generally refer to?",
+      "options": [
+        "A wireless hard drive",
+        "A type of programming language",
+        "A physical server located in the user's office",
+        "On-demand computing resources delivered over the internet"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Cloud computing provides computing, storage, and services on demand over a network, typically with pay-as-you-go pricing.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "cloud"
+      ]
+    },
+    {
+      "id": "tec-0077",
+      "section": "Technical",
+      "topic": "Cloud & DevOps",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What is a container, such as one managed by Docker?",
+      "options": [
+        "A lightweight, isolated package of an application together with its dependencies",
+        "A physical server rack",
+        "A type of database index",
+        "A network firewall"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Containers package an application and its libraries so it runs consistently across environments while sharing the host operating system kernel.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "cloud",
+        "containers"
+      ]
+    },
+    {
+      "id": "tec-0078",
+      "section": "Technical",
+      "topic": "Cloud & DevOps",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Adding more machines or instances to handle increased load is known as:",
+      "options": [
+        "Vertical scaling",
+        "Horizontal scaling",
+        "Load shedding",
+        "Cold starting"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Horizontal scaling (scaling out) adds more instances, whereas vertical scaling (scaling up) increases the resources of a single machine.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "cloud",
+        "scaling"
+      ]
+    },
+    {
+      "id": "tec-0079",
+      "section": "Technical",
+      "topic": "Cloud & DevOps",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What is Infrastructure as Code (IaC)?",
+      "options": [
+        "Writing application source code directly on a remote server",
+        "Documenting servers manually in a spreadsheet",
+        "Managing and provisioning infrastructure through machine-readable configuration files",
+        "Compiling code directly into hardware"
+      ],
+      "correctAnswer": "C",
+      "explanation": "IaC defines servers, networks, and other resources declaratively in files that can be version-controlled and applied automatically.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "devops",
+        "iac"
+      ]
+    },
+    {
+      "id": "tec-0080",
+      "section": "Technical",
+      "topic": "Cloud & DevOps",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What is the main benefit of a blue-green deployment?",
+      "options": [
+        "Doubling the number of servers permanently",
+        "Eliminating the need for automated tests",
+        "Reducing downtime and risk by switching traffic between two identical environments",
+        "Running two different versions of the database simultaneously forever"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Two identical environments let a team release to the idle one, verify it, and then switch traffic with a fast rollback if problems appear.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "devops",
+        "deployment"
+      ]
+    },
+    {
+      "id": "tec-0081",
+      "section": "Technical",
+      "topic": "Cloud & DevOps",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "In Kubernetes, what is a Pod?",
+      "options": [
+        "A single physical server in the cluster",
+        "A version-control branch",
+        "A type of load balancer",
+        "The smallest deployable unit, containing one or more containers that share network and storage resources"
+      ],
+      "correctAnswer": "D",
+      "explanation": "A Pod is Kubernetes' atomic scheduling unit; its containers are co-located and share the same network namespace and volumes.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "cloud",
+        "kubernetes"
+      ]
+    },
+    {
+      "id": "tec-0082",
+      "section": "Technical",
+      "topic": "Git & Version Control",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What kind of tool is Git?",
+      "options": [
+        "A distributed version control system",
+        "A relational database",
+        "A web server",
+        "A text editor"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Git is a distributed version control system: every clone contains the full history, and changes can be committed locally and shared later.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "git"
+      ]
+    },
+    {
+      "id": "tec-0083",
+      "section": "Technical",
+      "topic": "Git & Version Control",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which Git command creates a new branch and immediately switches to it?",
+      "options": [
+        "git branch new-branch",
+        "git checkout -b new-branch",
+        "git merge new-branch",
+        "git init new-branch"
+      ],
+      "correctAnswer": "B",
+      "explanation": "git checkout -b <name> creates the branch and checks it out in one step; git switch -c is the modern equivalent.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "git",
+        "branching"
+      ]
+    },
+    {
+      "id": "tec-0084",
+      "section": "Technical",
+      "topic": "Git & Version Control",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "When run on the main branch, what does the command git merge feature do?",
+      "options": [
+        "It deletes the feature branch permanently",
+        "It creates a new remote repository",
+        "It integrates the changes from the feature branch into the current branch",
+        "It reverts all commits on the feature branch"
+      ],
+      "correctAnswer": "C",
+      "explanation": "git merge combines the history of another branch into the currently checked-out branch, possibly creating a merge commit.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "git",
+        "merge"
+      ]
+    },
+    {
+      "id": "tec-0085",
+      "section": "Technical",
+      "topic": "Git & Version Control",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "In Git, what is a commit?",
+      "options": [
+        "A request to the remote server for permissions",
+        "A temporary file that is never saved",
+        "A list of files that are ignored",
+        "A snapshot of the staged changes, together with a message and metadata"
+      ],
+      "correctAnswer": "D",
+      "explanation": "A commit records the state of the staged files at a point in time and links to its parent commit, forming the project history.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "git",
+        "commits"
+      ]
+    },
+    {
+      "id": "tec-0086",
+      "section": "Technical",
+      "topic": "Git & Version Control",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "What does git rebase do?",
+      "options": [
+        "It reapplies commits from one branch onto another, rewriting them to create a linear history",
+        "It downloads the entire repository again",
+        "It creates a copy of the remote branch locally",
+        "It permanently deletes untracked files"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Rebase moves or replays a series of commits onto a new base, producing a linear history but changing the affected commit hashes.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "git",
+        "rebase"
+      ]
+    },
+    {
+      "id": "tec-0087",
+      "section": "Technical",
+      "topic": "Complexity Analysis",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What is the time complexity of accessing an array element by its index?",
+      "options": [
+        "O(log n)",
+        "O(1)",
+        "O(n)",
+        "O(n log n)"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Because array elements are stored contiguously, the address of the i-th element is computed directly, giving constant-time access.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "complexity",
+        "arrays"
+      ]
+    },
+    {
+      "id": "tec-0088",
+      "section": "Technical",
+      "topic": "Complexity Analysis",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "In Big-O notation, what does O(n) describe?",
+      "options": [
+        "An algorithm with constant running time",
+        "An algorithm that runs in logarithmic time",
+        "An algorithm whose running time grows linearly with the input size",
+        "An algorithm that never terminates"
+      ],
+      "correctAnswer": "C",
+      "explanation": "O(n) means the time or space grows proportionally to the size of the input.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "complexity",
+        "big-o"
+      ]
+    },
+    {
+      "id": "tec-0089",
+      "section": "Technical",
+      "topic": "Complexity Analysis",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What is the worst-case time complexity of the best possible comparison-based sorting algorithm?",
+      "options": [
+        "O(n)",
+        "O(n^2)",
+        "O(log n)",
+        "O(n log n)"
+      ],
+      "correctAnswer": "D",
+      "explanation": "Any comparison-based sort requires at least about n log n comparisons in the worst case, and algorithms such as merge sort and heap sort achieve O(n log n).",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "complexity",
+        "sorting"
+      ]
+    },
+    {
+      "id": "tec-0090",
+      "section": "Technical",
+      "topic": "Complexity Analysis",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "What is the auxiliary space complexity of the standard merge sort algorithm on an array of n elements?",
+      "options": [
+        "O(1)",
+        "O(n)",
+        "O(log n)",
+        "O(n^2)"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Standard merge sort allocates temporary arrays while merging, requiring O(n) additional space; the recursion stack adds only O(log n).",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "complexity",
+        "sorting"
+      ]
+    },
+    {
+      "id": "tec-0091",
+      "section": "Technical",
+      "topic": "Complexity Analysis",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "What is the amortized time complexity of appending an element to a dynamic array (such as an ArrayList or Python list) that doubles its capacity when full?",
+      "options": [
+        "O(1)",
+        "O(log n)",
+        "O(n)",
+        "O(n log n)"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Occasional resizes cost O(n), but they are rare enough that the cost averaged over many appends is constant, i.e. amortized O(1).",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "complexity",
+        "amortized"
+      ]
+    },
+    {
+      "id": "tec-0092",
+      "section": "Technical",
+      "topic": "Compilers & Languages",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What is the main job of a compiler?",
+      "options": [
+        "To execute a program line by line",
+        "To design the user interface",
+        "To manage database transactions",
+        "To translate source code into machine code or another target language"
+      ],
+      "correctAnswer": "D",
+      "explanation": "A compiler translates a program written in a source language into an equivalent program in a target language, such as machine code.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "compilers"
+      ]
+    },
+    {
+      "id": "tec-0093",
+      "section": "Technical",
+      "topic": "Compilers & Languages",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Which phase of compilation converts a stream of source characters into tokens?",
+      "options": [
+        "Code optimization",
+        "Register allocation",
+        "Lexical analysis",
+        "Linking"
+      ],
+      "correctAnswer": "C",
+      "explanation": "The lexer (scanner) groups characters into tokens such as identifiers, keywords, and operators.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "compilers",
+        "lexing"
+      ]
+    },
+    {
+      "id": "tec-0094",
+      "section": "Technical",
+      "topic": "Compilers & Languages",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What best describes an interpreter?",
+      "options": [
+        "It converts source code into a standalone binary before running it",
+        "It executes a program directly, typically statement by statement, without producing a separate executable",
+        "It links object files into an executable",
+        "It stores the program's variables in a database"
+      ],
+      "correctAnswer": "B",
+      "explanation": "An interpreter reads and executes source or bytecode directly at run time, rather than compiling the whole program to machine code ahead of time.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "compilers",
+        "interpreters"
+      ]
+    },
+    {
+      "id": "tec-0095",
+      "section": "Technical",
+      "topic": "Compilers & Languages",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What is the parser's role in a compiler?",
+      "options": [
+        "To build a syntax structure such as a parse tree from the token stream according to the grammar",
+        "To assign physical registers to variables",
+        "To remove comments from the source file",
+        "To link libraries into the final program"
+      ],
+      "correctAnswer": "A",
+      "explanation": "The parser checks that the token sequence conforms to the language grammar and produces a structured representation for later phases.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "compilers",
+        "parsing"
+      ]
+    },
+    {
+      "id": "tec-0096",
+      "section": "Technical",
+      "topic": "Compilers & Languages",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "Why do many compilers translate source code into an intermediate representation (IR) before generating machine code?",
+      "options": [
+        "Because the IR is the final executable format",
+        "Because IR replaces the need for a parser",
+        "Because IR lets programs run without a CPU",
+        "Because an IR is machine-independent, enabling shared optimization and easier retargeting to different CPUs"
+      ],
+      "correctAnswer": "D",
+      "explanation": "A machine-independent IR lets the compiler run optimizations once and then generate code for multiple target architectures.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "compilers",
+        "optimization"
+      ]
+    },
+    {
+      "id": "tec-0097",
+      "section": "Technical",
+      "topic": "System Design Basics",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "What is the purpose of a load balancer in system design?",
+      "options": [
+        "To store the contents of a database",
+        "To compile application code",
+        "To distribute incoming requests across multiple servers",
+        "To encrypt passwords"
+      ],
+      "correctAnswer": "C",
+      "explanation": "A load balancer spreads traffic over a pool of servers to improve availability and handle more concurrent requests.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "system-design",
+        "scaling"
+      ]
+    },
+    {
+      "id": "tec-0098",
+      "section": "Technical",
+      "topic": "System Design Basics",
+      "difficulty": "Easy",
+      "type": "Single Choice",
+      "question": "Why is a database replica commonly maintained?",
+      "options": [
+        "To replace the need for backups entirely",
+        "To serve read traffic and provide a standby for failover",
+        "To increase the write capacity of the primary",
+        "To store the application's source code"
+      ],
+      "correctAnswer": "B",
+      "explanation": "Replicas copy data from a primary so read load can be shared and a standby is available if the primary fails.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "system-design",
+        "databases"
+      ]
+    },
+    {
+      "id": "tec-0099",
+      "section": "Technical",
+      "topic": "System Design Basics",
+      "difficulty": "Medium",
+      "type": "Single Choice",
+      "question": "What is the main purpose of a cache in a system?",
+      "options": [
+        "To store frequently accessed data close to the consumer to reduce latency and load on slower storage",
+        "To permanently archive all user data",
+        "To increase the size of the primary database",
+        "To encrypt network traffic"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Caches keep hot data in fast storage such as memory or a nearby service so repeated reads avoid slower backends.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "system-design",
+        "caching"
+      ]
+    },
+    {
+      "id": "tec-0100",
+      "section": "Technical",
+      "topic": "System Design Basics",
+      "difficulty": "Hard",
+      "type": "Single Choice",
+      "question": "What does the CAP theorem state about a distributed data system?",
+      "options": [
+        "It must always be both consistent and available",
+        "It must process every request in constant time",
+        "It guarantees all three properties if enough servers are added",
+        "It can guarantee at most two of Consistency, Availability, and Partition tolerance simultaneously"
+      ],
+      "correctAnswer": "D",
+      "explanation": "The CAP theorem proves that a networked data system cannot simultaneously guarantee consistency, availability, and partition tolerance.",
+      "marks": 1,
+      "timeLimitSec": 60,
+      "tags": [
+        "system-design",
+        "cap-theorem"
+      ]
+    }
+  ]
+}

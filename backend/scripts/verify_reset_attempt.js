@@ -1,4 +1,10 @@
 const BASE_URL = 'http://localhost:5000/api';
+const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@readysetjob.com';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+  console.error('TEST_ADMIN_PASSWORD is required to run this verification script.');
+  process.exit(1);
+}
 
 async function request(url, options = {}) {
   const res = await fetch(url, {
@@ -101,8 +107,8 @@ async function runVerification() {
     const adminLoginRes = await request(`${BASE_URL}/auth/admin/login`, {
       method: 'POST',
       body: {
-        email: 'admin@readysetjob.com',
-        password: 'Admin@2026'
+        email: ADMIN_EMAIL,
+        password: ADMIN_PASSWORD
       }
     });
     if (!adminLoginRes.ok) throw new Error(`Admin login failed: ${JSON.stringify(adminLoginRes.data)}`);

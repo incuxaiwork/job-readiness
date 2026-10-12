@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { redisClient, isRedisAvailable } from "../db/redis.js";
+import { JWT_SECRET } from "../config/secrets.js";
 
 /**
  * Check if a token has been explicitly revoked (logged out).
@@ -27,7 +28,7 @@ export const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
 
     // Check if this token has been explicitly revoked (e.g. via logout)
     if (await isTokenRevoked(decoded.jti)) {
@@ -51,7 +52,7 @@ export const optionalAuthToken = async (req, res, next) => {
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, JWT_SECRET);
       if (!await isTokenRevoked(decoded.jti)) {
         req.user = decoded;
       }
