@@ -1,0 +1,28 @@
+{
+  "name": "jobrecipe",
+  "version": "1.0.0",
+  "description": "Job Readiness + AI Mock Interview platform: one frontend, one backend, one database",
+  "private": true,
+  "scripts": {
+    "postinstall": "npm install --prefix backend --include=dev && npm install --prefix frontend --include=dev",
+    "install:all": "npm install",
+    "dev": "concurrently -k -n API,WEB -c green,cyan \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "deploy:build": "npm run install:all && npm run db:generate && npm run build",
+    "deploy:start": "npm run start",
+    "db:generate": "cd backend && npx prisma generate",
+    "db:baseline": "npm run db:baseline --prefix backend",
+    "db:migrate": "npm run db:baseline && cd backend && npx prisma migrate deploy",
+    "db:studio": "cd backend && npx prisma studio",
+    "seed": "npm run seed --prefix backend",
+    "build": "npm run build --prefix frontend",
+    "start": "npm run start --prefix backend"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
