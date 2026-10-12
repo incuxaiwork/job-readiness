@@ -1,0 +1,13 @@
+{
+  "isLocked": false,
+  "lockReason": "Please complete your Job Readiness Assessment and tests to unlock the AI Mock Interview session.",
+  "questionCount": 3,
+  "difficulty": "Moderate",
+  "maxWarnings": 3,
+  "strictProctoring": true,
+  "cameraRequired": true,
+  "multiFaceDetection": true,
+  "defaultRole": "Data Scientist",
+  "updatedAt": "2026-10-05T06:17:56.450Z",
+  "requireAssessmentFirst": true
+}
