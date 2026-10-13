@@ -12,6 +12,28 @@ import { isCodingQuestion } from '../utils/questionUtils';
 
 const AppContext = createContext();
 
+const persistAssessmentSections = async (assessmentId, sectionsSpec) => {
+  if (!assessmentId || !Array.isArray(sectionsSpec) || sectionsSpec.length === 0) return;
+  const qRes = await api.assessments.getQuestions(assessmentId);
+  const rows = qRes?.ok ? (qRes.data?.data || []) : [];
+  const linkIdByQuestionId = {};
+  rows.forEach((r) => { if (r.question_id) linkIdByQuestionId[r.question_id] = r.id; });
+
+  const sections = sectionsSpec
+    .map((s, i) => ({
+      name: s.name,
+      description: null,
+      durationMinutes: Math.max(1, Number(s.durationMinutes) || 30),
+      marksPerQuestion: 1,
+      displayOrder: i + 1,
+      questionIds: (s.questionIds || []).map((qid) => linkIdByQuestionId[qid]).filter(Boolean),
+    }))
+    .filter((s) => s.name && s.questionIds.length > 0);
+
+  if (sections.length === 0) return;
+  await api.assessments.replaceSections(assessmentId, { sections });
+};
+
 export const AppProvider = ({ children }) => {
   // react-router navigate ref — injected by RouterBridge in App.jsx
   const routerNavigateRef = React.useRef(null);
@@ -151,6 +173,10 @@ export const AppProvider = ({ children }) => {
     }
     return [];
   });
+
+  // True while the assessment catalog is being fetched from the API.
+  // Used by catalog pages to render skeleton loaders instead of an empty state.
+  const [assessmentsLoading, setAssessmentsLoading] = useState(true);
 
   const DUMMY_Q_IDS = ['q-101', 'q-102', 'q-103', 'q-104', 'q-105', 'q-106', 'q-107', 'q-108', 'q-109', 'q-110'];
 
@@ -489,6 +515,7 @@ export const AppProvider = ({ children }) => {
 
   // Sync assessments from backend API
   const fetchAssessments = React.useCallback(async () => {
+    setAssessmentsLoading(true);
     try {
       const res = await api.assessments.getAll();
       const rawList = Array.isArray(res?.data?.data)
@@ -541,6 +568,8 @@ export const AppProvider = ({ children }) => {
       }
     } catch (err) {
       console.warn('Backend assessments sync warning:', err.message);
+    } finally {
+      setAssessmentsLoading(false);
     }
   }, []);
 
@@ -648,11 +677,14 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
-  // Sync assessments, question bank, and candidate roster from database on load/auth changes
+  // Sync assessments, question bank, and candidate roster from the database,
+  // but only for authenticated sessions. Guests on the landing / login / signup
+  // pages must not trigger these protected API calls.
   useEffect(() => {
+    if (role !== 'candidate' && role !== 'admin') return;
     fetchAssessments();
     fetchQuestions();
-    fetchCandidates();
+    if (role === 'admin') fetchCandidates();
   }, [fetchAssessments, fetchQuestions, fetchCandidates, currentUser?.id, role]);
 
   useEffect(() => {
@@ -1815,6 +1847,7 @@ export const AppProvider = ({ children }) => {
       });
 
       if (res && res.ok) {
+        try { await persistAssessmentSections(generatedId, newAsm.sections); } catch { /* sections best-effort */ }
         addToast(`Assessment "${newAsm.title}" published & saved to database!`, 'success');
       } else {
         console.warn('Backend assessment create issue:', res?.error);
@@ -1847,6 +1880,7 @@ export const AppProvider = ({ children }) => {
       });
 
       if (res && res.ok) {
+        try { await persistAssessmentSections(updatedAsm.id, updatedAsm.sections); } catch { /* sections best-effort */ }
         addToast(`Assessment "${updatedAsm.title}" updated successfully!`, 'success');
       } else {
         addToast(`Assessment "${updatedAsm.title}" updated!`, 'success');
@@ -1990,6 +2024,7 @@ export const AppProvider = ({ children }) => {
         adminUser,
         navigateTo,
         assessments,
+        assessmentsLoading,
         questionBank,
         candidatesList,
         recommendations,

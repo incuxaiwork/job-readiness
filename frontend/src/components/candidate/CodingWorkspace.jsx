@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import '../../utils/monacoSetup';
 import Editor from '@monaco-editor/react';
 import {
   Play,

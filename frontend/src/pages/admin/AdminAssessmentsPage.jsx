@@ -409,20 +409,46 @@ export const AdminAssessmentsPage = () => {
       ? finalSelectedQuestionIds.length
       : (Number(newAssessment.totalQuestions) || 5);
 
+    const totalSectionDur = Math.max(1, Number(newAssessment.durationMinutes) || 30);
+    const totalSectionQ = finalSelectedQuestionIds.length || 1;
+    const sectionOrder = SECTION_DEFS.map((def) => def.key);
+    const sectionGroups = new Map();
+    finalSelectedQuestionIds.forEach((id) => {
+      const q = questionBank.find((item) => item.id === id);
+      const key = sectionOfQuestion(q) || `cat:${q?.category || 'Other'}`;
+      const label = SECTION_DEFS.find((def) => def.key === key)?.label || q?.category || 'Other';
+      if (!sectionGroups.has(key)) sectionGroups.set(key, { name: label, questionIds: [] });
+      sectionGroups.get(key).questionIds.push(id);
+    });
+    const wizardSections = [...sectionGroups.entries()]
+      .sort((a, b) => {
+        const ia = sectionOrder.indexOf(a[0]);
+        const ib = sectionOrder.indexOf(b[0]);
+        return (ia < 0 ? sectionOrder.length : ia) - (ib < 0 ? sectionOrder.length : ib);
+      })
+      .map(([, group], i) => ({
+        name: group.name,
+        durationMinutes: Math.max(1, Math.round((totalSectionDur * group.questionIds.length) / totalSectionQ)),
+        displayOrder: i + 1,
+        questionIds: group.questionIds,
+      }));
+
     if (editingAsmId) {
       updateAssessment({
         ...newAssessment,
         id: editingAsmId,
         selectedQuestionIds: finalSelectedQuestionIds,
         totalQuestions: actualTotalQuestions,
-        estimatedTimeMin: newAssessment.durationMinutes
+        estimatedTimeMin: newAssessment.durationMinutes,
+        sections: wizardSections
       });
     } else {
       addAssessment({
         ...newAssessment,
         selectedQuestionIds: finalSelectedQuestionIds,
         totalQuestions: actualTotalQuestions,
-        estimatedTimeMin: newAssessment.durationMinutes
+        estimatedTimeMin: newAssessment.durationMinutes,
+        sections: wizardSections
       });
     }
 

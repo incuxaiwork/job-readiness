@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 export const AssessmentsListPage = () => {
-  const { assessments, startAssessment, setMediaStream, navigateTo, addToast, isAssessmentCompleted, candidateSubmissions } = useApp();
+  const { assessments, assessmentsLoading, startAssessment, setMediaStream, navigateTo, addToast, isAssessmentCompleted, candidateSubmissions } = useApp();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [targetAsm, setTargetAsm] = useState(null);
   const [isAcademicModalOpen, setIsAcademicModalOpen] = useState(false);
@@ -76,7 +76,32 @@ export const AssessmentsListPage = () => {
       </div>
 
       {/* ASSESSMENT CARDS GRID */}
-      {filteredAssessments.length === 0 ? (
+      {assessmentsLoading && activeList.length === 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="bg-white rounded-2xl border border-slate-200/90 shadow-card p-6 space-y-4 animate-pulse"
+            >
+              <div className="flex items-center justify-between">
+                <div className="h-4 w-16 rounded bg-slate-200" />
+                <div className="h-4 w-24 rounded-full bg-slate-200" />
+              </div>
+              <div className="h-4 w-3/4 rounded bg-slate-200" />
+              <div className="space-y-2">
+                <div className="h-3 w-full rounded bg-slate-100" />
+                <div className="h-3 w-5/6 rounded bg-slate-100" />
+              </div>
+              <div className="grid grid-cols-3 gap-1 p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                <div className="h-9 rounded bg-slate-200/70" />
+                <div className="h-9 rounded bg-slate-200/70" />
+                <div className="h-9 rounded bg-slate-200/70" />
+              </div>
+              <div className="h-9 w-full rounded-xl bg-slate-200" />
+            </div>
+          ))}
+        </div>
+      ) : filteredAssessments.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-card p-12 text-center max-w-md mx-auto my-8 space-y-3">
           <div className="w-14 h-14 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center mx-auto border border-brand-100">
             <ClipboardCheck className="w-7 h-7" />
