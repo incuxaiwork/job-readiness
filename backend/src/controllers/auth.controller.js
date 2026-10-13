@@ -1,7 +1,7 @@
 process.env.UV_THREADPOOL_SIZE = process.env.UV_THREADPOOL_SIZE || "128";
 
 import { pool, getDbStatus } from "../db/pool.js";
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { redisClient, isRedisAvailable } from "../db/redis.js";

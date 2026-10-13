@@ -1,5 +1,5 @@
 import { pool } from './pool.js';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 
 const schemaSQL = `
     -- 1. users: Stores authentication and user roles

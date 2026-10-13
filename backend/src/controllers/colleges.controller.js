@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import { pool } from '../db/pool.js';
 import { serverError } from '../utils/httpError.js';
 
