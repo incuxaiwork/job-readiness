@@ -90,7 +90,8 @@ int main() {
 }
 `,
   typescript: `// TypeScript
-import * as fs from 'fs';
+declare const require: any;
+const fs = require('fs');
 
 function solve(): void {
     const input: string = fs.readFileSync(0, 'utf-8').trim();

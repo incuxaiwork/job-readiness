@@ -268,7 +268,9 @@ export const AdminQuestionBankPage = () => {
         python: '# Read from standard input and write to standard output\ndef solve():\n    import sys\n    input_data = sys.stdin.read().split()\n    if not input_data:\n        return\n    # Your logic here\n\nif __name__ == "__main__":\n    solve()',
         javascript: '// Read from standard input and write to standard output\nconst fs = require("fs");\n\nfunction main() {\n  const input = fs.readFileSync(0, "utf-8").trim();\n  if (!input) return;\n  // Your logic here\n}\n\nmain();',
         cpp: '#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n    // Your logic here\n    return 0;\n}',
-        java: 'import java.util.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        // Your logic here\n    }\n}'
+        java: 'import java.util.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        // Your logic here\n    }\n}',
+        c: '#include <stdio.h>\n\nint main() {\n    // Your logic here\n    return 0;\n}',
+        typescript: 'declare const require: any;\nconst fs = require("fs");\n\nfunction main(): void {\n  const input: string = fs.readFileSync(0, "utf-8").trim();\n  if (!input) return;\n  // Your logic here\n}\n\nmain();'
       }
     });
   };
