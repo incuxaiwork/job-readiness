@@ -49,7 +49,7 @@ const agent = new PROTO.Agent({
   timeout: 30000,
 });
 
-const timedFetch = (method, path, { body, token } = {}) =>
+const rawFetch = (method, path, { body, token } = {}) =>
   new Promise((resolve) => {
     const started = Date.now();
     const u = new URL(`${TARGET}${path}`);
@@ -76,6 +76,20 @@ const timedFetch = (method, path, { body, token } = {}) =>
     if (payload) req.write(payload);
     req.end();
   });
+
+// A reused keep-alive socket the server already closed surfaces as ECONNRESET
+// (status 0) even though the request never reached the app. Retry a couple of
+// times on a fresh socket; only network-level failures (status 0) are retried,
+// never a real HTTP status.
+const timedFetch = async (method, path, opts = {}) => {
+  const retries = opts.retries ?? (method === 'GET' ? 2 : 0);
+  let last;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    last = await rawFetch(method, path, opts);
+    if (last.status !== 0) return last;
+  }
+  return last;
+};
 
 // Opens/reuses the socket pool so TLS handshakes don't dominate the measured run.
 async function warmup() {
@@ -113,7 +127,7 @@ async function runOne(i) {
   const steps = {};
   const record = (step, r) => { steps[step] = { ok: r.ok, status: r.status, ms: r.ms, error: r.error || (r.ok ? null : r.json?.error || r.text?.slice(0, 120)) }; };
 
-  const login = await timedFetch('POST', '/api/auth/login', { body: { email, password: PASSWORD } });
+  const login = await timedFetch('POST', '/api/auth/login', { body: { email, password: PASSWORD }, retries: 3 });
   record('login', login);
   if (!login.ok || !login.json?.token) return { email, steps, fatal: 'login' };
   const token = login.json.token;
