@@ -10,6 +10,7 @@
  *   SARVAM_LANGUAGE_CODE  (BCP-47; default: en-IN)
  *   SARVAM_TTS_MODEL      (default: bulbul:v3)
  *   SARVAM_STT_MODEL      (optional; omit to use Sarvam's default Saaras model)
+ *   SARVAM_STT_MODE       (optional; transcribe | translate | verbatim | translit | codemix)
  */
 const TTS_ENDPOINT = 'https://api.sarvam.ai/text-to-speech/stream';
 const STT_ENDPOINT = 'https://api.sarvam.ai/speech-to-text';
@@ -90,17 +91,20 @@ export const synthesizeSpeech = async (text, { languageCode } = {}) => {
  * `audio` is a Buffer; pass the original MIME type so Sarvam decodes it.
  * Returns { transcript, languageCode }.
  */
-export const transcribeAudio = async (audio, { languageCode, mimeType = 'audio/webm', filename } = {}) => {
+export const transcribeAudio = async (audio, { languageCode, mimeType = 'audio/webm', filename, mode } = {}) => {
   if (!apiKey()) throw notConfigured();
 
   const lang = languageCode || defaultLanguageCode();
   const type = String(mimeType).split(';')[0].trim() || 'audio/webm';
   const name = filename || `audio.${EXT_BY_MIME[type] || 'webm'}`;
+  const sttMode = mode || process.env.SARVAM_STT_MODE;
 
   const form = new FormData();
   form.append('file', new Blob([audio], { type }), name);
   form.append('language_code', lang);
   if (process.env.SARVAM_STT_MODEL) form.append('model', process.env.SARVAM_STT_MODEL);
+  // Optional Saaras mode: transcribe | translate | verbatim | translit | codemix
+  if (sttMode) form.append('mode', sttMode);
 
   const response = await fetch(STT_ENDPOINT, {
     method: 'POST',

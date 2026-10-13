@@ -289,6 +289,13 @@ export const AIMockInterviewPage = () => {
   const [sttLang, setSttLang] = useState('en-IN');
   const accumulatedTranscriptRef = useRef('');
 
+  // Per-question answering window (seconds remaining once the candidate starts
+  // speaking; null = they haven't started yet). Auto-advances on time-up or silence.
+  const [answerSecondsLeft, setAnswerSecondsLeft] = useState(null);
+  const [answerAutoNotice, setAnswerAutoNotice] = useState('');
+  const MAX_ANSWER_SECONDS = 30; // hard cap on a single spoken answer
+  const SILENCE_SECONDS = 4;     // advance once the candidate stops talking this long
+
   // Pre-load and cache browser SpeechSynthesis voices
   useEffect(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -443,14 +450,24 @@ export const AIMockInterviewPage = () => {
   const canvasRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const recognitionRef = useRef(null);
-  // Sarvam STT fallback (used when the Web Speech API is unavailable/fails)
-  const sttEngineRef = useRef('browser'); // 'browser' | 'sarvam'
+  // STT engine: Sarvam Saaras is primary (best for Indian accents / Hinglish);
+  // the browser Web Speech API is the fallback.
+  const sttEngineRef = useRef('none'); // 'none' | 'sarvam' | 'browser'
   const sarvamRecorderRef = useRef(null);
   const sarvamStreamRef = useRef(null);
   const sarvamSegmentTimerRef = useRef(null);
+  const sarvamFailureCountRef = useRef(0);
+  const sarvamFlushResolveRef = useRef(null);
   const timerIntervalRef = useRef(null);
   const telemetryIntervalRef = useRef(null);
   const qStartTimeRef = useRef(Date.now());
+  // Per-question answer window bookkeeping
+  const answerTimerRef = useRef(null);
+  const answerStartedAtRef = useRef(0);
+  const lastVoiceAtRef = useRef(0);
+  const autoSubmitFiredRef = useRef(false);
+  const submitAnswerRef = useRef(null);
+  const submitInFlightRef = useRef(false);
   const currentQRef = useRef(questions[0]);
 
   // ElevenLabs TTS refs
@@ -1202,10 +1219,11 @@ export const AIMockInterviewPage = () => {
   // Alias for backward compatibility
   const playQuestionTTS = (text, onFinished) => speakAI(text, onFinished);
 
-  // ── Speech-to-Text (STT) Capture Engine (High Speed & Continuous Precision) ──
-  // Provider: browser Web Speech API first (free, live interim results, lowest
-  // latency); if it is unavailable (e.g. Firefox) or fails, fall back to Sarvam
-  // (Saaras) via the backend proxy at /api/stt/transcribe.
+  // ── Speech-to-Text (STT) Capture Engine ──
+  // Engine priority: Sarvam Saaras (best accuracy on Indian accents / Hinglish),
+  // streamed as short MediaRecorder segments to the backend proxy at
+  // /api/stt/transcribe — the provider key never reaches the browser. If Sarvam
+  // is unreachable, the browser Web Speech API is used as a fallback.
   const sttEndpoint = (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.startsWith('http'))
     ? `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/stt/transcribe`
     : '/api/stt/transcribe';
@@ -1215,12 +1233,35 @@ export const AIMockInterviewPage = () => {
     return { ...(contentType ? { 'Content-Type': contentType } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) };
   };
 
+  // Records that the candidate is actively answering (drives the answer window).
+  const markVoiceActivity = () => {
+    if (!answerStartedAtRef.current) answerStartedAtRef.current = Date.now();
+    lastVoiceAtRef.current = Date.now();
+  };
+
   const appendTranscript = (text) => {
     const chunk = (text || '').trim();
     if (!chunk) return;
     accumulatedTranscriptRef.current = `${accumulatedTranscriptRef.current} ${chunk}`.replace(/\s+/g, ' ').trim();
     setCompanionText(accumulatedTranscriptRef.current);
     lastCandidateSpokeTimeRef.current = Date.now();
+    markVoiceActivity();
+  };
+
+  // Switch from Sarvam to the browser engine when the proxy is unavailable.
+  const fallbackToBrowserSpeechRecognition = () => {
+    if (sttEngineRef.current !== 'sarvam') return;
+    console.warn('Sarvam STT unavailable — falling back to browser speech recognition.');
+    stopSarvamRecording();
+    startBrowserSpeechRecognition();
+  };
+
+  const noteSarvamFailure = (status) => {
+    sarvamFailureCountRef.current += 1;
+    const permanent = status === 401 || status === 402 || status === 403 || status === 503;
+    if (permanent || sarvamFailureCountRef.current >= 2) {
+      fallbackToBrowserSpeechRecognition();
+    }
   };
 
   const transcribeSegment = async (blob) => {
@@ -1234,12 +1275,15 @@ export const AIMockInterviewPage = () => {
       });
       if (!res.ok) {
         console.warn('Sarvam STT unavailable, status:', res.status);
+        noteSarvamFailure(res.status);
         return;
       }
+      sarvamFailureCountRef.current = 0;
       const data = await res.json().catch(() => ({}));
       if (data?.transcript) appendTranscript(data.transcript);
     } catch (err) {
       console.warn('Sarvam STT notice:', err.message);
+      noteSarvamFailure(0);
     }
   };
 
@@ -1257,18 +1301,48 @@ export const AIMockInterviewPage = () => {
       sarvamStreamRef.current.getTracks().forEach((t) => t.stop());
       sarvamStreamRef.current = null;
     }
+    // Release any pending flush so a submit can never hang waiting on audio.
+    if (sarvamFlushResolveRef.current) {
+      const resolveFlush = sarvamFlushResolveRef.current;
+      sarvamFlushResolveRef.current = null;
+      resolveFlush();
+    }
     if (sttEngineRef.current === 'sarvam') setIsRecording(false);
+  };
+
+  // Stop the active Sarvam segment and resolve once its transcript has been
+  // processed, so submitting an answer never drops the candidate's last words.
+  const flushSarvamRecording = () => {
+    const recorder = sarvamRecorderRef.current;
+    if (sttEngineRef.current !== 'sarvam' || !recorder || recorder.state === 'inactive') {
+      return Promise.resolve();
+    }
+    if (sarvamSegmentTimerRef.current) {
+      clearTimeout(sarvamSegmentTimerRef.current);
+      sarvamSegmentTimerRef.current = null;
+    }
+    return new Promise((resolve) => {
+      sarvamFlushResolveRef.current = resolve;
+      try {
+        recorder.stop();
+      } catch {
+        sarvamFlushResolveRef.current = null;
+        resolve();
+      }
+    });
   };
 
   const startSarvamRecording = async () => {
     if (sttEngineRef.current === 'sarvam' && sarvamRecorderRef.current) return;
     const MediaRecorder = window.MediaRecorder;
     if (!MediaRecorder || !navigator.mediaDevices?.getUserMedia) {
-      setIsRecording(true);
+      // Recording not possible — fall back to the browser Web Speech API.
+      startBrowserSpeechRecognition();
       return;
     }
 
     sttEngineRef.current = 'sarvam';
+    sarvamFailureCountRef.current = 0;
     try {
       // Reuse the camera stream's audio track when present to avoid a second prompt.
       let stream = mediaStreamRef.current;
@@ -1277,7 +1351,7 @@ export const AIMockInterviewPage = () => {
         sarvamStreamRef.current = stream;
       }
 
-      const SEGMENT_MS = 6000;
+      const SEGMENT_MS = 4000;
       const preferred = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
       const mimeType = preferred.find((t) => MediaRecorder.isTypeSupported?.(t)) || '';
 
@@ -1292,9 +1366,16 @@ export const AIMockInterviewPage = () => {
 
         const chunks = [];
         recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data); };
-        recorder.onstop = () => {
+        recorder.onstop = async () => {
           const blob = new Blob(chunks, { type: recorder.mimeType || mimeType || 'audio/webm' });
-          transcribeSegment(blob);
+          await transcribeSegment(blob);
+          // A pending flush (submit) resolves with the final segment transcribed.
+          if (sarvamFlushResolveRef.current) {
+            const resolveFlush = sarvamFlushResolveRef.current;
+            sarvamFlushResolveRef.current = null;
+            resolveFlush();
+            return;
+          }
           if (sttEngineRef.current === 'sarvam') beginSegment();
         };
 
@@ -1322,11 +1403,12 @@ export const AIMockInterviewPage = () => {
     }
   };
 
-  const startSpeechRecognition = () => {
+  const startBrowserSpeechRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      // No Web Speech API (e.g. Firefox) — use the Sarvam fallback engine.
-      startSarvamRecording();
+      // No recording and no Web Speech API available.
+      sttEngineRef.current = 'none';
+      setIsRecording(true);
       return;
     }
     sttEngineRef.current = 'browser';
@@ -1373,23 +1455,26 @@ export const AIMockInterviewPage = () => {
         if (combined) {
           setCompanionText(combined);
           lastCandidateSpokeTimeRef.current = Date.now();
+          markVoiceActivity();
         }
       };
 
       recognition.onerror = (e) => {
         console.warn('STT notice:', e?.error);
-        // Fatal errors (unsupported browser, blocked service, capture failure):
-        // switch to the Sarvam fallback engine so the candidate is still heard.
+        // Fatal errors (blocked service, capture failure, unsupported language):
+        // stop cleanly; Sarvam is the primary engine so there is nothing to
+        // fall back to here.
         const fatal = ['not-allowed', 'service-not-allowed', 'audio-capture', 'network', 'language-not-supported'];
         if (fatal.includes(e?.error) && sttEngineRef.current === 'browser') {
           try { recognition.abort(); } catch { }
-          startSarvamRecording();
+          sttEngineRef.current = 'none';
+          setIsRecording(false);
         }
       };
 
       recognition.onend = () => {
-        // If we've switched to the Sarvam engine, do not restart the browser engine.
-        if (sttEngineRef.current === 'sarvam') return;
+        // If we've switched engines, do not restart the browser engine.
+        if (sttEngineRef.current !== 'browser') return;
         // Auto-reconnect with zero lag if still in LISTENING state
         if (agentStateRef.current === 'LISTENING') {
           try {
@@ -1415,12 +1500,24 @@ export const AIMockInterviewPage = () => {
     }
   };
 
+  // Engine selection: Sarvam Saaras (primary) with browser Web Speech fallback.
+  const startSpeechRecognition = () => {
+    const MediaRecorder = window.MediaRecorder;
+    const canRecordAudio = Boolean(MediaRecorder && navigator.mediaDevices?.getUserMedia);
+    if (canRecordAudio) {
+      startSarvamRecording();
+      return;
+    }
+    startBrowserSpeechRecognition();
+  };
+
   const stopSpeechRecognition = () => {
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch { }
+      recognitionRef.current = null;
     }
     stopSarvamRecording();
-    sttEngineRef.current = 'browser';
+    sttEngineRef.current = 'none';
     setIsRecording(false);
   };
 
@@ -1428,8 +1525,8 @@ export const AIMockInterviewPage = () => {
   const toggleSttLang = () => {
     const nextLang = sttLang === 'en-IN' ? 'en-US' : 'en-IN';
     setSttLang(nextLang);
-    if (isRecording && recognitionRef.current) {
-      try { recognitionRef.current.abort(); } catch { }
+    if (isRecording) {
+      stopSpeechRecognition();
       setTimeout(() => {
         if (agentStateRef.current === 'LISTENING') {
           startSpeechRecognition();
@@ -1562,6 +1659,18 @@ export const AIMockInterviewPage = () => {
   // ── Candidate Answer Submission & Dynamic Turn-Taking ──
   const handleCandidateSubmit = async (forceSkip = false) => {
     if (agentState === 'PROCESSING' || agentState === 'AI_RESPONSE') return;
+    if (submitInFlightRef.current) return;
+    submitInFlightRef.current = true;
+
+    // Stop the per-question answer window.
+    if (answerTimerRef.current) {
+      clearInterval(answerTimerRef.current);
+      answerTimerRef.current = null;
+    }
+    setAnswerSecondsLeft(null);
+
+    // Flush the in-flight Sarvam segment so the candidate's last words are captured.
+    await flushSarvamRecording();
 
     // 1. Stop Speech-to-Text
     stopSpeechRecognition();
@@ -1574,7 +1683,8 @@ export const AIMockInterviewPage = () => {
     const currentQ = questions[currentQIndex] || questions[0];
     const isFinalQuestion = currentQIndex >= questions.length - 1;
 
-    const recordedText = (forceSkip ? '' : companionText).trim();
+    // Prefer the ref (updated synchronously, after the pending segment flush).
+    const recordedText = forceSkip ? '' : (accumulatedTranscriptRef.current || companionText || '').trim();
     const words = recordedText.split(/\s+/).filter(Boolean);
     const isSilent = forceSkip || words.length < 3 || recordedText.toLowerCase().includes('candidate provided verbal answer') || recordedText.toLowerCase().includes('no response');
 
@@ -1697,6 +1807,74 @@ export const AIMockInterviewPage = () => {
   };
 
   const handleNextQuestion = () => handleCandidateSubmit();
+
+  // Keep a ref to the latest submit handler for the auto-advance timer.
+  useEffect(() => {
+    submitAnswerRef.current = handleCandidateSubmit;
+  });
+
+  // ── Per-question answer window ──
+  // Starts when the candidate begins speaking (mic voice activity or first
+  // transcript). Auto-advances when the 30s cap is hit, or once they have been
+  // silent for a few seconds after speaking (so quick answers don't stall).
+  useEffect(() => {
+    if (!sessionActive || agentState !== 'LISTENING') return;
+
+    const MAX_ANSWER_MS = MAX_ANSWER_SECONDS * 1000;
+    const SILENCE_MS = SILENCE_SECONDS * 1000;
+    const VOICE_LEVEL = 22;
+
+    answerStartedAtRef.current = 0;
+    lastVoiceAtRef.current = 0;
+    autoSubmitFiredRef.current = false;
+    submitInFlightRef.current = false;
+    setAnswerSecondsLeft(null);
+    setAnswerAutoNotice('');
+
+    const tick = () => {
+      const analyser = analyserRef.current;
+      let level = 0;
+      if (analyser) {
+        const bins = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(bins);
+        let sum = 0;
+        for (let i = 0; i < bins.length; i++) sum += bins[i];
+        level = sum / bins.length;
+      }
+      const now = Date.now();
+      if (level > VOICE_LEVEL) {
+        if (!answerStartedAtRef.current) answerStartedAtRef.current = now;
+        lastVoiceAtRef.current = now;
+      }
+
+      if (!answerStartedAtRef.current) return; // hasn't started answering yet
+
+      const elapsed = now - answerStartedAtRef.current;
+      const silence = now - lastVoiceAtRef.current;
+      setAnswerSecondsLeft(Math.max(0, Math.ceil((MAX_ANSWER_MS - elapsed) / 1000)));
+
+      const hasTranscript = (accumulatedTranscriptRef.current || '').trim().length > 0;
+      const timeUp = elapsed >= MAX_ANSWER_MS;
+      const silentFinish = silence >= SILENCE_MS && hasTranscript;
+      if (!timeUp && !silentFinish) return;
+      if (autoSubmitFiredRef.current) return;
+      autoSubmitFiredRef.current = true;
+      if (answerTimerRef.current) {
+        clearInterval(answerTimerRef.current);
+        answerTimerRef.current = null;
+      }
+      setAnswerAutoNotice(timeUp ? 'Time limit reached - moving on.' : 'Answer recorded - moving on.');
+      submitAnswerRef.current?.(false);
+    };
+
+    answerTimerRef.current = setInterval(tick, 400);
+    return () => {
+      if (answerTimerRef.current) {
+        clearInterval(answerTimerRef.current);
+        answerTimerRef.current = null;
+      }
+    };
+  }, [sessionActive, agentState, currentQIndex]);
 
   // ── Start Interview Session ──
   const handleStartSession = async () => {
@@ -3087,18 +3265,27 @@ export const AIMockInterviewPage = () => {
                 )}
 
                 {agentState === 'LISTENING' && isRecording && (
-                  <div className="mt-2 flex items-center justify-between text-xs px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 font-mono animate-pulse">
+                  <div className={`mt-2 flex items-center justify-between text-xs px-3 py-1.5 rounded-lg border font-mono ${typeof answerSecondsLeft === 'number' && answerSecondsLeft <= 5
+                    ? 'bg-rose-50 border-rose-200 text-rose-800'
+                    : 'bg-emerald-50 border-emerald-200 text-emerald-800 animate-pulse'
+                    }`}>
                     <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                      Attentively recording answer... Speak your complete response.
+                      <span className={`w-2 h-2 rounded-full animate-ping ${typeof answerSecondsLeft === 'number' && answerSecondsLeft <= 5 ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                      {answerSecondsLeft === null
+                        ? 'Listening... start answering whenever you are ready.'
+                        : 'Recording your answer...'}
                     </span>
-                    <span className="font-semibold">Click Submit when finished</span>
+                    <span className="font-semibold">
+                      {answerSecondsLeft === null
+                        ? `Max ${MAX_ANSWER_SECONDS}s per answer`
+                        : `${answerSecondsLeft}s left`}
+                    </span>
                   </div>
                 )}
 
                 {agentState === 'PROCESSING' && (
                   <div className="mt-2 flex items-center justify-center text-xs px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 font-mono">
-                    <span>Evaluating answer with AI evaluation engine...</span>
+                    <span>{answerAutoNotice || 'Evaluating answer with AI evaluation engine...'}</span>
                   </div>
                 )}
               </div>

@@ -7,6 +7,7 @@ const router = Router();
 
 const MAX_AUDIO_BYTES = '15mb';
 const LANGUAGE_RE = /^([a-z]{2,3}-[A-Z]{2}|unknown)$/;
+const MODE_RE = /^(transcribe|translate|verbatim|translit|codemix)$/;
 
 /**
  * POST /api/stt/transcribe
@@ -34,10 +35,12 @@ router.post(
 
     const requested = typeof req.query.language_code === 'string' ? req.query.language_code.trim() : '';
     const languageCode = LANGUAGE_RE.test(requested) ? requested : 'en-IN';
+    const requestedMode = typeof req.query.mode === 'string' ? req.query.mode.trim() : '';
+    const mode = MODE_RE.test(requestedMode) ? requestedMode : undefined;
     const mimeType = req.headers['content-type'] || 'audio/webm';
 
     try {
-      const { transcript, languageCode: detected } = await transcribeAudio(audio, { languageCode, mimeType });
+      const { transcript, languageCode: detected } = await transcribeAudio(audio, { languageCode, mimeType, mode });
       return res.json({ success: true, transcript, languageCode: detected });
     } catch (err) {
       console.error('STT transcribe error:', err.message);
