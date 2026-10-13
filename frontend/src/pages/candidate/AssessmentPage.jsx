@@ -5,6 +5,8 @@ import { INITIAL_QUESTION_BANK } from '../../data/mockData';
 import { Modal } from '../../components/common/Modal';
 import { MediaPreviewWidget } from '../../components/candidate/MediaPreviewWidget';
 import { CodingWorkspace } from '../../components/candidate/CodingWorkspace';
+// NOTE: Camera face-presence proctoring is temporarily disabled for this build.
+/*
 import {
   getFaceLandmarker,
   classifyFrame,
@@ -12,6 +14,7 @@ import {
   DETECTION_INTERVAL_MS,
   MAX_ALLOWED_STRIKES
 } from '../../services/proctoringService';
+*/
 import {
   Clock,
   Bookmark,
@@ -262,6 +265,8 @@ export const AssessmentPage = () => {
   };
 
   // Camera Gating: Request webcam access for proctoring
+  // NOTE: Camera validation & monitoring is temporarily disabled for this build.
+  /*
   const requestCamera = async () => {
     setIsRequestingCamera(true);
     setCameraDenied(false);
@@ -292,6 +297,7 @@ export const AssessmentPage = () => {
     if (phase !== 'exam') return;
     requestCamera();
   }, [phase]);
+  */
 
   useEffect(() => () => {
     stopMediaStream();
@@ -653,6 +659,8 @@ export const AssessmentPage = () => {
   autoSubmitHandlerRef.current = handleAutoSubmit;
 
   // Live Face-Presence Proctoring Loop with MediaPipe Tasks Vision
+  // NOTE: Camera monitoring is temporarily disabled for this build.
+  /*
   useEffect(() => {
     if (!cameraReady || !mediaStream || isSubmitting || isSubmittedRef.current) {
       return;
@@ -778,6 +786,7 @@ export const AssessmentPage = () => {
       }
     };
   }, [cameraReady, mediaStream, isPausedForWarning, isSubmitting]);
+  */
 
   // Fullscreen, Keydown & Tab Switch Violation Listeners (exam phase only)
   useEffect(() => {
@@ -1494,7 +1503,8 @@ export const AssessmentPage = () => {
             {/* RIGHT SIDEBAR: CAMERA PREVIEW & QUESTION PALETTE */}
             <div className={`${currentQuestion?.type === 'Coding' ? 'lg:col-span-3' : 'lg:col-span-4'} space-y-4`}>
 
-              {/* Live Camera & Proctoring Status Widget */}
+              {/* Live Camera & Proctoring Status Widget — temporarily disabled */}
+              {/*
               {mediaStream && (
                 <div className="flex justify-end lg:justify-start">
                   <MediaPreviewWidget
@@ -1506,6 +1516,7 @@ export const AssessmentPage = () => {
                   />
                 </div>
               )}
+              */}
 
               {/* Sections Progress Card (multi-section mode only) */}
               {attemptSections.length > 1 && (
@@ -1767,7 +1778,8 @@ export const AssessmentPage = () => {
         </div>
       </Modal>
 
-      {/* CAMERA ACCESS BLOCKING GATE */}
+      {/* CAMERA ACCESS BLOCKING GATE — temporarily disabled */}
+      {/*
       {cameraDenied && (
         <div className="fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border border-slate-200 text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
@@ -1801,8 +1813,10 @@ export const AssessmentPage = () => {
           </div>
         </div>
       )}
+      */}
 
-      {/* PROCTORING WARNING MODAL (STRIKE 1 OR 2) */}
+      {/* Camera proctoring warning modals temporarily disabled
+      // PROCTORING WARNING MODAL (STRIKE 1 OR 2)
       <Modal
         isOpen={warningModalData.isOpen && !warningModalData.isFinal}
         onClose={() => { }}
@@ -1857,7 +1871,7 @@ export const AssessmentPage = () => {
         </div>
       </Modal>
 
-      {/* PROCTORING 3RD STRIKE AUTO-SUBMIT MODAL */}
+      // PROCTORING 3RD STRIKE AUTO-SUBMIT MODAL
       <Modal
         isOpen={warningModalData.isOpen && warningModalData.isFinal}
         onClose={() => { }}
@@ -1884,6 +1898,7 @@ export const AssessmentPage = () => {
           </div>
         </div>
       </Modal>
+      */}
 
     </div>
   );
