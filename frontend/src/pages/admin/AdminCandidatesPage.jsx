@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { api } from '../../services/api';
+import { api, apiUrl } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
 import { AssessmentReportModal } from '../../components/candidate/AssessmentReportModal';
 import {
@@ -71,7 +71,7 @@ export const AdminCandidatesPage = () => {
     if (!isSuperAdmin) return;
     const token = localStorage.getItem('rsj_token') || localStorage.getItem('token');
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    fetch('/api/interview/admin/sessions', { headers })
+    fetch(apiUrl('/api/interview/admin/sessions'), { headers })
       .then(res => (res.ok ? res.json() : null))
       .then(data => {
         if (data?.success && Array.isArray(data.sessions)) {

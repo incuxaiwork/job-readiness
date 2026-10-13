@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { apiUrl } from '../../services/api';
 import {
   Lock,
   Unlock,
@@ -28,7 +29,7 @@ export const InterviewSettingsPanel = () => {
   const fetchSettings = async () => {
     try {
       setLoadingSettings(true);
-      const res = await fetch('/api/interview/settings');
+      const res = await fetch(apiUrl('/api/interview/settings'));
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.settings) {
@@ -54,7 +55,7 @@ export const InterviewSettingsPanel = () => {
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch('/api/interview/admin/settings', {
+      const res = await fetch(apiUrl('/api/interview/admin/settings'), {
         method: 'POST',
         headers,
         body: JSON.stringify(settings)
@@ -89,7 +90,7 @@ export const InterviewSettingsPanel = () => {
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch('/api/interview/admin/settings', {
+      const res = await fetch(apiUrl('/api/interview/admin/settings'), {
         method: 'POST',
         headers,
         body: JSON.stringify(updated)

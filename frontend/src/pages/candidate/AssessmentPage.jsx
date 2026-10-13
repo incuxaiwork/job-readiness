@@ -1307,7 +1307,9 @@ export const AssessmentPage = () => {
                   question={currentQuestion}
                   savedAnswer={assessmentAnswers[currentQuestion?.id]}
                   onSaveAnswer={(ans) => setAssessmentAnswers(prev => ({ ...prev, [currentQuestion?.id]: ans }))}
-                  onSubmitAssessment={() => setShowSubmitModal(true)}
+                  onNextSection={() => handleGoToNextSection()}
+                  isLastSection={isLastSection}
+                  nextBusy={isSubmitting}
                   addToast={addToast}
                 />
               ) : (
@@ -1396,7 +1398,8 @@ export const AssessmentPage = () => {
                 </div>
               )}
 
-              {/* ACTION BAR: Previous, Next, Clear Selection */}
+              {/* ACTION BAR: Previous, Next, Clear Selection (hidden for coding — the IDE carries its own controls) */}
+              {currentQuestion?.type !== 'Coding' && (
               <div className="bg-white rounded-2xl border border-slate-200/90 shadow-card p-4 flex items-center justify-between">
                 <button
                   onClick={handlePrev}
@@ -1447,56 +1450,30 @@ export const AssessmentPage = () => {
                 )}
 
                 <button
-                  onClick={handleSaveAndContinue}
-                  disabled={currentQuestionIndex === totalQuestions - 1}
+                  onClick={() => {
+                    if (isLastQuestionInSection) handleGoToNextSection();
+                    else handleSaveAndContinue();
+                  }}
+                  disabled={isSubmitting || advancingRef.current}
                   className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-xs transition-colors"
                 >
-                  <span>Save &amp; Continue</span>
-                  <ChevronRight className="w-4 h-4" />
+                  {isSubmitting || advancingRef.current ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      <span>Saving…</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>
+                        {isLastQuestionInSection
+                          ? (isLastSection ? 'Submit Test' : 'Save & Continue to Next Section')
+                          : 'Save &amp; Continue'}
+                      </span>
+                      <ChevronRight className="w-4 h-4" />
+                    </>
+                  )}
                 </button>
               </div>
-
-              {/* SECTION FOOTER: appears at the last question of the section — forward-only */}
-              {isLastQuestionInSection && (
-                <div className="bg-gradient-to-r from-brand-600 to-brand-700 rounded-2xl shadow-lg shadow-brand-600/20 p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-white text-center sm:text-left">
-                    <p className="text-sm font-bold">
-                      {isLastSection
-                        ? 'All sections complete — ready to submit?'
-                        : `End of "${attemptSections[sectionIndex]?.name || 'this section'}"`}
-                    </p>
-                    <p className="text-xs text-brand-100/90 mt-0.5">
-                      {isLastSection
-                        ? 'Submitting finalizes your entire test.'
-                        : 'Continue to the next section — you cannot come back to this one.'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => handleGoToNextSection()}
-                    disabled={isSubmitting || advancingRef.current}
-                    className={`px-6 py-3 rounded-xl text-sm font-extrabold shadow-md transition-all active:scale-[0.99] flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${isLastSection
-                      ? 'bg-white text-brand-700 hover:bg-brand-50'
-                      : 'bg-slate-900 hover:bg-slate-800 text-white'
-                      }`}
-                  >
-                    {isSubmitting || advancingRef.current ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        <span>Saving…</span>
-                      </>
-                    ) : isLastSection ? (
-                      <>
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Submit Test</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Save &amp; Continue to Next Section</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                </div>
               )}
             </div>
 

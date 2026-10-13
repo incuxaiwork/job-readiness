@@ -18,6 +18,7 @@ import {
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { useApp } from '../../context/AppContext';
+import { apiUrl } from '../../services/api';
 
 // --- Vector SVG Circular Score Ring Component ---
 const CircularScoreRing = ({ score, size = 80, strokeWidth = 7, strokeColor = '#0f172a' }) => {
@@ -88,12 +89,12 @@ export const AssessmentReportModal = ({
 
         let sid = localStorage.getItem('last_interview_session_id');
         let url = sid
-          ? `/api/interview/session/${sid}/analysis`
-          : `/api/interview/session/latest/user${queryParam}`;
+          ? apiUrl(`/api/interview/session/${sid}/analysis`)
+          : apiUrl(`/api/interview/session/latest/user${queryParam}`);
 
         let res = await fetch(url, { headers });
         if (!res.ok) {
-          res = await fetch(`/api/interview/session/latest/user${queryParam}`, { headers });
+          res = await fetch(apiUrl(`/api/interview/session/latest/user${queryParam}`), { headers });
         }
 
         if (res.ok) {
@@ -300,7 +301,7 @@ export const AssessmentReportModal = ({
       resolveSectionData(['reason', 'logic', 'reasoning'], 'Logical Reasoning'),
       resolveSectionData(['tech', 'technical'], 'Technical Knowledge'),
       resolveSectionData(['verb', 'eng', 'verbal'], 'Verbal Ability'),
-      resolveSectionData(['code', 'prog', 'coding'], 'Coding & Algorithms')
+      resolveSectionData(['cod', 'prog'], 'Coding & Algorithms')
     ];
 
     // Filter to tracks that have real submissions or marks in the database

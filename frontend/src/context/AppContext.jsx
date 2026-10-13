@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { api } from '../services/api';
+import { api, apiUrl } from '../services/api';
 import {
   INITIAL_CANDIDATE,
   INITIAL_ASSESSMENTS,
@@ -274,7 +274,7 @@ export const AppProvider = ({ children }) => {
   const [interviewSettings, setInterviewSettings] = useState(null);
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/interview/settings')
+    fetch(apiUrl('/api/interview/settings'))
       .then((r) => r.json())
       .then((d) => { if (!cancelled && d?.success && d.settings) setInterviewSettings(d.settings); })
       .catch(() => {});
@@ -1352,7 +1352,7 @@ export const AppProvider = ({ children }) => {
     // Helper function to normalize category to one of the standard sections
     const normalizeSection = (rawCat) => {
       const c = (rawCat || '').toLowerCase().trim();
-      if (c.includes('code') || c.includes('prog')) return 'coding';
+      if (c.includes('cod') || c.includes('prog')) return 'coding';
       if (c.includes('apt') || c.includes('quant') || c.includes('math')) return 'aptitude';
       if (c.includes('reason') || c.includes('logic')) return 'reasoning';
       if (c.includes('verbal') || c.includes('eng')) return 'verbal';

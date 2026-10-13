@@ -92,31 +92,32 @@ export const createSession = async (req, res) => {
   lastCreatedSessionId = sessionId;
 
   try {
-    // Prisma Transaction: create session + questions
-    const session = await prisma.$transaction(async (tx) => {
-      return await tx.interviewSession.create({
-        data: {
-          id: sessionId,
-          userId,
-          status: 'IN_PROGRESS',
-          targetRole,
-          startedAt: new Date(),
-          questions: {
-            create: questionsToSeed.map((q) => ({
-              id: q.id,
-              questionNumber: q.questionNumber,
-              category: q.category,
-              questionText: q.questionText,
-              askedAt: new Date()
-            }))
-          }
-        },
-        include: {
-          questions: {
-            orderBy: { questionNumber: 'asc' }
-          }
+    // Nested create is a single atomic statement. We deliberately avoid
+    // prisma.$transaction here: interactive transactions time out over
+    // managed connection poolers (e.g. Railway's public proxy), which silently
+    // pushed sessions into the in-memory fallback.
+    const session = await prisma.interviewSession.create({
+      data: {
+        id: sessionId,
+        userId,
+        status: 'IN_PROGRESS',
+        targetRole,
+        startedAt: new Date(),
+        questions: {
+          create: questionsToSeed.map((q) => ({
+            id: q.id,
+            questionNumber: q.questionNumber,
+            category: q.category,
+            questionText: q.questionText,
+            askedAt: new Date()
+          }))
         }
-      });
+      },
+      include: {
+        questions: {
+          orderBy: { questionNumber: 'asc' }
+        }
+      }
     });
 
     memorySessions.set(sessionId, session);
@@ -727,73 +728,72 @@ export const completeInterview = async (req, res) => {
     memorySessions.set(sessionId, updatedMemorySession);
     memoryAnalysis.set(sessionId, fallbackAnalysis);
 
-    // 6. Prisma Transaction to safely complete session and upsert analysis if DB is online
+    // 6. Persist session completion and analysis (sequential writes, no
+    // interactive transaction) if the DB is online.
     try {
-      const result = await prisma.$transaction(async (tx) => {
-        const updatedSession = await tx.interviewSession.update({
-          where: { id: sessionId },
-          data: {
-            status: 'COMPLETED',
-            completedAt: new Date(),
-            duration: totalDuration,
-            overallScore,
-            interviewScore: overallScore,
-            communicationScore: avgComm,
-            confidenceScore: avgConfidence,
-            eyeContactScore: avgEyeContact,
-            attentionScore: avgAttention,
-            technicalScore: avgTechnical,
-            expressionScore,
-            speechScore
-          }
-        });
-
-        const analysis = await tx.interviewAnalysis.upsert({
-          where: { sessionId },
-          create: {
-            id: analysisId,
-            sessionId,
-            overallScore,
-            communicationScore: avgComm,
-            confidenceScore: avgConfidence,
-            eyeContactScore: avgEyeContact,
-            attentionScore: avgAttention,
-            expressionScore,
-            technicalScore: avgTechnical,
-            speechScore,
-            dominantEmotion,
-            emotionStability,
-            strengths,
-            weaknesses,
-            recommendations,
-            aiFeedback,
-            questionBreakdown
-          },
-          update: {
-            overallScore,
-            communicationScore: avgComm,
-            confidenceScore: avgConfidence,
-            eyeContactScore: avgEyeContact,
-            attentionScore: avgAttention,
-            expressionScore,
-            technicalScore: avgTechnical,
-            speechScore,
-            dominantEmotion,
-            emotionStability,
-            strengths,
-            weaknesses,
-            recommendations,
-            aiFeedback,
-            questionBreakdown,
-            updatedAt: new Date()
-          }
-        });
-
-        memorySessions.set(sessionId, updatedSession);
-        memoryAnalysis.set(sessionId, analysis);
-
-        return { session: updatedSession, analysis };
+      const updatedSession = await prisma.interviewSession.update({
+        where: { id: sessionId },
+        data: {
+          status: 'COMPLETED',
+          completedAt: new Date(),
+          duration: totalDuration,
+          overallScore,
+          interviewScore: overallScore,
+          communicationScore: avgComm,
+          confidenceScore: avgConfidence,
+          eyeContactScore: avgEyeContact,
+          attentionScore: avgAttention,
+          technicalScore: avgTechnical,
+          expressionScore,
+          speechScore
+        }
       });
+
+      const analysis = await prisma.interviewAnalysis.upsert({
+        where: { sessionId },
+        create: {
+          id: analysisId,
+          sessionId,
+          overallScore,
+          communicationScore: avgComm,
+          confidenceScore: avgConfidence,
+          eyeContactScore: avgEyeContact,
+          attentionScore: avgAttention,
+          expressionScore,
+          technicalScore: avgTechnical,
+          speechScore,
+          dominantEmotion,
+          emotionStability,
+          strengths,
+          weaknesses,
+          recommendations,
+          aiFeedback,
+          questionBreakdown
+        },
+        update: {
+          overallScore,
+          communicationScore: avgComm,
+          confidenceScore: avgConfidence,
+          eyeContactScore: avgEyeContact,
+          attentionScore: avgAttention,
+          expressionScore,
+          technicalScore: avgTechnical,
+          speechScore,
+          dominantEmotion,
+          emotionStability,
+          strengths,
+          weaknesses,
+          recommendations,
+          aiFeedback,
+          questionBreakdown,
+          updatedAt: new Date()
+        }
+      });
+
+      memorySessions.set(sessionId, updatedSession);
+      memoryAnalysis.set(sessionId, analysis);
+
+      const result = { session: updatedSession, analysis };
 
       return res.json({
         success: true,
@@ -801,8 +801,8 @@ export const completeInterview = async (req, res) => {
         session: result.session,
         analysis: result.analysis
       });
-    } catch (txErr) {
-      console.warn('Prisma transaction notice (returning memory store):', txErr.message);
+    } catch (dbErr) {
+      console.warn('Prisma completeInterview notice (returning memory store):', dbErr.message);
       return res.json({
         success: true,
         message: 'Interview completed and analyzed successfully (offline store).',

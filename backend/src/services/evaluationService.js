@@ -123,7 +123,7 @@ export const evaluateSubmission = async ({
   // Build lookup map of authoritative questions: id -> question data
   const questionMap = new Map();
   assessmentQuestions.forEach((q) => {
-    const isCoding = String(q.category || '').toLowerCase().includes('code');
+    const isCoding = String(q.category || '').toLowerCase().includes('cod');
     const optList = typeof q.options === 'string' ? JSON.parse(q.options) : (q.options || []);
     questionMap.set(q.id, {
       id: q.id,
@@ -140,7 +140,7 @@ export const evaluateSubmission = async ({
     if (!questionMap.has(qId)) {
       const fb = fallbackQuestions.find(f => f.id === qId);
       if (fb) {
-        const isCoding = String(fb.category || '').toLowerCase().includes('code');
+        const isCoding = String(fb.category || '').toLowerCase().includes('cod');
         questionMap.set(fb.id, {
           id: fb.id,
           correctAnswer: (fb.correct_answer || fb.correctAnswer || '').trim().toUpperCase(),
@@ -156,7 +156,7 @@ export const evaluateSubmission = async ({
   // If questionMap is still empty, match from fallbackQuestions pool
   if (questionMap.size === 0 && fallbackQuestions.length > 0) {
     fallbackQuestions.slice(0, 10).forEach(fb => {
-      const isCoding = String(fb.category || '').toLowerCase().includes('code');
+      const isCoding = String(fb.category || '').toLowerCase().includes('cod');
       questionMap.set(fb.id, {
         id: fb.id,
         correctAnswer: (fb.correct_answer || fb.correctAnswer || '').trim().toUpperCase(),
@@ -280,7 +280,7 @@ export const evaluateSubmission = async ({
   // Helper function to normalize category to one of the 4 standard sections
   const normalizeSection = (rawCat) => {
     const c = (rawCat || '').toLowerCase().trim();
-    if (c.includes('code') || c.includes('prog')) return 'coding';
+    if (c.includes('cod') || c.includes('prog')) return 'coding';
     if (c.includes('apt') || c.includes('quant') || c.includes('math')) return 'aptitude';
     if (c.includes('reason') || c.includes('logic')) return 'reasoning';
     if (c.includes('verbal') || c.includes('eng')) return 'verbal';

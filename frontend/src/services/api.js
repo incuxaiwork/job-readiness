@@ -11,6 +11,19 @@ const resolveBase = () => {
 
 const BASE = resolveBase();
 
+// Absolute base used by direct fetch() calls that bypass the JSON `request`
+// helper. Keeps dev (Vite proxy -> /api) and split deploys (absolute backend
+// URL) pointing at the same origin, so interview/tts/stt fetches do not hit the
+// frontend host and get the SPA index.html back.
+export const API_BASE = BASE;
+export const apiUrl = (path) => {
+  const clean = path.startsWith('/') ? path : `/${path}`;
+  if (BASE.endsWith('/api') && clean.startsWith('/api/')) {
+    return `${BASE}${clean.slice(4)}`;
+  }
+  return `${BASE}${clean}`;
+};
+
 // -- Token storage: primary copy in memory, mirrored to localStorage so a
 //    page reload / re-open restores the session. The refresh token lives in
 //    an HttpOnly cookie and is sent automatically.

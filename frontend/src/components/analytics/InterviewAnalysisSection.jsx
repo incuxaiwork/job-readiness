@@ -19,6 +19,7 @@ import {
   Target
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { apiUrl } from '../../services/api';
 import { analyzeRoleSkillGaps, getRoleDefaults } from '../../utils/resumeParser';
 
 export default function InterviewAnalysisSection({ sessionId: initialSessionId }) {
@@ -38,8 +39,8 @@ export default function InterviewAnalysisSection({ sessionId: initialSessionId }
         let sid = initialSessionId || localStorage.getItem('last_interview_session_id');
 
         let url = sid
-          ? `/api/interview/session/${sid}/analysis`
-          : '/api/interview/session/latest/user';
+          ? apiUrl(`/api/interview/session/${sid}/analysis`)
+          : apiUrl('/api/interview/session/latest/user');
 
         const token = localStorage.getItem('rsj_token') || localStorage.getItem('token');
         const headers = { 'Content-Type': 'application/json' };
@@ -52,7 +53,7 @@ export default function InterviewAnalysisSection({ sessionId: initialSessionId }
 
           if (!res.ok && !initialSessionId) {
             // If specific session failed or latest returned 404, try latest overall user session
-            res = await fetch('/api/interview/session/latest/user', { headers });
+            res = await fetch(apiUrl('/api/interview/session/latest/user'), { headers });
           }
 
           if (res.ok) {

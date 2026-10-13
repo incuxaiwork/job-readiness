@@ -372,7 +372,7 @@ export default function CandidateAnalyticsPage() {
       technical: getScoreForSection(['tech'], 'Technical'),
       aptitude: getScoreForSection(['apt', 'quant'], 'Aptitude'),
       reasoning: getScoreForSection(['reason', 'logic'], 'Reasoning'),
-      coding: getScoreForSection(['code', 'prog'], 'Coding'),
+      coding: getScoreForSection(['cod', 'prog'], 'Coding'),
       verbal: getScoreForSection(['verb', 'eng'], 'Verbal')
     };
   }, [distinctSubs, assessments, currentUser, activeSubmission]);
@@ -487,7 +487,7 @@ export default function CandidateAnalyticsPage() {
       if (str.includes('reason') || str.includes('logic')) return 'reasoning';
       if (str.includes('tech')) return 'technical';
       if (str.includes('verb') || str.includes('eng')) return 'verbal';
-      if (str.includes('code') || str.includes('prog')) return 'coding';
+      if (str.includes('cod') || str.includes('prog')) return 'coding';
       return 'technical';
     };
 

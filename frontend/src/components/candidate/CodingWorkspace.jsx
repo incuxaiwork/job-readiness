@@ -18,6 +18,7 @@ import {
   ChevronRight,
   ChevronDown,
   ChevronUp,
+  ArrowRight,
   Maximize2,
   Minimize2,
   FileText,
@@ -192,7 +193,9 @@ export const CodingWorkspace = ({
   question,
   savedAnswer,
   onSaveAnswer,
-  onSubmitAssessment,
+  onNextSection,
+  isLastSection = false,
+  nextBusy = false,
   addToast
 }) => {
   const [selectedLanguage, setSelectedLanguage] = useState(
@@ -713,15 +716,22 @@ export const CodingWorkspace = ({
             {isFullscreen ? <Minimize2 className="w-4 h-4 text-emerald-400" /> : <Maximize2 className="w-4 h-4" />}
           </button>
 
-          {/* Finish & Submit Assessment Button (Always accessible, especially in Fullscreen) */}
-          {onSubmitAssessment && (
+          {/* Section advance button (always accessible, especially in Fullscreen) */}
+          {onNextSection && (
             <button
-              onClick={onSubmitAssessment}
-              className="ml-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold rounded-lg flex items-center gap-1.5 transition-all text-xs shadow-md shadow-emerald-900/40 cursor-pointer"
-              title="Finish and submit the entire assessment"
+              onClick={onNextSection}
+              disabled={nextBusy}
+              className="ml-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold rounded-lg flex items-center gap-1.5 transition-all text-xs shadow-md shadow-emerald-900/40 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              title={isLastSection ? 'Submit and finish the entire assessment' : 'Save your work and continue to the next section'}
             >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Finish Exam</span>
+              {nextBusy ? (
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : isLastSection ? (
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              ) : (
+                <ArrowRight className="w-3.5 h-3.5" />
+              )}
+              <span>{isLastSection ? 'Submit Test' : 'Next Section'}</span>
             </button>
           )}
         </div>
@@ -1437,7 +1447,7 @@ export const CodingWorkspace = ({
               {isConsoleOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
             </button>
 
-            {/* Right: Run Code (Gray), Submit Code (Indigo/Emerald) and Finish Assessment (Emerald) */}
+            {/* Right: Run Code (Gray), Submit Code (Indigo/Emerald) and advance to next section (Emerald) */}
             <div className="flex items-center gap-2">
               <span className="text-[11px] text-zinc-500 hidden md:inline pr-2">
                 Ctrl + ' to Run • Ctrl + Enter to Submit Code
@@ -1473,16 +1483,22 @@ export const CodingWorkspace = ({
                 <span>Submit Code</span>
               </button>
 
-              {/* Finish & Submit Assessment Button */}
-              {onSubmitAssessment && (
+              {/* Advance to the next section (or submit on the last one) */}
+              {onNextSection && (
                 <button
-                  onClick={onSubmitAssessment}
-                  disabled={isRunning || isSubmitting}
-                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white rounded-lg font-bold flex items-center gap-1.5 transition-all shadow-md shadow-emerald-600/25 cursor-pointer"
-                  title="Finish exam and view candidate AI scorecard"
+                  onClick={onNextSection}
+                  disabled={isRunning || isSubmitting || nextBusy}
+                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white rounded-lg font-bold flex items-center gap-1.5 transition-all shadow-md shadow-emerald-600/25 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  title={isLastSection ? 'Submit and finish the entire assessment' : 'Save your work and continue to the next section'}
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Finish Assessment</span>
+                  {nextBusy ? (
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : isLastSection ? (
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                  ) : (
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  )}
+                  <span>{isLastSection ? 'Submit Test' : 'Save &amp; Continue to Next Section'}</span>
                 </button>
               )}
             </div>
@@ -1509,7 +1525,9 @@ export const CodingWorkspace = ({
             </div>
 
             <p className="text-xs text-zinc-300 leading-relaxed">
-              Your solution for this question has been graded and recorded. Would you like to finish and submit the assessment now, or continue reviewing and testing?
+              {isLastSection
+                ? 'Your solution for this question has been graded and recorded. Would you like to submit the assessment now, or continue reviewing and testing?'
+                : 'Your solution for this question has been graded and recorded. Would you like to save your work and continue to the next section, or keep reviewing and testing?'}
             </p>
 
             <div className="flex items-center justify-end gap-3 pt-2">
@@ -1524,12 +1542,12 @@ export const CodingWorkspace = ({
                 type="button"
                 onClick={() => {
                   setShowPostSubmitModal(false);
-                  if (onSubmitAssessment) onSubmitAssessment();
+                  if (onNextSection) onNextSection();
                 }}
                 className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
               >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Finish &amp; Submit Exam</span>
+                {isLastSection ? <CheckCircle2 className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                <span>{isLastSection ? 'Submit Test' : 'Save & Continue to Next Section'}</span>
               </button>
             </div>
           </div>

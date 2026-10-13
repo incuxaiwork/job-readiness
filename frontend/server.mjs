@@ -52,7 +52,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https://fonts.gstatic.com",
-  `connect-src 'self'${API_ORIGIN ? ` ${API_ORIGIN}` : ''} https://cdn.jsdelivr.net https://storage.googleapis.com https://ce.judge0.com blob: data:`,
+  `connect-src 'self'${API_ORIGIN ? ` ${API_ORIGIN}` : ''} https://cdn.jsdelivr.net https://storage.googleapis.com https://ce.judge0.com https://odml.pa.googleapis.com blob: data:`,
   "media-src 'self' blob: data:",
   "worker-src 'self' blob:",
   "object-src 'none'",
