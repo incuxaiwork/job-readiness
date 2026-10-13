@@ -98,6 +98,7 @@ export const AdminAssessmentsPage = () => {
     assessments,
     addAssessment,
     updateAssessment,
+    setAssessmentStatus,
     deleteAssessment,
     questionBank,
     addQuestion,
@@ -645,6 +646,18 @@ export const AdminAssessmentsPage = () => {
                     title="Edit assessment"
                   >
                     <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAssessmentStatus(asm.id, asm.status === 'Archived' ? 'Available' : 'Archived')}
+                    className={`p-2 rounded-lg transition-colors ${
+                      asm.status === 'Archived'
+                        ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600'
+                        : 'bg-slate-100 hover:bg-amber-50 hover:text-amber-600 text-slate-600'
+                    }`}
+                    title={asm.status === 'Archived' ? 'Show to candidates (activate)' : 'Hide from candidates (archive)'}
+                  >
+                    {asm.status === 'Archived' ? <CheckCircle2 className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
                   </button>
                   <button
                     type="button"

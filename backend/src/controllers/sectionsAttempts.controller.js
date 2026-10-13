@@ -300,7 +300,7 @@ export const startAssessmentAttempt = async (req, res) => {
     await client.query('BEGIN');
 
     const asmRes = await client.query(
-      `SELECT id, title, category, duration_minutes, passing_score, total_marks
+      `SELECT id, title, category, duration_minutes, passing_score, total_marks, status
        FROM assessments WHERE id = $1`,
       [assessmentId]
     );
@@ -325,6 +325,14 @@ export const startAssessmentAttempt = async (req, res) => {
         alreadyCompleted: true,
         error: 'Single-Attempt Policy Active: You have already completed this assessment.',
       });
+    }
+
+    // Archived (hidden) assessment: block new attempts; allow resuming a live one
+    const archived = String(assessment.status || '').toLowerCase() === 'archived';
+    const hasInProgress = existingRes.rows.length > 0 && existingRes.rows[0].status === 'InProgress';
+    if (archived && req.user?.role !== 'admin' && !hasInProgress) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ success: false, error: 'Assessment not available.' });
     }
 
     let attempt;

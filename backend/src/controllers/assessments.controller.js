@@ -367,6 +367,22 @@ export const getAssessmentQuestions = async (req, res) => {
                         (process.env.ALLOW_ASSESSMENT_RETAKE === 'true' && isAdmin) || 
                         isAdmin;
 
+    // Hidden (Archived) assessments are not available to candidates. Admins
+    // always can; a candidate already mid-attempt may continue (resume) so
+    // hiding an assessment never interrupts a live exam.
+    if (!isAdmin && pool && getDbStatus()) {
+      const statusRes = await pool.query('SELECT status FROM assessments WHERE id = $1', [req.params.id]);
+      if (statusRes.rows.length > 0 && String(statusRes.rows[0].status || '').toLowerCase() === 'archived') {
+        const live = await pool.query(
+          `SELECT 1 FROM test_attempts WHERE candidate_id = $1 AND assessment_id = $2 AND status = 'InProgress' LIMIT 1`,
+          [candidateId, req.params.id]
+        );
+        if (live.rows.length === 0) {
+          return res.status(404).json({ success: false, error: 'Assessment not available.' });
+        }
+      }
+    }
+
     // Single Attempt Policy: If already completed and retakes are not allowed, block attempt
     if (!allowRetake && (candidateId || candidateEmail)) {
       if (!pool || !getDbStatus()) {

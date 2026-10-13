@@ -1909,6 +1909,29 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Status-only change: hide ('Archived') or show ('Available') an assessment
+  // without touching its questions, attempts, submissions or reports.
+  const setAssessmentStatus = async (id, status) => {
+    setAssessments(prev => {
+      const updated = prev.map(a => a.id === id ? { ...a, status } : a);
+      try { localStorage.setItem('rsj_assessments', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+
+    try {
+      const res = await api.assessments.update(id, { status });
+      if (res && res.ok) {
+        addToast(status === 'Archived'
+          ? 'Assessment hidden from candidates (visible to admins only)'
+          : 'Assessment is now live for candidates', 'success');
+      } else {
+        addToast(res?.error || 'Failed to update assessment visibility', 'error');
+      }
+    } catch (err) {
+      addToast('Failed to update assessment visibility', 'error');
+    }
+  };
+
   const deleteAssessment = (id) => {
     setAssessments(prev => {
       const updated = prev.filter(a => a.id !== id);
@@ -2076,6 +2099,7 @@ export const AppProvider = ({ children }) => {
         deleteQuestion,
         addAssessment,
         updateAssessment,
+        setAssessmentStatus,
         deleteAssessment,
         addCandidate,
         deleteCandidate,
