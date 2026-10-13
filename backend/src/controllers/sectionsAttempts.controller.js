@@ -347,13 +347,16 @@ export const startAssessmentAttempt = async (req, res) => {
       const sections = await orderedSectionsOf(assessmentId);
 
       if (sections.length > 0) {
+        // No per-section time locks: each section is allowed the whole assessment
+        // window; the single overall timer is what actually gates the attempt.
+        const attemptLimitSeconds = Math.max(60, (Number(assessment.duration_minutes) || 30) * 60);
         for (let i = 0; i < sections.length; i++) {
           const sec = sections[i];
           await client.query(
             `INSERT INTO section_attempts (id, attempt_id, section_id, status, started_at, time_limit_seconds)
              VALUES ($1, $2, $3, $4, $5, $6)`,
             [newId('sa'), attempt.id, sec.id, i === 0 ? 'InProgress' : 'Pending',
-             i === 0 ? new Date() : null, Math.max(60, (Number(sec.duration_minutes) || 30) * 60)]
+             i === 0 ? new Date() : null, attemptLimitSeconds]
           );
         }
       } else {

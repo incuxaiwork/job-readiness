@@ -131,9 +131,8 @@ export const AssessmentPage = () => {
   const autoSaveTimerRef = useRef(null);
   const advancingRef = useRef(false);
 
-  // Latest-handler refs so long-lived (proctoring/timer) listeners never read stale state
+  // Latest-handler ref so long-lived (proctoring/timer) listeners never read stale state
   const autoSubmitHandlerRef = useRef(null);
-  const nextSectionHandlerRef = useRef(null);
 
   // Ensure active assessment is ready
   useEffect(() => {
@@ -418,11 +417,7 @@ export const AssessmentPage = () => {
       const seeded = { ...data.answers };
       lastAnswersRef.current = { ...seeded };
       setAssessmentAnswers(seeded);
-      setTimeRemainingSeconds(
-        data.currentSection?.timeRemainingSeconds ??
-        data.currentSection?.timeLimitSeconds ??
-        ((Number(activeAssessment?.durationMinutes) || 30) * 60)
-      );
+      setTimeRemainingSeconds((Number(activeAssessment?.durationMinutes) || 30) * 60);
       if (data.resumed) {
         addToast('Resumed your in-progress attempt — saved answers were restored.', 'info');
       }
@@ -503,7 +498,6 @@ export const AssessmentPage = () => {
       })));
       setSectionQuestions(normalizeSectionQuestions(next.questions));
       setCurrentQuestionIndex(0);
-      setTimeRemainingSeconds(next.timeRemainingSeconds ?? next.timeLimitSeconds ?? 1800);
       addToast(
         auto
           ? `Section time over — auto-advanced to "${next.name}".`
@@ -654,9 +648,8 @@ export const AssessmentPage = () => {
     }
   };
 
-  // Keep refs pointing at the newest handlers so event listeners get fresh answers/state
+  // Keep the ref pointing at the newest handler so event listeners get fresh answers/state
   autoSubmitHandlerRef.current = handleAutoSubmit;
-  nextSectionHandlerRef.current = handleGoToNextSection;
 
   // Live Face-Presence Proctoring Loop with MediaPipe Tasks Vision
   useEffect(() => {
@@ -851,8 +844,8 @@ export const AssessmentPage = () => {
     };
   }, [phase]);
 
-  // Live Section Timer Countdown (Pauses during camera blocking or proctoring warning modal)
-  // On expiry: auto-complete the current section and advance; last section auto-submits the test.
+  // Overall test countdown (no per-section limits). Pauses during camera blocking
+  // or the proctoring warning modal; on expiry the entire test auto-submits.
   useEffect(() => {
     if (phase !== 'exam' || cameraDenied || isPausedForWarning || isSubmitting) {
       return;
@@ -862,7 +855,7 @@ export const AssessmentPage = () => {
       setTimeRemainingSeconds((prev) => {
         if (prev <= 1) {
           if (timerRef.current) clearInterval(timerRef.current);
-          nextSectionHandlerRef.current?.({ auto: true });
+          autoSubmitHandlerRef.current?.('time_expired');
           return 0;
         }
         return prev - 1;
@@ -1010,8 +1003,7 @@ export const AssessmentPage = () => {
             marksPerQuestion: null,
           }]
         : [];
-    const totalDurationMin = displaySections.reduce((s, sec) => s + (Number(sec.durationMinutes) || 0), 0)
-      || Number(activeAssessment?.durationMinutes) || 30;
+    const totalDurationMin = Number(activeAssessment?.durationMinutes) || 30;
     const totalSectionQuestions = displaySections.reduce((s, sec) => s + (Number(sec.questionCount) || 0), 0)
       || activeAssessment?.questions?.length || 0;
 
@@ -1023,8 +1015,8 @@ export const AssessmentPage = () => {
       },
       {
         icon: <Clock className="w-4 h-4 text-rose-600" />,
-        title: 'Strict Per-Section Timer',
-        text: 'Each section has its own countdown. When it reaches zero the section auto-submits and the next section begins immediately — the last section submits the entire test.'
+        title: 'One Timer for the Whole Test',
+        text: 'There is no per-section time limit. A single countdown covers the entire assessment; when it reaches zero the whole test auto-submits.'
       },
       {
         icon: <Save className="w-4 h-4 text-emerald-600" />,
@@ -1116,10 +1108,6 @@ export const AssessmentPage = () => {
                             {sec.marksPerQuestion} mk/Q
                           </span>
                         ) : null}
-                        <span className="px-2 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {sec.durationMinutes || 30} min
-                        </span>
                       </div>
                     </div>
                   ))}
@@ -1171,7 +1159,7 @@ export const AssessmentPage = () => {
                 />
                 <span className="text-xs sm:text-sm font-semibold text-slate-700 leading-relaxed">
                   I have read and understood the rules. I understand that sections are forward-only,
-                  timers are strict, and submitting is final.
+                  a single overall timer applies, and submitting is final.
                 </span>
               </label>
 
@@ -1617,11 +1605,11 @@ export const AssessmentPage = () => {
                 {/* Summary Metrics */}
                 <div className="border-t border-slate-100 pt-4 space-y-2 text-xs">
                   <div className="flex justify-between text-slate-500">
-                    <span>Section Questions:</span>
+                    <span>Questions:</span>
                     <strong className="text-slate-800">{totalQuestions}</strong>
                   </div>
                   <div className="flex justify-between text-slate-500">
-                    <span>Section Time Left:</span>
+                    <span>Time Left:</span>
                     <strong className={`text-slate-800 ${timeRemainingSeconds < 60 ? 'text-rose-600' : ''}`}>
                       {formatTime(timeRemainingSeconds)}
                     </strong>
