@@ -131,6 +131,10 @@ export const AssessmentPage = () => {
   const autoSaveTimerRef = useRef(null);
   const advancingRef = useRef(false);
 
+  // Latest-handler refs so long-lived (proctoring/timer) listeners never read stale state
+  const autoSubmitHandlerRef = useRef(null);
+  const nextSectionHandlerRef = useRef(null);
+
   // Ensure active assessment is ready
   useEffect(() => {
     if (role === 'admin') return;
@@ -300,7 +304,7 @@ export const AssessmentPage = () => {
     (async () => {
       const res = await api.assessments.getSections(activeAssessment.id);
       if (!alive) return;
-      setRulesSections(res.ok ? (res.data?.data || []) : []);
+      setRulesSections(res.ok ? (res.data?.data || res.data || []) : []);
     })();
     return () => { alive = false; };
   }, [phase, activeAssessment?.id]);
@@ -321,7 +325,7 @@ export const AssessmentPage = () => {
           if (cq.test_cases) {
             baseTestCases = typeof cq.test_cases === 'string' ? JSON.parse(cq.test_cases) : cq.test_cases;
           }
-          const evalRes = await api.post('/api/code/submit', {
+          const evalRes = await api.code.submit({
             questionId: cq.id,
             question_id: cq.question_id,
             assessmentQuestionId: cq.id,
@@ -404,7 +408,7 @@ export const AssessmentPage = () => {
         throw new Error(res.error || 'Could not start the assessment.');
       }
 
-      const data = res.data?.data || {};
+      const data = res.data?.data || res.data || {};
       attemptIdRef.current = data.attemptId || attemptIdRef.current;
       setAttemptId(data.attemptId);
       setAttemptSections(data.sections || []);
@@ -484,7 +488,7 @@ export const AssessmentPage = () => {
         addToast(res.error || 'Could not advance to the next section.', 'error');
         return;
       }
-      const d = res.data?.data || {};
+      const d = res.data?.data || res.data || {};
       if (d.isLastSection) {
         if (auto) handleAutoSubmit('section_time_expired', { force: true });
         else setShowSubmitModal(true);
@@ -650,6 +654,10 @@ export const AssessmentPage = () => {
     }
   };
 
+  // Keep refs pointing at the newest handlers so event listeners get fresh answers/state
+  autoSubmitHandlerRef.current = handleAutoSubmit;
+  nextSectionHandlerRef.current = handleGoToNextSection;
+
   // Live Face-Presence Proctoring Loop with MediaPipe Tasks Vision
   useEffect(() => {
     if (!cameraReady || !mediaStream || isSubmitting || isSubmittedRef.current) {
@@ -746,7 +754,7 @@ export const AssessmentPage = () => {
                       isFinal: true
                     });
                     setTimeout(() => {
-                      handleAutoSubmit('proctoring_violations');
+                      autoSubmitHandlerRef.current?.('proctoring_violations');
                     }, 1500);
                   }
                 }
@@ -798,7 +806,7 @@ export const AssessmentPage = () => {
           if (addToast) addToast('Warning: Fullscreen mode exited! Exiting once more will auto-submit your exam.', 'warning');
         } else {
           if (addToast) addToast('Exam Auto-Submitted due to repeated fullscreen exit violation!', 'error');
-          handleAutoSubmit('fullscreen_violation');
+          autoSubmitHandlerRef.current?.('fullscreen_violation');
         }
       }
     };
@@ -806,7 +814,7 @@ export const AssessmentPage = () => {
     const handleVisibilityChange = () => {
       if ((document.hidden || document.visibilityState === 'hidden') && !isSubmittedRef.current && totalQuestions > 0 && !loadingQuestions) {
         if (addToast) addToast('Exam Auto-Submitted due to tab switching violation!', 'error');
-        handleAutoSubmit('tab_switch_violation');
+        autoSubmitHandlerRef.current?.('tab_switch_violation');
       }
     };
 
@@ -819,7 +827,7 @@ export const AssessmentPage = () => {
             if (addToast) addToast('Warning: Escape pressed / Fullscreen exit detected! Exiting once more will auto-submit your exam.', 'warning');
           } else {
             if (addToast) addToast('Exam Auto-Submitted due to Escape key violation!', 'error');
-            handleAutoSubmit('fullscreen_violation');
+            autoSubmitHandlerRef.current?.('fullscreen_violation');
           }
         }
       }
@@ -854,7 +862,7 @@ export const AssessmentPage = () => {
       setTimeRemainingSeconds((prev) => {
         if (prev <= 1) {
           if (timerRef.current) clearInterval(timerRef.current);
-          handleGoToNextSection({ auto: true });
+          nextSectionHandlerRef.current?.({ auto: true });
           return 0;
         }
         return prev - 1;
