@@ -1,16 +1,16 @@
 import { FilesetResolver, FaceLandmarker } from '@mediapipe/tasks-vision';
 
-// Configurable proctoring thresholds
-export const YAW_THRESHOLD = 25;    // Max degrees turn left/right before 'looking_away'
-export const PITCH_THRESHOLD = 20;  // Max degrees tilt up/down before 'looking_away'
-export const GRACE_PERIOD_MS = 1000; // Continuous violation duration before firing strike (1 second)
-export const DETECTION_INTERVAL_MS = 500; // Interval between frames (0.5 seconds for responsive 1s grace evaluation)
-export const MAX_ALLOWED_STRIKES = 3; // 3 warnings before auto-submission
+// Configurable proctoring thresholds (lenient by design — avoid false auto-submits)
+export const YAW_THRESHOLD = 35;    // Max degrees turn left/right before 'looking_away'
+export const PITCH_THRESHOLD = 30;  // Max degrees tilt up/down before 'looking_away'
+export const GRACE_PERIOD_MS = 3000; // Continuous violation duration before firing strike (3 seconds)
+export const DETECTION_INTERVAL_MS = 500; // Interval between frames (0.5 seconds)
+export const MAX_ALLOWED_STRIKES = 5; // 5 warnings before auto-submission
 
 // Eye gaze diversion thresholds (normalized 0.0 - 1.0 blendshape scores)
-export const EYE_LOOK_DOWN_THRESHOLD = 0.55; // Looking down at phone, notes, or lap
-export const EYE_LOOK_UP_THRESHOLD = 0.45;   // Looking up toward ceiling or secondary screen
-export const EYE_LOOK_SIDE_THRESHOLD = 0.45; // Looking left or right away from screen
+export const EYE_LOOK_DOWN_THRESHOLD = 0.70; // Looking down at phone, notes, or lap
+export const EYE_LOOK_UP_THRESHOLD = 0.60;   // Looking up toward ceiling or secondary screen
+export const EYE_LOOK_SIDE_THRESHOLD = 0.60; // Looking left or right away from screen
 
 let landmarkerInstance = null;
 let initPromise = null;
@@ -144,28 +144,28 @@ export const estimateEyeGaze = (blendshapeObj, landmarks) => {
   let message = 'Eyes focused on the assessment screen.';
 
   // Check Downward gaze (looking at phone, notes, or desk)
-  if (downScore > EYE_LOOK_DOWN_THRESHOLD || (hasGeom && geomVert > 0.72 && downScore > 0.40)) {
+  if (downScore > EYE_LOOK_DOWN_THRESHOLD || (hasGeom && geomVert > 0.80 && downScore > 0.60)) {
     isDiverted = true;
     gazeDirection = 'down';
     reason = 'Eyes directed downwards (looking away)';
     message = 'Eyes looking away (downwards) — Please keep your eyes focused on the assessment screen.';
   }
   // Check Lateral Left gaze
-  else if (leftScore > EYE_LOOK_SIDE_THRESHOLD || (hasGeom && geomHoriz > 0.70 && leftScore > 0.35)) {
+  else if (leftScore > EYE_LOOK_SIDE_THRESHOLD || (hasGeom && geomHoriz > 0.78 && leftScore > 0.60)) {
     isDiverted = true;
     gazeDirection = 'left';
     reason = 'Eyes directed to the left (looking away)';
     message = 'Eyes looking away (to the left) — Please keep your eyes focused on the assessment screen.';
   }
   // Check Lateral Right gaze
-  else if (rightScore > EYE_LOOK_SIDE_THRESHOLD || (hasGeom && geomHoriz < 0.30 && rightScore > 0.35)) {
+  else if (rightScore > EYE_LOOK_SIDE_THRESHOLD || (hasGeom && geomHoriz < 0.22 && rightScore > 0.60)) {
     isDiverted = true;
     gazeDirection = 'right';
     reason = 'Eyes directed to the right (looking away)';
     message = 'Eyes looking away (to the right) — Please keep your eyes focused on the assessment screen.';
   }
   // Check Upward gaze
-  else if (upScore > EYE_LOOK_UP_THRESHOLD || (hasGeom && geomVert < 0.28 && upScore > 0.35)) {
+  else if (upScore > EYE_LOOK_UP_THRESHOLD || (hasGeom && geomVert < 0.22 && upScore > 0.60)) {
     isDiverted = true;
     gazeDirection = 'up';
     reason = 'Eyes directed upwards (looking away)';

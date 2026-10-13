@@ -117,6 +117,7 @@ export const AssessmentPage = () => {
   const violationCountRef = useRef(0);
   const badStateStartTimeRef = useRef(null);
   const lastBadStatusRef = useRef(null);
+  const strikeLatchedRef = useRef(false);
   const detectionIntervalRef = useRef(null);
   const attemptIdRef = useRef(`att-${activeAssessment?.id || 'asm'}-${currentUser?.id || 'cand'}-${Date.now()}`);
 
@@ -683,6 +684,11 @@ export const AssessmentPage = () => {
             if (classification.status === 'face_ok') {
               badStateStartTimeRef.current = null;
               lastBadStatusRef.current = null;
+              strikeLatchedRef.current = false;
+            } else if (strikeLatchedRef.current) {
+              // Already fired a strike for the current bad spell — wait until the
+              // face is re-detected before this can count toward another strike.
+              return;
             } else {
               // Non face_ok state (no_face, looking_away, multiple_faces)
               if (badStateStartTimeRef.current === null) {
@@ -693,6 +699,7 @@ export const AssessmentPage = () => {
                 if (elapsed >= GRACE_PERIOD_MS) {
                   // Confirmed violation after grace period
                   badStateStartTimeRef.current = null;
+                  strikeLatchedRef.current = true;
                   const nextCount = violationCountRef.current + 1;
                   violationCountRef.current = nextCount;
                   setViolationCount(nextCount);
@@ -741,8 +748,8 @@ export const AssessmentPage = () => {
                     setIsPausedForWarning(true);
                     setWarningModalData({
                       isOpen: true,
-                      violationNumber: 3,
-                      reason: 'Maximum proctoring violations reached (3 of 3 strikes)',
+                      violationNumber: MAX_ALLOWED_STRIKES,
+                      reason: `Maximum proctoring violations reached (${MAX_ALLOWED_STRIKES} of ${MAX_ALLOWED_STRIKES} strikes)`,
                       message: 'Assessment auto-submitted due to repeated proctoring violations.',
                       isFinal: true
                     });
@@ -1799,7 +1806,7 @@ export const AssessmentPage = () => {
       <Modal
         isOpen={warningModalData.isOpen && !warningModalData.isFinal}
         onClose={() => { }}
-        title={`Proctoring Warning: Strike ${warningModalData.violationNumber} of 3`}
+        title={`Proctoring Warning: Strike ${warningModalData.violationNumber} of ${MAX_ALLOWED_STRIKES}`}
         subtitle="Face-presence integrity alert"
       >
         <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
@@ -1827,12 +1834,12 @@ export const AssessmentPage = () => {
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs font-bold">
             <span className="text-slate-600">Proctoring Strikes Recorded:</span>
             <span className="px-2.5 py-1 bg-amber-500 text-white rounded-lg shadow-xs">
-              Strike {warningModalData.violationNumber} of 3
+              Strike {warningModalData.violationNumber} of {MAX_ALLOWED_STRIKES}
             </span>
           </div>
 
           <div className="text-[11px] text-rose-700 font-bold bg-rose-50 p-3 rounded-xl border border-rose-200">
-            Critical: Reaching 3 strikes will immediately auto-submit your assessment.
+            Critical: Reaching {MAX_ALLOWED_STRIKES} strikes will immediately auto-submit your assessment.
           </div>
 
           <div className="flex justify-end pt-2">
@@ -1861,7 +1868,7 @@ export const AssessmentPage = () => {
           <div className="p-4 bg-rose-50 border border-rose-300 rounded-2xl flex items-start gap-3.5">
             <AlertCircle className="w-8 h-8 text-rose-600 flex-shrink-0 mt-0.5 animate-bounce" />
             <div className="space-y-1.5">
-              <h4 className="font-bold text-rose-950 text-sm">3 of 3 Proctoring Strikes Exceeded</h4>
+              <h4 className="font-bold text-rose-950 text-sm">{MAX_ALLOWED_STRIKES} of {MAX_ALLOWED_STRIKES} Proctoring Strikes Exceeded</h4>
               <p className="text-rose-800 font-medium">
                 Your assessment has been automatically submitted due to repeated face-presence violations.
               </p>
