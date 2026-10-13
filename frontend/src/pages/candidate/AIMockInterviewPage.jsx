@@ -2803,7 +2803,7 @@ export const AIMockInterviewPage = () => {
   // VIEW 3: LIVE INTERVIEW STAGE (PICTURE 2)
   // ==========================================
   return (
-    <div className="relative h-screen max-h-screen w-full overflow-hidden bg-[#F8FAFC] text-slate-800 p-2 sm:p-3 flex flex-col justify-between select-none">
+    <div className="relative h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#F8FAFC] text-slate-800 p-2 sm:p-3 flex flex-col justify-between select-none">
 
       {/* Subtle Ambient Background Glows matching website design */}
       <div className="absolute inset-0 pointer-events-none z-0">
@@ -2947,62 +2947,18 @@ export const AIMockInterviewPage = () => {
               </button>
             )}
 
-            {/* Fullscreen Status & Manual Trigger */}
-            {sessionActive && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen().catch(() => { });
-                  }
-                }}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white hover:bg-slate-50 text-brand-700 border border-brand-200 text-xs font-bold transition-all shadow-2xs cursor-pointer font-sans"
-                title="Ensure Fullscreen is Active"
-              >
-                <Maximize className="w-3 h-3 text-brand-600" />
-                <span>Fullscreen</span>
-              </button>
-            )}
           </div>
         </div>
         {/* Question Bar - Q1 IS ALWAYS "TELL ME ABOUT YOURSELF" */}
-        <div className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs px-4 py-2 shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="flex-shrink-0 text-xs font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded-md">
-              Q{currentQIndex + 1}:
-            </span>
-            <span className="text-xs sm:text-sm font-bold text-slate-800 truncate font-sans">{currentQ.questionText || currentQ.question}</span>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              type="button"
-              onClick={() => handlePlayOrReplayQuestion()}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 text-xs font-bold transition-all shadow-2xs cursor-pointer font-sans"
-              title="Hear AI speak this question aloud"
-            >
-              <Volume2 className={`w-3.5 h-3.5 ${isAISpeaking ? 'text-brand-600 animate-pulse' : 'text-slate-600'}`} />
-              <span>{isAISpeaking ? 'Speaking...' : 'Listen to AI'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (!document.fullscreenElement) {
-                  document.documentElement.requestFullscreen?.().catch(() => { });
-                } else {
-                  document.exitFullscreen?.().catch(() => { });
-                }
-              }}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-xs font-semibold transition-all shadow-2xs cursor-pointer"
-              title="Toggle Fullscreen"
-            >
-              <Maximize className="w-3 h-3 text-brand-600" />
-              <span className="hidden sm:inline text-xs">Fullscreen</span>
-            </button>
-          </div>
+        <div className="flex items-center gap-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs px-4 py-2 shrink-0">
+          <span className="flex-shrink-0 text-xs font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded-md">
+            Q{currentQIndex + 1}:
+          </span>
+          <span className="text-xs sm:text-sm font-bold text-slate-800 truncate font-sans min-w-0">{currentQ.questionText || currentQ.question}</span>
         </div>
 
         {/* Google Meet-style stage: two participant tiles */}
-        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
+        <div className="flex-1 min-h-0 grid grid-cols-1 grid-rows-2 md:grid-cols-2 md:grid-rows-1 gap-2.5 sm:gap-3">
 
           {/* Tile 1 — AI Interviewer (Meet-style, camera OFF: no video) */}
           <div className="relative rounded-2xl overflow-hidden bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700/60 shadow-card h-full min-h-0 flex items-center justify-center">
@@ -3291,11 +3247,11 @@ export const AIMockInterviewPage = () => {
               </div>
 
               {/* Turn-Taking Control Buttons */}
-              <div className="flex items-center gap-2.5 flex-wrap justify-center">
+              <div className="flex items-center gap-2 flex-wrap justify-center w-full">
                 <button
                   type="button"
                   onClick={handleRecordVoice}
-                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold font-sans transition-all border cursor-pointer ${isRecording
+                  className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none px-4 py-2 sm:py-1.5 rounded-lg text-xs font-bold font-sans transition-all border cursor-pointer ${isRecording
                     ? 'bg-rose-50 border-rose-300 text-rose-700 animate-pulse shadow-2xs'
                     : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-2xs'
                     }`}
@@ -3308,7 +3264,7 @@ export const AIMockInterviewPage = () => {
                 <button
                   type="button"
                   onClick={() => handlePlayOrReplayQuestion()}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold font-sans shadow-2xs cursor-pointer transition-all"
+                  className="flex items-center justify-center gap-1.5 flex-1 sm:flex-none px-3.5 py-2 sm:py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold font-sans shadow-2xs cursor-pointer transition-all"
                   title="Replay Question Audio"
                 >
                   <Volume2 className="w-3.5 h-3.5 text-cyan-600" />
@@ -3319,7 +3275,7 @@ export const AIMockInterviewPage = () => {
                   type="button"
                   onClick={handleSkipQuestion}
                   disabled={agentState === 'PROCESSING' || agentState === 'AI_RESPONSE'}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold font-sans transition-all cursor-pointer shadow-2xs"
+                  className="flex items-center justify-center gap-1.5 flex-1 sm:flex-none px-3.5 py-2 sm:py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold font-sans transition-all cursor-pointer shadow-2xs"
                   title="Skip this question without providing an answer"
                 >
                   <span>Skip Question</span>
@@ -3329,7 +3285,7 @@ export const AIMockInterviewPage = () => {
                   type="button"
                   onClick={() => handleCandidateSubmit(false)}
                   disabled={agentState === 'PROCESSING' || agentState === 'AI_RESPONSE'}
-                  className={`flex items-center gap-1.5 px-5 py-1.5 rounded-lg bg-gradient-to-r from-brand-600 to-cyan-600 hover:from-brand-700 hover:to-cyan-700 text-white text-xs font-bold font-sans shadow-md shadow-brand-500/20 transition-all cursor-pointer hover:scale-105 ${agentState === 'PROCESSING' || agentState === 'AI_RESPONSE' ? 'opacity-60 cursor-not-allowed' : ''
+                  className={`flex items-center justify-center gap-1.5 w-full sm:w-auto px-5 py-2 sm:py-1.5 rounded-lg bg-gradient-to-r from-brand-600 to-cyan-600 hover:from-brand-700 hover:to-cyan-700 text-white text-xs font-bold font-sans shadow-md shadow-brand-500/20 transition-all cursor-pointer hover:scale-105 ${agentState === 'PROCESSING' || agentState === 'AI_RESPONSE' ? 'opacity-60 cursor-not-allowed' : ''
                     }`}
                 >
                   <span>{isFinalQuestion ? 'Submit & Finalize Interview' : 'Submit Answer & Continue'}</span>
