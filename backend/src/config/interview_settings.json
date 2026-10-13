@@ -9,5 +9,5 @@
   "multiFaceDetection": true,
   "defaultRole": "Data Scientist",
   "updatedAt": "2026-10-11T10:14:18.847Z",
-  "requireAssessmentFirst": true
+  "requireAssessmentFirst": false
 }

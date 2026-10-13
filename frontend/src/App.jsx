@@ -160,8 +160,8 @@ function ShellLayout({ children }) {
 
 // ── Interview route: locked state uses the normal shell, live interview is full-screen ──
 function InterviewRoute() {
-  const { role, adminUser, assessments, candidateSubmissions, isAssessmentCompleted } = useApp();
-  const locked = isInterviewLocked({ role, adminUser, assessments, candidateSubmissions, isAssessmentCompleted });
+  const { role, adminUser, assessments, candidateSubmissions, isAssessmentCompleted, interviewHardLocked, interviewOpenForAll } = useApp();
+  const locked = isInterviewLocked({ role, adminUser, assessments, candidateSubmissions, isAssessmentCompleted, interviewHardLocked, interviewOpenForAll });
 
   if (locked) {
     return (

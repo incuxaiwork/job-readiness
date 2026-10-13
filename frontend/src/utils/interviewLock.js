@@ -26,10 +26,14 @@ export function checkAssessmentCompleted(asm, { isAssessmentCompleted, candidate
   });
 }
 
-export function isInterviewLocked({ role, adminUser, assessments, candidateSubmissions, isAssessmentCompleted } = {}) {
+export function isInterviewLocked({ role, adminUser, assessments, candidateSubmissions, isAssessmentCompleted, interviewHardLocked, interviewOpenForAll } = {}) {
   const isAdmin = role === 'admin' || Boolean(adminUser) ||
     (typeof window !== 'undefined' && localStorage.getItem('rsj_role') === 'admin');
   if (isAdmin) return false;
+
+  // Global admin switches from /api/interview/settings take precedence.
+  if (interviewHardLocked) return true;
+  if (interviewOpenForAll) return false;
 
   const list = getActiveAssessments(assessments);
   const completed = list.filter((asm) => checkAssessmentCompleted(asm, { isAssessmentCompleted, candidateSubmissions })).length;

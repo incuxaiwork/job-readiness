@@ -267,6 +267,20 @@ export const AppProvider = ({ children }) => {
     return [];
   });
 
+  // Global AI-interview gate controls (admin-managed, public read):
+  //   isLocked              -> master lock: interview closed to all candidates
+  //   requireAssessmentFirst: when false, the interview is open to every candidate
+  //                           regardless of assessment completion
+  const [interviewSettings, setInterviewSettings] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/interview/settings')
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled && d?.success && d.settings) setInterviewSettings(d.settings); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   const isAssessmentCompleted = React.useCallback((param) => {
     if (!param) return false;
     const isObj = typeof param === 'object' && param !== null;
@@ -354,7 +368,12 @@ export const AppProvider = ({ children }) => {
     return requiredCategories.every(cat => completedCategories.has(cat));
   }, [assessments, role, isAssessmentCompleted, candidateSubmissions]);
 
-  const isInterviewUnlocked = role === 'admin' || areAllAssessmentsCompleted();
+  // Global admin-controlled switches from /api/interview/settings.
+  const interviewHardLocked = interviewSettings?.isLocked === true;
+  const interviewOpenForAll = interviewSettings?.isLocked === false && interviewSettings?.requireAssessmentFirst === false;
+
+  const isInterviewUnlocked = role === 'admin' ||
+    (!interviewHardLocked && (interviewOpenForAll || areAllAssessmentsCompleted()));
 
   // Sync to localStorage
   useEffect(() => {
@@ -2069,6 +2088,8 @@ export const AppProvider = ({ children }) => {
         isAssessmentCompleted,
         areAllAssessmentsCompleted,
         isInterviewUnlocked,
+        interviewHardLocked,
+        interviewOpenForAll,
         kpis: INITIAL_ADMIN_KPIS,
         setRouterNavigate
       }}

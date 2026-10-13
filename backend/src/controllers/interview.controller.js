@@ -1078,6 +1078,7 @@ const loadSettingsFromDisk = () => {
     cameraRequired: true,
     multiFaceDetection: true,
     defaultRole: 'Data Scientist',
+    requireAssessmentFirst: true,
     updatedAt: new Date().toISOString()
   };
 };
