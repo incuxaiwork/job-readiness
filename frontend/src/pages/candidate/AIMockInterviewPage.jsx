@@ -126,6 +126,30 @@ function MiniScoreRing({ score, size = 64 }) {
   );
 }
 
+// Human-readable message for a failed getUserMedia/SpeechRecognition attempt.
+function describeMediaError(err) {
+  const name = err?.name || '';
+  if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+    return 'Microphone access was blocked. Click the padlock/ⓘ icon in the address bar, set Microphone to "Allow", then retry.';
+  }
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+    return 'No microphone was found. Please connect a microphone and retry.';
+  }
+  if (name === 'NotReadableError' || name === 'TrackStartError') {
+    return 'Your microphone is busy in another app or tab. Close it and retry.';
+  }
+  if (name === 'OverconstrainedError' || name === 'ConstraintNotSatisfiedError') {
+    return 'No microphone matches the requested settings. Try a different device.';
+  }
+  if (name === 'not-allowed' || name === 'service-not-allowed') {
+    return 'Microphone access was blocked. Enable it in your browser settings and retry.';
+  }
+  if (name === 'audio-capture') {
+    return 'No microphone was detected. Please connect a microphone and retry.';
+  }
+  return err?.message || 'The microphone could not be started. Please retry.';
+}
+
 export const AIMockInterviewPage = () => {
   const navigate = useNavigate();
   const { navigateTo, currentUser, role, adminUser, candidateSubmissions, assessments, isAssessmentCompleted, addToast, startAssessment, isInterviewUnlocked } = useApp();
@@ -271,6 +295,7 @@ export const AIMockInterviewPage = () => {
   const [isTestingCamera, setIsTestingCamera] = useState(false);
   const [videoPlayBlocked, setVideoPlayBlocked] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [micError, setMicError] = useState('');
   const [isAISpeaking, setIsAISpeaking] = useState(false);
   const [companionText, setCompanionText] = useState('');
   const [answersList, setAnswersList] = useState([]);
@@ -827,6 +852,9 @@ export const AIMockInterviewPage = () => {
       }
     } catch (err) {
       console.warn('Camera preview notice:', err.message);
+      if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError' || err?.name === 'NotFoundError' || err?.name === 'NotReadableError') {
+        setMicError(describeMediaError(err));
+      }
     }
   };
 
@@ -1387,6 +1415,7 @@ export const AIMockInterviewPage = () => {
         }
         sarvamRecorderRef.current = recorder;
         setIsRecording(true);
+        setMicError('');
 
         // Rotate segments so transcripts stream in near-real-time.
         sarvamSegmentTimerRef.current = setTimeout(() => {
@@ -1399,7 +1428,12 @@ export const AIMockInterviewPage = () => {
       beginSegment();
     } catch (err) {
       console.warn('Microphone unavailable for speech recognition:', err.message);
-      setIsRecording(true);
+      setMicError(describeMediaError(err));
+      setIsRecording(false);
+      // Do not misreport state: fall back to the browser Web Speech API, which
+      // may still capture audio through a different path.
+      sttEngineRef.current = 'none';
+      startBrowserSpeechRecognition();
     }
   };
 
@@ -1408,7 +1442,8 @@ export const AIMockInterviewPage = () => {
     if (!SpeechRecognition) {
       // No recording and no Web Speech API available.
       sttEngineRef.current = 'none';
-      setIsRecording(true);
+      setIsRecording(false);
+      setMicError((prev) => prev || 'Voice input is not supported in this browser. Please type your answer instead.');
       return;
     }
     sttEngineRef.current = 'browser';
@@ -1427,6 +1462,7 @@ export const AIMockInterviewPage = () => {
 
       recognition.onstart = () => {
         setIsRecording(true);
+        setMicError('');
       };
 
       recognition.onresult = (event) => {
@@ -1469,6 +1505,7 @@ export const AIMockInterviewPage = () => {
           try { recognition.abort(); } catch { }
           sttEngineRef.current = 'none';
           setIsRecording(false);
+          setMicError(describeMediaError({ name: e?.error }));
         }
       };
 
@@ -1496,7 +1533,8 @@ export const AIMockInterviewPage = () => {
       setIsRecording(true);
     } catch (e) {
       console.warn('Recognition start notice:', e);
-      setIsRecording(true);
+      setIsRecording(false);
+      setMicError((prev) => prev || describeMediaError(e));
     }
   };
 
@@ -1540,6 +1578,7 @@ export const AIMockInterviewPage = () => {
     if (isRecording) {
       stopSpeechRecognition();
     } else {
+      setMicError('');
       startSpeechRecognition();
     }
   };
@@ -3128,6 +3167,22 @@ export const AIMockInterviewPage = () => {
 
         {/* BOTTOM ACTION BAR (Autonomous Real-Time Turn Taking) */}
         <div className="flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl bg-white border border-slate-200/90 shadow-card shrink-0">
+          {micError && (
+            <div className="w-full max-w-2xl mb-2 flex items-start gap-2 px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-800">
+              <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold font-sans">Microphone problem</p>
+                <p className="text-xs font-sans leading-snug">{micError}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setMicError(''); startSpeechRecognition(); }}
+                className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-rose-300 text-rose-700 text-xs font-bold font-sans hover:bg-rose-100 transition-all cursor-pointer"
+              >
+                <RefreshCw className="w-3 h-3" /> Retry mic
+              </button>
+            </div>
+          )}
           {!sessionActive ? (
             <button
               type="button"
