@@ -202,6 +202,7 @@ export const api = {
       });
     },
     getLanguages: () => request('GET', '/code/languages'),
+    evaluateClient: (body) => request('POST', '/code/evaluate-client', body),
   },
 
   auth: {

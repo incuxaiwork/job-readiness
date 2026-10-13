@@ -3,6 +3,7 @@ import {
   executeSingleCode,
   executeSingleCodeWithCache,
   evaluateCodeAgainstTestCases,
+  evaluateClientResultsAgainstTestCases,
   isLanguageSupported,
   LANGUAGE_CONFIG
 } from '../services/codeExecutionService.js';
@@ -536,6 +537,124 @@ router.get('/submissions/:jobId/status', authenticateToken, async (req, res) => 
     result: job.result,
     error: job.error
   });
+});
+
+// ── Client-side (browser) execution grading ───────────────────────────────
+// The browser runs candidate code directly against public Judge0 CE for speed,
+// then submits raw outputs here. The server compares them to the authoritative
+// expected outputs (which never leave the server) and returns the standard
+// evaluation envelope. Server-side execution remains the fallback engine.
+
+const parseTestCasesField = (row) => {
+  if (!row) return [];
+  const raw = row.test_cases;
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    } catch { /* ignore */ }
+  }
+  let options = row.options;
+  if (typeof options === 'string') {
+    try { options = JSON.parse(options); } catch { options = null; }
+  }
+  if (Array.isArray(options) && (row.type === 'Coding' || row.category === 'Coding')) {
+    return options;
+  }
+  return [];
+};
+
+// POST /api/code/evaluate-client — grade browser-executed results
+router.post('/evaluate-client', authenticateToken, async (req, res) => {
+  try {
+    const {
+      language,
+      questionId,
+      question_id,
+      assessmentQuestionId,
+      testCases: clientTestCases,
+      results
+    } = req.body || {};
+
+    if (!Array.isArray(results) || results.length === 0) {
+      return res.status(400).json({ success: false, error: 'A non-empty results array is required.' });
+    }
+    if (!isLanguageSupported(language)) {
+      return res.status(400).json({ success: false, error: `Language '${language}' is not supported.` });
+    }
+
+    const primaryId = questionId || question_id || assessmentQuestionId;
+    const secondaryId = question_id || questionId || assessmentQuestionId;
+
+    let testCases = [];
+    if (primaryId) {
+      const qRes = await pool.query(
+        `SELECT id, type, category, options, test_cases
+         FROM questions
+         WHERE id = $1 OR id = $2`,
+        [primaryId, secondaryId]
+      );
+      testCases = parseTestCasesField(qRes.rows[0]);
+
+      if (testCases.length === 0) {
+        const aqRes = await pool.query(
+          `SELECT aq.options, aq.test_cases,
+                  COALESCE(q.type, CASE WHEN aq.category = 'Coding' THEN 'Coding' ELSE 'Single Choice' END) as type,
+                  aq.category
+           FROM assessment_questions aq
+           LEFT JOIN questions q ON q.id = aq.question_id
+           WHERE aq.id = $1 OR aq.id = $2 OR aq.question_id = $1 OR aq.question_id = $2`,
+          [primaryId, secondaryId]
+        );
+        testCases = parseTestCasesField(aqRes.rows[0]);
+      }
+    }
+
+    if (testCases.length === 0 && Array.isArray(clientTestCases) && clientTestCases.length > 0) {
+      testCases = clientTestCases;
+    }
+    if (testCases.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No test cases configured for this coding challenge.'
+      });
+    }
+
+    const evaluation = evaluateClientResultsAgainstTestCases({
+      testCases,
+      results,
+      includeHiddenDetails: false
+    });
+
+    const sampleTotal = evaluation.testResults.filter(t => !t.isHidden).length;
+    const samplePassed = evaluation.testResults.filter(t => !t.isHidden && t.passed).length;
+    const hiddenTotal = evaluation.testResults.filter(t => t.isHidden).length;
+    const hiddenPassed = evaluation.testResults.filter(t => t.isHidden && t.passed).length;
+
+    return res.json({
+      success: true,
+      source: 'client',
+      questionId: primaryId || null,
+      language,
+      evaluation,
+      summary: {
+        totalTests: evaluation.totalTests,
+        passedTests: evaluation.passedTests,
+        sampleTotal,
+        samplePassed,
+        hiddenTotal,
+        hiddenPassed,
+        allHiddenPassed: hiddenTotal === 0 || hiddenPassed === hiddenTotal
+      }
+    });
+  } catch (err) {
+    console.error('Error in /code/evaluate-client:', err);
+    return res.status(500).json({
+      success: false,
+      error: 'Grading service is temporarily unavailable. Please retry.'
+    });
+  }
 });
 
 export default router;

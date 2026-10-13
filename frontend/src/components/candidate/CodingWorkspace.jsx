@@ -119,6 +119,74 @@ solve();
 `
 };
 
+// ── Browser-side execution against public Judge0 CE (fast path) ────────────
+// Candidate code runs directly in the browser; the resulting stdout is posted
+// to our backend for authoritative grading. Falls back to server execution.
+const JUDGE0_CE_URL = 'https://ce.judge0.com';
+const JUDGE0_LANG_IDS = {
+  python: 71,
+  javascript: 63,
+  cpp: 54,
+  java: 62,
+  c: 50,
+  typescript: 74
+};
+
+const encodeB64 = (str) => {
+  try {
+    return btoa(unescape(encodeURIComponent(str ?? '')));
+  } catch {
+    return btoa(String(str ?? ''));
+  }
+};
+
+const decodeB64 = (str) => {
+  if (typeof str !== 'string') return '';
+  try {
+    return decodeURIComponent(escape(atob(str)));
+  } catch {
+    try { return atob(str); } catch { return ''; }
+  }
+};
+
+const runOnJudge0 = async (language, sourceCode, stdin, timeoutMs = 12000) => {
+  const languageId = JUDGE0_LANG_IDS[language] || JUDGE0_LANG_IDS.python;
+  const createRes = await fetch(`${JUDGE0_CE_URL}/submissions?base64_encoded=true&wait=false`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      source_code: encodeB64(sourceCode),
+      language_id: languageId,
+      stdin: encodeB64(stdin)
+    })
+  });
+  if (!createRes.ok) throw new Error(`Judge0 submission failed (${createRes.status})`);
+  const { token } = await createRes.json();
+  if (!token) throw new Error('Judge0 did not return a token');
+
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const pollRes = await fetch(
+      `${JUDGE0_CE_URL}/submissions/${token}?base64_encoded=true&fields=stdout,stderr,compile_output,status,time,memory`
+    );
+    if (!pollRes.ok) throw new Error(`Judge0 poll failed (${pollRes.status})`);
+    const data = await pollRes.json();
+    const statusId = data?.status?.id;
+    if (statusId >= 3) {
+      return {
+        statusId,
+        stdout: decodeB64(data.stdout),
+        stderr: decodeB64(data.stderr),
+        compileOutput: decodeB64(data.compile_output),
+        timeMs: data.time ? Math.round(parseFloat(data.time) * 1000) : 0,
+        memoryKb: data.memory || 0
+      };
+    }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  throw new Error('Judge0 polling timed out');
+};
+
 export const CodingWorkspace = ({
   question,
   savedAnswer,
@@ -407,11 +475,58 @@ export const CodingWorkspace = ({
         testCases: baseTestCases
       };
 
-      setSubmissionProgress({ step: 'queued', progress: 10, message: 'Submission queued for evaluation...' });
+      // ── Fast path: execute in the browser against public Judge0 CE ──
+      let res = null;
+      try {
+        const cases = Array.isArray(baseTestCases) && baseTestCases.length > 0
+          ? baseTestCases
+          : [{ id: 1, input: '' }];
+        const clientResults = [];
+        setSubmissionProgress({ step: 'client', progress: 20, message: 'Running tests in your browser...' });
+        for (let i = 0; i < cases.length; i++) {
+          const tc = cases[i];
+          const exec = await runOnJudge0(selectedLanguage, currentCode, tc.input ?? '');
+          clientResults.push({
+            id: tc.id ?? null,
+            status: exec.statusId,
+            stdout: exec.stdout,
+            stderr: exec.stderr,
+            compileOutput: exec.compileOutput,
+            timeMs: exec.timeMs,
+            memoryKb: exec.memoryKb
+          });
+          setSubmissionProgress({
+            step: 'client',
+            progress: 20 + Math.round(((i + 1) / cases.length) * 60),
+            message: `Ran ${i + 1}/${cases.length} tests in your browser...`
+          });
+        }
 
-      const res = await api.code.submit(payload, (prog) => {
-        setSubmissionProgress(prog);
-      });
+        setSubmissionProgress({ step: 'grading', progress: 90, message: 'Grading submission...' });
+        const gradeRes = await api.code.evaluateClient({
+          questionId: question?.id,
+          question_id: question?.question_id,
+          assessmentQuestionId: question?.id,
+          language: selectedLanguage,
+          sourceCode: currentCode,
+          results: clientResults
+        });
+        if (gradeRes.ok && gradeRes.success && gradeRes.evaluation) {
+          res = gradeRes;
+        } else {
+          console.warn('[code] Client-side grading rejected:', gradeRes.error);
+        }
+      } catch (clientErr) {
+        console.warn('[code] Browser execution failed, falling back to server:', clientErr.message);
+      }
+
+      // ── Fallback: server-side execution (queue + worker) ──
+      if (!res) {
+        setSubmissionProgress({ step: 'queued', progress: 10, message: 'Submission queued for evaluation...' });
+        res = await api.code.submit(payload, (prog) => {
+          setSubmissionProgress(prog);
+        });
+      }
 
       if (res.status === 429) {
         if (addToast) addToast(res.error || 'A submission or execution is already in progress. Please wait a moment.', 'warning');

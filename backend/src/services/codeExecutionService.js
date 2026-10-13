@@ -586,3 +586,136 @@ export const evaluateCodeAgainstTestCases = async ({
     testResults: results
   };
 };
+
+/**
+ * Maps a Judge0 status id (or description string) reported by a browser run
+ * to the normalized verdict vocabulary used by the server executor.
+ */
+const normalizeClientStatus = (status) => {
+  if (typeof status === 'string') {
+    const s = status.toLowerCase();
+    if (s.includes('accept') || s.includes('success') || s.includes('passed')) return 'Success';
+    if (s.includes('compil')) return 'Compilation Error';
+    if (s.includes('time')) return 'Time Limit Exceeded';
+    if (s.includes('runtime')) return 'Runtime Error';
+    if (s.includes('wrong')) return 'Wrong Answer';
+    if (s.includes('unavailable')) return 'Service Unavailable';
+    return 'Execution Error';
+  }
+  switch (Number(status)) {
+    case 3: return 'Success';
+    case 4: return 'Wrong Answer';
+    case 5: return 'Time Limit Exceeded';
+    case 6: return 'Compilation Error';
+    case 7:
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 12: return 'Runtime Error';
+    case 13:
+    case 14: return 'Service Unavailable';
+    default: return 'Execution Error';
+  }
+};
+
+/**
+ * Grades results executed in the candidate's browser (Judge0 CE) against the
+ * authoritative test cases held server-side. Mirrors the verdict/score shape
+ * returned by evaluateCodeAgainstTestCases so the frontend can render it
+ * identically. Expected outputs are compared here and never sent to the client.
+ *
+ * @param {Object} params
+ * @param {Array} params.testCases - Authoritative test cases (with expectedOutput)
+ * @param {Array} params.results - Client results [{ id, status, stdout, stderr, timeMs }]
+ * @param {boolean} [params.includeHiddenDetails=false]
+ * @returns {Object} { passed, totalTests, passedTests, score, verdict, testResults }
+ */
+export const evaluateClientResultsAgainstTestCases = ({
+  testCases = [],
+  results = [],
+  includeHiddenDetails = false
+}) => {
+  if (!Array.isArray(testCases) || testCases.length === 0) {
+    return { passed: true, totalTests: 0, passedTests: 0, score: 100, verdict: 'Accepted', testResults: [] };
+  }
+
+  const byId = new Map();
+  results.forEach((r) => {
+    if (r && r.id !== undefined && r.id !== null) byId.set(String(r.id), r);
+  });
+
+  const mapped = testCases.map((tc, index) => {
+    const isHidden = Boolean(tc.isHidden ?? tc.is_hidden ?? false);
+    const input = String(tc.input ?? '');
+    const expected = cleanOutput(String(tc.expectedOutput ?? tc.expected_output ?? ''));
+
+    const key = (tc.id !== undefined && tc.id !== null) ? String(tc.id) : null;
+    const r = (key && byId.has(key)) ? byId.get(key) : (results[index] || {});
+    const norm = normalizeClientStatus(r.status);
+
+    let status;
+    let passed = false;
+    let actual = '';
+    let stderr = typeof r.stderr === 'string' ? truncateOutput(r.stderr) : '';
+    const compileOutput = typeof r.compileOutput === 'string' ? truncateOutput(r.compileOutput) : null;
+
+    if (norm === 'Compilation Error') {
+      status = 'Compilation Error';
+      stderr = stderr || compileOutput || 'Compilation error.';
+    } else if (norm === 'Time Limit Exceeded') {
+      status = 'Time Limit Exceeded';
+      stderr = stderr || 'Execution timed out.';
+    } else if (norm === 'Runtime Error') {
+      status = 'Runtime Error';
+    } else if (norm === 'Service Unavailable') {
+      status = 'Service Unavailable';
+    } else {
+      actual = cleanOutput(String(r.stdout ?? ''));
+      passed = norm === 'Success' && actual === expected;
+      status = passed ? 'Passed' : 'Wrong Answer';
+    }
+
+    if (isHidden && !includeHiddenDetails) {
+      return { id: tc.id ?? (index + 1), isHidden: true, status, passed, timeMs: r.timeMs || 0 };
+    }
+
+    return {
+      id: tc.id ?? (index + 1),
+      isHidden,
+      status,
+      passed,
+      input,
+      expectedOutput: expected,
+      actualOutput: actual,
+      stdout: typeof r.stdout === 'string' ? truncateOutput(r.stdout) : '',
+      stderr,
+      timeMs: r.timeMs || 0
+    };
+  });
+
+  let overallVerdict = 'Accepted';
+  if (mapped.some(r => r.status === 'Compilation Error')) {
+    overallVerdict = 'Compilation Error';
+  } else if (mapped.some(r => r.status === 'Service Unavailable')) {
+    overallVerdict = 'Service Unavailable';
+  } else if (mapped.some(r => r.status === 'Time Limit Exceeded')) {
+    overallVerdict = 'Time Limit Exceeded';
+  } else if (mapped.some(r => r.status === 'Runtime Error')) {
+    overallVerdict = 'Runtime Error';
+  } else if (mapped.some(r => !r.passed)) {
+    overallVerdict = 'Wrong Answer';
+  }
+
+  const passedCount = mapped.filter(r => r.passed).length;
+  const scorePercentage = testCases.length > 0 ? Math.round((passedCount / testCases.length) * 100) : 100;
+
+  return {
+    passed: passedCount === testCases.length,
+    totalTests: testCases.length,
+    passedTests: passedCount,
+    score: scorePercentage,
+    verdict: overallVerdict,
+    testResults: mapped
+  };
+};
