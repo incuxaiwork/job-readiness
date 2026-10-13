@@ -12,6 +12,7 @@ import {
   getSubmissionJob,
   subscribeJobEvents
 } from '../queues/submissionQueue.js';
+import { processSubmission } from '../workers/submissionWorker.js';
 import { pool } from '../db/pool.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { redisClient, isRedisAvailable } from '../db/redis.js';
@@ -376,6 +377,68 @@ router.post('/run', authenticateToken, async (req, res) => {
       executionTimeMs: 0,
       timedOut: false,
       status: 'Service Unavailable'
+    });
+  } finally {
+    await lock.release();
+    await globalSlot.release();
+    await setCooldown(clientKey);
+  }
+});
+
+// POST /api/code/evaluate & POST /code/evaluate (Synchronous direct evaluation fallback)
+// Runs the same authoritative worker logic inline (DB test cases + server-side
+// sandbox execution) and returns the final evaluation, without enqueuing.
+router.post('/evaluate', authenticateToken, async (req, res) => {
+  const clientKey = getClientKey(req);
+
+  // 1. Global concurrency cap — protect the sandbox from exam-burst saturation
+  const globalSlot = await acquireGlobalSlot();
+  if (!globalSlot.allowed) {
+    return res.status(503).json({
+      success: false,
+      error: 'Code execution service is at capacity. Please try again in a moment.',
+      status: 'Capacity Exceeded'
+    });
+  }
+
+  // 2. Per-client in-flight lock (distributed via Redis SET NX; in-memory fallback)
+  const lock = await acquireClientLock(clientKey);
+  if (!lock.acquired) {
+    await globalSlot.release();
+    return res.status(429).json({
+      success: false,
+      error: 'A submission or execution is already in progress. Please wait.'
+    });
+  }
+
+  try {
+    const { questionId, question_id, assessmentQuestionId, language, sourceCode } = req.body;
+
+    const primaryId = questionId || question_id || assessmentQuestionId;
+    if (!primaryId || !language || typeof sourceCode !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'questionId, language, and sourceCode are required.'
+      });
+    }
+
+    const result = await processSubmission(
+      {
+        questionId: primaryId,
+        question_id: question_id || primaryId,
+        assessmentQuestionId,
+        language,
+        sourceCode
+      },
+      async () => {}
+    );
+
+    return res.json(result);
+  } catch (err) {
+    console.error('Error in /code/evaluate:', err);
+    return res.status(500).json({
+      success: false,
+      error: 'Code execution service is temporarily unavailable. Please retry.'
     });
   } finally {
     await lock.release();

@@ -131,7 +131,8 @@ const executeViaJudge0 = async ({ langConfig, sourceCode, stdin, timeoutMs }) =>
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(process.env.JUDGE0_API_KEY ? { 'X-RapidAPI-Key': process.env.JUDGE0_API_KEY } : {})
+        ...(process.env.JUDGE0_API_KEY ? { 'X-RapidAPI-Key': process.env.JUDGE0_API_KEY } : {}),
+        ...(process.env.JUDGE0_API_HOST ? { 'X-RapidAPI-Host': process.env.JUDGE0_API_HOST } : {})
       },
       body: JSON.stringify({
         language_id: langConfig.judge0Id,

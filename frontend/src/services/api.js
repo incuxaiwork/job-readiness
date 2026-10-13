@@ -107,6 +107,7 @@ export const api = {
 
   code: {
     run: (body) => request('POST', '/code/run', body),
+    evaluate: (body) => request('POST', '/code/evaluate', body),
     submit: async (body, onProgress) => {
       const initRes = await request('POST', '/code/submit', body);
       if (!initRes.ok) return initRes;

@@ -325,7 +325,7 @@ export const AssessmentPage = () => {
           if (cq.test_cases) {
             baseTestCases = typeof cq.test_cases === 'string' ? JSON.parse(cq.test_cases) : cq.test_cases;
           }
-          const evalRes = await api.code.submit({
+          const evalRes = await api.code.evaluate({
             questionId: cq.id,
             question_id: cq.question_id,
             assessmentQuestionId: cq.id,

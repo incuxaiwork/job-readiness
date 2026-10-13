@@ -520,12 +520,10 @@ export const CodingWorkspace = ({
         console.warn('[code] Browser execution failed, falling back to server:', clientErr.message);
       }
 
-      // ── Fallback: server-side execution (queue + worker) ──
+      // ── Fallback: direct synchronous server evaluation (authoritative) ──
       if (!res) {
-        setSubmissionProgress({ step: 'queued', progress: 10, message: 'Submission queued for evaluation...' });
-        res = await api.code.submit(payload, (prog) => {
-          setSubmissionProgress(prog);
-        });
+        setSubmissionProgress({ step: 'evaluating', progress: 60, message: 'Evaluating on the server...' });
+        res = await api.code.evaluate(payload);
       }
 
       if (res.status === 429) {
