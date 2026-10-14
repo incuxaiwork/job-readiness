@@ -61,7 +61,6 @@ export const AssessmentPage = () => {
     activeAssessment,
     setActiveAssessment,
     assessments,
-    startAssessment,
     mediaStream,
     setMediaStream,
     stopMediaStream,
@@ -145,25 +144,18 @@ export const AssessmentPage = () => {
     if (activeAssessment && isAssessmentCompleted && isAssessmentCompleted(activeAssessment)) {
       if (!hasRedirectedRef.current) {
         hasRedirectedRef.current = true;
-        try {
-          localStorage.setItem('rsj_selected_analytics_asm_id', activeAssessment?.id || '');
-        } catch (e) { }
         addToast('Single-Attempt Policy Active: You have already completed this assessment. Retakes are not allowed.', 'warning');
-        navigateTo('candidate-analytics');
+        navigateTo('assessments');
       }
       return;
     }
 
+    // Landed on the runner without picking an assessment: send them to the
+    // assessments list rather than auto-starting the next available one.
     if (!activeAssessment && assessments && assessments.length > 0) {
-      const firstAvailable = assessments.find(a => !isAssessmentCompleted(a)) || assessments[0];
-      if (firstAvailable) {
-        startAssessment(firstAvailable.id);
-      } else {
-        if (!hasRedirectedRef.current) {
-          hasRedirectedRef.current = true;
-          addToast('All assessments completed! Single-attempt policy is active.', 'info');
-          navigateTo('candidate-analytics');
-        }
+      if (!hasRedirectedRef.current) {
+        hasRedirectedRef.current = true;
+        navigateTo('assessments');
       }
     }
   }, [activeAssessment?.id, assessments?.length, role, isAssessmentCompleted]);
@@ -598,7 +590,8 @@ export const AssessmentPage = () => {
           localStorage.setItem('rsj_selected_analytics_asm_id', activeAssessment.id);
         }
       } catch (e) { }
-      navigateTo('candidate-analytics');
+      // Return to the assessments list instead of pushing on to the next one.
+      navigateTo('assessments');
     }
   };
 
@@ -648,7 +641,8 @@ export const AssessmentPage = () => {
         }
       } catch (e) { }
       exitExamFullscreenAndStopMedia();
-      navigateTo('candidate-analytics');
+      // Return to the assessments list so the candidate can pick what to do next.
+      navigateTo('assessments');
     } catch (err) {
       addToast?.('Failed to submit assessment. Please try again.', 'error');
       setIsSubmitting(false);
@@ -956,11 +950,17 @@ export const AssessmentPage = () => {
   const selectedOption = assessmentAnswers[currentQuestion?.id];
 
   // Single-Attempt Policy Enforcement
+  const activeAsmId = String(activeAssessment?.id || '').trim().toLowerCase();
   const isAlreadySubmitted = role !== 'admin' && activeAssessment && (
     isAssessmentCompleted?.(activeAssessment) ||
     (candidateSubmissions || []).some(
-      s => String(s.assessment_id || s.assessmentId || '').trim().toLowerCase() === String(activeAssessment.id).trim().toLowerCase() ||
-        (activeAssessment.title && String(s.assessment_title || s.assessmentName || '').trim().toLowerCase() === String(activeAssessment.title).trim().toLowerCase())
+      s => {
+        const sId = String(s.assessment_id || s.assessmentId || '').trim().toLowerCase();
+        // Match by assessment id so a different paper with the same title is not
+        // treated as already completed. Title fallback only when id is absent.
+        if (activeAsmId) return !!sId && sId === activeAsmId;
+        return !!(activeAssessment.title && String(s.assessment_title || s.assessmentName || '').trim().toLowerCase() === String(activeAssessment.title).trim().toLowerCase());
+      }
     ) || activeAssessment?.status === 'Completed'
   );
 
@@ -1467,7 +1467,7 @@ export const AssessmentPage = () => {
                       <span>
                         {isLastQuestionInSection
                           ? (isLastSection ? 'Submit Test' : 'Save & Continue to Next Section')
-                          : 'Save &amp; Continue'}
+                          : 'Save & Continue'}
                       </span>
                       <ChevronRight className="w-4 h-4" />
                     </>

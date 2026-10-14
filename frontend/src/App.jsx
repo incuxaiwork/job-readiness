@@ -121,7 +121,7 @@ function AssessmentRunner() {
   if (role !== 'admin' && assessments && assessments.length > 0) {
     const allDone = assessments.every(a => isAssessmentCompleted(a));
     if (allDone && !activeAssessment) {
-      return <Navigate to="/results" replace />;
+      return <Navigate to="/assessments" replace />;
     }
   }
 

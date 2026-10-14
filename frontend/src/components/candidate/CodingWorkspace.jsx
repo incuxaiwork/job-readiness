@@ -1498,7 +1498,7 @@ export const CodingWorkspace = ({
                   ) : (
                     <ArrowRight className="w-3.5 h-3.5" />
                   )}
-                  <span>{isLastSection ? 'Submit Test' : 'Save &amp; Continue to Next Section'}</span>
+                  <span>{isLastSection ? 'Submit Test' : 'Save & Continue to Next Section'}</span>
                 </button>
               )}
             </div>

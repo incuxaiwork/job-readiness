@@ -667,7 +667,13 @@ export default function CandidateAnalyticsPage() {
                       <Layers className="w-3.5 h-3.5 text-brand-600 shrink-0" />
                       <span className="font-semibold text-slate-500">Test:</span>
                       <select
-                        value={selectedAssessmentId || (activeSubmission ? (activeSubmission.assessment_id || activeSubmission.id) : 'ALL_CUMULATIVE')}
+                        value={
+                          selectedAssessmentId === 'ALL_CUMULATIVE'
+                            ? 'ALL_CUMULATIVE'
+                            : (distinctSubs.some(s => String(s.assessment_id || s.id) === String(selectedAssessmentId))
+                                ? selectedAssessmentId
+                                : (activeSubmission ? (activeSubmission.assessment_id || activeSubmission.id) : 'ALL_CUMULATIVE'))
+                        }
                         onChange={(e) => {
                           const val = e.target.value;
                           setSelectedAssessmentId(val);
@@ -682,9 +688,13 @@ export default function CandidateAnalyticsPage() {
                           const sObt = Number(s.obtained_marks ?? s.obtainedMarks ?? 0);
                           const sTot = Number(s.total_marks ?? s.totalMarks ?? 0);
                           const sPct = sTot > 0 ? Math.round((sObt / sTot) * 100) : Number(s.score ?? 0);
+                          // Include the attempt timestamp so papers sharing a title are distinguishable.
+                          const sWhen = s.created_at
+                            ? new Date(s.created_at).toLocaleString(undefined, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+                            : '';
                           return (
                             <option key={idVal} value={idVal}>
-                              {s.assessment_title || 'Assessment'} ({sObt}/{sTot} Marks • {sPct}%)
+                              {s.assessment_title || 'Assessment'}{sWhen ? ` — ${sWhen}` : ''} ({sObt}/{sTot} Marks • {sPct}%)
                             </option>
                           );
                         })}
