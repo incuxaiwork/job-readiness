@@ -117,11 +117,13 @@ export const AssessmentsListPage = () => {
             const userSub = (candidateSubmissions || []).find(s => {
               const sId = String(s.assessment_id || s.assessmentId || '').trim().toLowerCase();
               const aId = String(asm.id || '').trim().toLowerCase();
-              if (sId && aId && sId === aId) return true;
+              // Match by assessment id so distinct assessments sharing a title
+              // are treated separately. Title fallback only when the assessment
+              // has no id (legacy/newly-created items).
+              if (aId) return !!sId && sId === aId;
               const sTitle = String(s.assessment_title || s.assessmentName || '').trim().toLowerCase();
               const aTitle = String(asm.title || '').trim().toLowerCase();
-              if (sTitle && aTitle && sTitle === aTitle) return true;
-              return false;
+              return !!sTitle && sTitle === aTitle;
             });
             const isCompleted = !!userSub || isAssessmentCompleted?.(asm) || asm.status === 'Completed';
             const isInProgress = !isCompleted && asm.status === 'In Progress';

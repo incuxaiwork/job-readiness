@@ -293,11 +293,14 @@ export const AppProvider = ({ children }) => {
       return true;
     }
 
-    // 2. Check candidateSubmissions specifically by ID, exact Title, or Category
+    // 2. Match candidateSubmissions by assessment ID so distinct assessments
+    //    are treated separately even when they share a title. Only fall back to
+    //    title matching when the assessment has no id (legacy/newly-created items).
     return (candidateSubmissions || []).some(
       s => {
         const subAsmId = String(s.assessment_id || s.assessmentId || '').trim().toLowerCase();
         if (targetId && subAsmId && subAsmId === targetId) return true;
+        if (targetId) return false;
         const subTitle = String(s.assessment_title || s.assessmentName || '').trim().toLowerCase();
         if (targetTitle && subTitle && subTitle === targetTitle) return true;
         return false;
@@ -1679,10 +1682,14 @@ export const AppProvider = ({ children }) => {
 
     // Ensure candidateSubmissions has this assessment marked Completed
     setCandidateSubmissions(prev => {
-      const exists = prev.some(s =>
-        String(s.assessment_id || s.assessmentId || '').trim().toLowerCase() === String(currentAsmId).trim().toLowerCase() ||
-        (activeAssessment?.title && String(s.assessment_title || s.assessmentName || '').trim().toLowerCase() === String(activeAssessment.title).trim().toLowerCase())
-      );
+      const curId = String(currentAsmId || '').trim().toLowerCase();
+      const curTitle = String(activeAssessment?.title || '').trim().toLowerCase();
+      const exists = prev.some(s => {
+        const sId = String(s.assessment_id || s.assessmentId || '').trim().toLowerCase();
+        if (curId) return !!sId && sId === curId;
+        const sTitle = String(s.assessment_title || s.assessmentName || '').trim().toLowerCase();
+        return !!curTitle && sTitle === curTitle;
+      });
       let updated;
       if (!exists) {
         updated = [
@@ -1701,8 +1708,10 @@ export const AppProvider = ({ children }) => {
         ];
       } else {
         updated = prev.map(s => {
-          const matchId = String(s.assessment_id || s.assessmentId || '').trim().toLowerCase() === String(currentAsmId).trim().toLowerCase();
-          const matchTitle = activeAssessment?.title && String(s.assessment_title || s.assessmentName || '').trim().toLowerCase() === String(activeAssessment.title).trim().toLowerCase();
+          const sId = String(s.assessment_id || s.assessmentId || '').trim().toLowerCase();
+          const sTitle = String(s.assessment_title || s.assessmentName || '').trim().toLowerCase();
+          const matchId = !!curId && sId === curId;
+          const matchTitle = !curId && !!curTitle && sTitle === curTitle;
           return (matchId || matchTitle) ? {
             ...s,
             assessment_title: s.assessment_title || activeAssessment?.title,

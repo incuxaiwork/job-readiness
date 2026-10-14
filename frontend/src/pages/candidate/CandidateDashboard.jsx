@@ -60,9 +60,13 @@ export const CandidateDashboard = () => {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   const handleStartAttempt = (asm) => {
+    const asmId = String(asm?.id || '').trim().toLowerCase();
     const isCompleted = isAssessmentCompleted?.(asm) || (candidateSubmissions || []).some(
-      s => String(s.assessment_id || s.assessmentId || '').trim().toLowerCase() === String(asm?.id).trim().toLowerCase() ||
-           (asm?.title && String(s.assessment_title || s.assessmentName || '').trim().toLowerCase() === String(asm.title).trim().toLowerCase())
+      s => {
+        const sId = String(s.assessment_id || s.assessmentId || '').trim().toLowerCase();
+        if (asmId) return !!sId && sId === asmId;
+        return !!(asm?.title && String(s.assessment_title || s.assessmentName || '').trim().toLowerCase() === String(asm.title).trim().toLowerCase());
+      }
     ) || asm?.status === 'Completed';
 
     if (isCompleted) {
@@ -346,11 +350,11 @@ export const CandidateDashboard = () => {
               const userSub = (candidateSubmissions || []).find(s => {
                 const sId = String(s.assessment_id || s.assessmentId || '').trim().toLowerCase();
                 const aId = String(asm?.id || '').trim().toLowerCase();
-                if (sId && aId && sId === aId) return true;
+                // Match by assessment id only; title fallback for id-less legacy items.
+                if (aId) return !!sId && sId === aId;
                 const sTitle = String(s.assessment_title || s.assessmentName || '').trim().toLowerCase();
                 const aTitle = String(asm?.title || '').trim().toLowerCase();
-                if (sTitle && aTitle && sTitle === aTitle) return true;
-                return false;
+                return !!sTitle && sTitle === aTitle;
               });
               const isCompleted = !!userSub || isAssessmentCompleted?.(asm) || asm.status === 'Completed';
               const isInProgress = !isCompleted && asm.status === 'In Progress';
