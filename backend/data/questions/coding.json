@@ -902,6 +902,462 @@
           "isHidden": true
         }
       ]
+    },
+    {
+      "id": "code-q-medium-max-subarray-21",
+      "section": "Coding",
+      "topic": "Dynamic Programming",
+      "difficulty": "Medium",
+      "type": "Coding",
+      "question": "### Maximum Subarray Sum\n\nGiven an array of **N** integers, find the **contiguous subarray** with the largest sum and print that sum. The subarray must contain at least one element.\n\n#### Input Format\n- The first line contains an integer **N**.\n- The second line contains **N** space-separated integers.\n\n#### Output Format\n- Print a single integer — the maximum subarray sum.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= N <= 10^5\n-10^4 <= arr[i] <= 10^4\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef maxSubarraySum(nums):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    nums = [int(x) for x in data[1:1 + n]]\n    print(maxSubarraySum(nums))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction maxSubarraySum(nums) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    const nums = data.slice(1, 1 + n).map(Number);\n    console.log(maxSubarraySum(nums));\n}\n\n\nmain();\n",
+        "typescript": "// TypeScript\ndeclare const require: any;\nconst fs = require('fs');\n\n\nfunction maxSubarraySum(nums: number[]): number {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nfunction main(): void {\n    const data: string[] = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n: number = parseInt(data[0], 10);\n    const nums: number[] = data.slice(1, 1 + n).map(Number);\n    console.log(maxSubarraySum(nums));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <vector>\n#include <string>\n#include <algorithm>\n#include <unordered_map>\n#include <unordered_set>\n#include <climits>\n\nusing namespace std;\n\n\nlong long maxSubarraySum(const vector<long long>& nums) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    int n;\n    if (!(cin >> n)) return 0;\n    vector<long long> nums(n);\n    for (int i = 0; i < n; i++) cin >> nums[i];\n    cout << maxSubarraySum(nums) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long maxSubarraySum(long[] nums) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextInt()) return;\n        int n = scanner.nextInt();\n        long[] nums = new long[n];\n        for (int i = 0; i < n; i++) nums[i] = scanner.nextLong();\n        System.out.println(maxSubarraySum(nums));\n        scanner.close();\n    }\n}\n",
+        "c": "// C (GCC)\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <limits.h>\n\nlong long maxSubarraySum(long long* nums, int n) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 0;\n    long long* nums = (long long*)malloc(sizeof(long long) * (n > 0 ? n : 1));\n    for (int i = 0; i < n; i++) scanf(\"%lld\", &nums[i]);\n    printf(\"%lld\\n\", maxSubarraySum(nums, n));\n    free(nums);\n    return 0;\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "9\n-2 1 -3 4 -1 2 1 -5 4",
+          "expectedOutput": "6",
+          "isHidden": false,
+          "explanation": "[4,-1,2,1] gives 6"
+        },
+        {
+          "id": 2,
+          "input": "3\n-3 -1 -2",
+          "expectedOutput": "-1",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "1\n5",
+          "expectedOutput": "5",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "5\n5 5 5 5 5",
+          "expectedOutput": "25",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-medium-pair-sum-22",
+      "section": "Coding",
+      "topic": "Hashing",
+      "difficulty": "Medium",
+      "type": "Coding",
+      "question": "### Pair with Given Sum\n\nGiven an array of **N** integers and a target value **S**, determine whether there exist **two elements at different positions** whose sum equals **S**.\n\n#### Input Format\n- The first line contains an integer **N**.\n- The second line contains an integer **S** (the target sum).\n- The third line contains **N** space-separated integers.\n\n#### Output Format\n- Print `YES` if such a pair exists, otherwise print `NO`.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= N <= 10^5\n-10^9 <= arr[i], S <= 10^9\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef hasPairWithSum(nums, k):\n    # TODO: implement your solution here and return the answer\n    return False\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    k = int(data[1])\n    nums = [int(x) for x in data[2:2 + n]]\n    print(\"YES\" if hasPairWithSum(nums, k) else \"NO\")\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction hasPairWithSum(nums, k) {\n    // TODO: implement your solution here and return the answer\n    return false;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    const k = parseInt(data[1], 10);\n    const nums = data.slice(2, 2 + n).map(Number);\n    console.log(hasPairWithSum(nums, k) ? \"YES\" : \"NO\");\n}\n\n\nmain();\n",
+        "typescript": "// TypeScript\ndeclare const require: any;\nconst fs = require('fs');\n\n\nfunction hasPairWithSum(nums: number[], k: number): boolean {\n    // TODO: implement your solution here and return the answer\n    return false;\n}\n\n\nfunction main(): void {\n    const data: string[] = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n: number = parseInt(data[0], 10);\n    const k: number = parseInt(data[1], 10);\n    const nums: number[] = data.slice(2, 2 + n).map(Number);\n    console.log(hasPairWithSum(nums, k) ? \"YES\" : \"NO\");\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <vector>\n#include <string>\n#include <algorithm>\n#include <unordered_map>\n#include <unordered_set>\n#include <climits>\n\nusing namespace std;\n\n\nbool hasPairWithSum(const vector<long long>& nums, long long k) {\n    // TODO: implement your solution here and return the answer\n    return false;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    int n;\n    long long k;\n    if (!(cin >> n >> k)) return 0;\n    vector<long long> nums(n);\n    for (int i = 0; i < n; i++) cin >> nums[i];\n    cout << (hasPairWithSum(nums, k) ? \"YES\" : \"NO\") << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static boolean hasPairWithSum(long[] nums, long k) {\n        // TODO: implement your solution here and return the answer\n        return false;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextInt()) return;\n        int n = scanner.nextInt();\n        long k = scanner.nextLong();\n        long[] nums = new long[n];\n        for (int i = 0; i < n; i++) nums[i] = scanner.nextLong();\n        System.out.println(hasPairWithSum(nums, k) ? \"YES\" : \"NO\");\n        scanner.close();\n    }\n}\n",
+        "c": "// C (GCC)\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <limits.h>\n\nint hasPairWithSum(long long* nums, int n, long long k) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    int n;\n    long long k;\n    if (scanf(\"%d %lld\", &n, &k) != 2) return 0;\n    long long* nums = (long long*)malloc(sizeof(long long) * (n > 0 ? n : 1));\n    for (int i = 0; i < n; i++) scanf(\"%lld\", &nums[i]);\n    printf(\"%s\\n\", hasPairWithSum(nums, n, k) ? \"YES\" : \"NO\");\n    free(nums);\n    return 0;\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "4\n9\n2 7 11 15",
+          "expectedOutput": "YES",
+          "isHidden": false,
+          "explanation": "2 + 7 = 9"
+        },
+        {
+          "id": 2,
+          "input": "5\n10\n1 2 3 4 5",
+          "expectedOutput": "NO",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "3\n5\n1 2 3",
+          "expectedOutput": "YES",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "2\n4\n2 2",
+          "expectedOutput": "YES",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-medium-longest-substring-23",
+      "section": "Coding",
+      "topic": "Sliding Window",
+      "difficulty": "Medium",
+      "type": "Coding",
+      "question": "### Longest Substring Without Repeating Characters\n\nGiven a string **S**, find the length of the **longest substring** that contains no repeating characters.\n\n#### Input Format\n- A single string **S** (no spaces).\n\n#### Output Format\n- Print a single integer — the length of the longest substring without repeating characters.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= |S| <= 10^5\nS consists of printable ASCII characters without spaces\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef lengthOfLongestSubstring(s):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    s = sys.stdin.read().strip()\n    if not s:\n        return\n    print(lengthOfLongestSubstring(s))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction lengthOfLongestSubstring(s) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const raw = fs.readFileSync(0, 'utf-8');\n    if (!raw || raw.trim() === '') return;\n    const s = raw.trim();\n    console.log(lengthOfLongestSubstring(s));\n}\n\n\nmain();\n",
+        "typescript": "// TypeScript\ndeclare const require: any;\nconst fs = require('fs');\n\n\nfunction lengthOfLongestSubstring(s: string): number {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nfunction main(): void {\n    const raw: string = fs.readFileSync(0, 'utf-8');\n    if (!raw || raw.trim() === '') return;\n    const s: string = raw.trim();\n    console.log(lengthOfLongestSubstring(s));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <vector>\n#include <string>\n#include <algorithm>\n#include <unordered_map>\n#include <unordered_set>\n#include <climits>\n\nusing namespace std;\n\n\nlong long lengthOfLongestSubstring(const string& s) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    string s;\n    if (!(cin >> s)) return 0;\n    cout << lengthOfLongestSubstring(s) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long lengthOfLongestSubstring(String s) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNext()) return;\n        String s = scanner.next();\n        System.out.println(lengthOfLongestSubstring(s));\n        scanner.close();\n    }\n}\n",
+        "c": "// C (GCC)\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <limits.h>\n\nlong long lengthOfLongestSubstring(const char* s) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    char* buf = (char*)malloc(1000006 * sizeof(char));\n    if (scanf(\"%1000005s\", buf) != 1) return 0;\n    printf(\"%lld\\n\", lengthOfLongestSubstring(buf));\n    free(buf);\n    return 0;\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "abcabcbb",
+          "expectedOutput": "3",
+          "isHidden": false,
+          "explanation": "abc"
+        },
+        {
+          "id": 2,
+          "input": "bbbbb",
+          "expectedOutput": "1",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "pwwkew",
+          "expectedOutput": "3",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "abcdef",
+          "expectedOutput": "6",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-medium-valid-parentheses-24",
+      "section": "Coding",
+      "topic": "Stacks",
+      "difficulty": "Medium",
+      "type": "Coding",
+      "question": "### Balanced Brackets\n\nGiven a string **S** consisting only of the characters `(`, `)`, `[`, `]`, `{` and `}`, determine whether the brackets are **balanced** — every opening bracket is closed by the matching type, in the correct order.\n\n#### Input Format\n- A single string **S** (no spaces).\n\n#### Output Format\n- Print `true` if the brackets are balanced, otherwise `false`.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= |S| <= 10^5\nS contains only the six bracket characters\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef isBalanced(s):\n    # TODO: implement your solution here and return the answer\n    return False\n\n\ndef main():\n    s = sys.stdin.read().strip()\n    if not s:\n        return\n    print(\"true\" if isBalanced(s) else \"false\")\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction isBalanced(s) {\n    // TODO: implement your solution here and return the answer\n    return false;\n}\n\n\nfunction main() {\n    const raw = fs.readFileSync(0, 'utf-8');\n    if (!raw || raw.trim() === '') return;\n    const s = raw.trim();\n    console.log(isBalanced(s) ? \"true\" : \"false\");\n}\n\n\nmain();\n",
+        "typescript": "// TypeScript\ndeclare const require: any;\nconst fs = require('fs');\n\n\nfunction isBalanced(s: string): boolean {\n    // TODO: implement your solution here and return the answer\n    return false;\n}\n\n\nfunction main(): void {\n    const raw: string = fs.readFileSync(0, 'utf-8');\n    if (!raw || raw.trim() === '') return;\n    const s: string = raw.trim();\n    console.log(isBalanced(s) ? \"true\" : \"false\");\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <vector>\n#include <string>\n#include <algorithm>\n#include <unordered_map>\n#include <unordered_set>\n#include <climits>\n\nusing namespace std;\n\n\nbool isBalanced(const string& s) {\n    // TODO: implement your solution here and return the answer\n    return false;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    string s;\n    if (!(cin >> s)) return 0;\n    cout << (isBalanced(s) ? \"true\" : \"false\") << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static boolean isBalanced(String s) {\n        // TODO: implement your solution here and return the answer\n        return false;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNext()) return;\n        String s = scanner.next();\n        System.out.println(isBalanced(s) ? \"true\" : \"false\");\n        scanner.close();\n    }\n}\n",
+        "c": "// C (GCC)\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <limits.h>\n\nint isBalanced(const char* s) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    char* buf = (char*)malloc(1000006 * sizeof(char));\n    if (scanf(\"%1000005s\", buf) != 1) return 0;\n    printf(\"%s\\n\", isBalanced(buf) ? \"true\" : \"false\");\n    free(buf);\n    return 0;\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "()[]{}",
+          "expectedOutput": "true",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "([)]",
+          "expectedOutput": "false",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "(]",
+          "expectedOutput": "false",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "{[]}",
+          "expectedOutput": "true",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-medium-subarray-sum-k-25",
+      "section": "Coding",
+      "topic": "Prefix Sums",
+      "difficulty": "Medium",
+      "type": "Coding",
+      "question": "### Subarrays with Sum K\n\nGiven an array of **N** integers (which may be negative) and an integer **K**, count how many **contiguous subarrays** have a sum exactly equal to **K**.\n\n#### Input Format\n- The first line contains an integer **N**.\n- The second line contains an integer **K**.\n- The third line contains **N** space-separated integers.\n\n#### Output Format\n- Print a single integer — the number of subarrays whose sum equals **K**.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= N <= 10^5\n-10^4 <= arr[i], K <= 10^4\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef subarraySumEqualsK(nums, k):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    k = int(data[1])\n    nums = [int(x) for x in data[2:2 + n]]\n    print(subarraySumEqualsK(nums, k))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction subarraySumEqualsK(nums, k) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    const k = parseInt(data[1], 10);\n    const nums = data.slice(2, 2 + n).map(Number);\n    console.log(subarraySumEqualsK(nums, k));\n}\n\n\nmain();\n",
+        "typescript": "// TypeScript\ndeclare const require: any;\nconst fs = require('fs');\n\n\nfunction subarraySumEqualsK(nums: number[], k: number): number {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nfunction main(): void {\n    const data: string[] = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n: number = parseInt(data[0], 10);\n    const k: number = parseInt(data[1], 10);\n    const nums: number[] = data.slice(2, 2 + n).map(Number);\n    console.log(subarraySumEqualsK(nums, k));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <vector>\n#include <string>\n#include <algorithm>\n#include <unordered_map>\n#include <unordered_set>\n#include <climits>\n\nusing namespace std;\n\n\nlong long subarraySumEqualsK(const vector<long long>& nums, long long k) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    int n;\n    long long k;\n    if (!(cin >> n >> k)) return 0;\n    vector<long long> nums(n);\n    for (int i = 0; i < n; i++) cin >> nums[i];\n    cout << subarraySumEqualsK(nums, k) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long subarraySumEqualsK(long[] nums, long k) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextInt()) return;\n        int n = scanner.nextInt();\n        long k = scanner.nextLong();\n        long[] nums = new long[n];\n        for (int i = 0; i < n; i++) nums[i] = scanner.nextLong();\n        System.out.println(subarraySumEqualsK(nums, k));\n        scanner.close();\n    }\n}\n",
+        "c": "// C (GCC)\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <limits.h>\n\nlong long subarraySumEqualsK(long long* nums, int n, long long k) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    int n;\n    long long k;\n    if (scanf(\"%d %lld\", &n, &k) != 2) return 0;\n    long long* nums = (long long*)malloc(sizeof(long long) * (n > 0 ? n : 1));\n    for (int i = 0; i < n; i++) scanf(\"%lld\", &nums[i]);\n    printf(\"%lld\\n\", subarraySumEqualsK(nums, n, k));\n    free(nums);\n    return 0;\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "3\n2\n1 1 1",
+          "expectedOutput": "2",
+          "isHidden": false,
+          "explanation": "[1,1] twice"
+        },
+        {
+          "id": 2,
+          "input": "3\n3\n1 2 3",
+          "expectedOutput": "2",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "1\n0\n0",
+          "expectedOutput": "1",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "4\n0\n0 0 0 0",
+          "expectedOutput": "10",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-medium-container-water-26",
+      "section": "Coding",
+      "topic": "Two Pointers",
+      "difficulty": "Medium",
+      "type": "Coding",
+      "question": "### Container With Most Water\n\nGiven **N** non-negative integers where each represents a vertical line at position **i** with height `height[i]`, find two lines that together with the x-axis form a container holding the **maximum amount of water**.\n\n#### Input Format\n- The first line contains an integer **N**.\n- The second line contains **N** space-separated integers (the heights).\n\n#### Output Format\n- Print a single integer — the maximum water a container can store.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "2 <= N <= 10^5\n0 <= height[i] <= 10^4\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef maxWaterContainer(nums):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    nums = [int(x) for x in data[1:1 + n]]\n    print(maxWaterContainer(nums))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction maxWaterContainer(nums) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    const nums = data.slice(1, 1 + n).map(Number);\n    console.log(maxWaterContainer(nums));\n}\n\n\nmain();\n",
+        "typescript": "// TypeScript\ndeclare const require: any;\nconst fs = require('fs');\n\n\nfunction maxWaterContainer(nums: number[]): number {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nfunction main(): void {\n    const data: string[] = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n: number = parseInt(data[0], 10);\n    const nums: number[] = data.slice(1, 1 + n).map(Number);\n    console.log(maxWaterContainer(nums));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <vector>\n#include <string>\n#include <algorithm>\n#include <unordered_map>\n#include <unordered_set>\n#include <climits>\n\nusing namespace std;\n\n\nlong long maxWaterContainer(const vector<long long>& nums) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    int n;\n    if (!(cin >> n)) return 0;\n    vector<long long> nums(n);\n    for (int i = 0; i < n; i++) cin >> nums[i];\n    cout << maxWaterContainer(nums) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long maxWaterContainer(long[] nums) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextInt()) return;\n        int n = scanner.nextInt();\n        long[] nums = new long[n];\n        for (int i = 0; i < n; i++) nums[i] = scanner.nextLong();\n        System.out.println(maxWaterContainer(nums));\n        scanner.close();\n    }\n}\n",
+        "c": "// C (GCC)\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <limits.h>\n\nlong long maxWaterContainer(long long* nums, int n) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 0;\n    long long* nums = (long long*)malloc(sizeof(long long) * (n > 0 ? n : 1));\n    for (int i = 0; i < n; i++) scanf(\"%lld\", &nums[i]);\n    printf(\"%lld\\n\", maxWaterContainer(nums, n));\n    free(nums);\n    return 0;\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "9\n1 8 6 2 5 4 8 3 7",
+          "expectedOutput": "49",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "2\n1 1",
+          "expectedOutput": "1",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "3\n1 2 1",
+          "expectedOutput": "2",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "5\n4 3 2 1 4",
+          "expectedOutput": "16",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-medium-kth-largest-27",
+      "section": "Coding",
+      "topic": "Sorting & Heaps",
+      "difficulty": "Medium",
+      "type": "Coding",
+      "question": "### K-th Largest Element\n\nGiven **N** integers and an integer **K**, find the **K-th largest** element in the array. Note: this is the K-th largest in sorted order, not the K-th distinct element.\n\n#### Input Format\n- The first line contains an integer **N**.\n- The second line contains an integer **K**.\n- The third line contains **N** space-separated integers.\n\n#### Output Format\n- Print a single integer — the K-th largest element.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= K <= N <= 10^5\n-10^9 <= arr[i] <= 10^9\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef kthLargest(nums, k):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    k = int(data[1])\n    nums = [int(x) for x in data[2:2 + n]]\n    print(kthLargest(nums, k))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction kthLargest(nums, k) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    const k = parseInt(data[1], 10);\n    const nums = data.slice(2, 2 + n).map(Number);\n    console.log(kthLargest(nums, k));\n}\n\n\nmain();\n",
+        "typescript": "// TypeScript\ndeclare const require: any;\nconst fs = require('fs');\n\n\nfunction kthLargest(nums: number[], k: number): number {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nfunction main(): void {\n    const data: string[] = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n: number = parseInt(data[0], 10);\n    const k: number = parseInt(data[1], 10);\n    const nums: number[] = data.slice(2, 2 + n).map(Number);\n    console.log(kthLargest(nums, k));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <vector>\n#include <string>\n#include <algorithm>\n#include <unordered_map>\n#include <unordered_set>\n#include <climits>\n\nusing namespace std;\n\n\nlong long kthLargest(const vector<long long>& nums, long long k) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    int n;\n    long long k;\n    if (!(cin >> n >> k)) return 0;\n    vector<long long> nums(n);\n    for (int i = 0; i < n; i++) cin >> nums[i];\n    cout << kthLargest(nums, k) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long kthLargest(long[] nums, long k) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextInt()) return;\n        int n = scanner.nextInt();\n        long k = scanner.nextLong();\n        long[] nums = new long[n];\n        for (int i = 0; i < n; i++) nums[i] = scanner.nextLong();\n        System.out.println(kthLargest(nums, k));\n        scanner.close();\n    }\n}\n",
+        "c": "// C (GCC)\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <limits.h>\n\nlong long kthLargest(long long* nums, int n, long long k) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    int n;\n    long long k;\n    if (scanf(\"%d %lld\", &n, &k) != 2) return 0;\n    long long* nums = (long long*)malloc(sizeof(long long) * (n > 0 ? n : 1));\n    for (int i = 0; i < n; i++) scanf(\"%lld\", &nums[i]);\n    printf(\"%lld\\n\", kthLargest(nums, n, k));\n    free(nums);\n    return 0;\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "6\n2\n3 2 1 5 6 4",
+          "expectedOutput": "5",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "1\n1\n7",
+          "expectedOutput": "7",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "5\n5\n5 1 4 2 3",
+          "expectedOutput": "1",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "9\n4\n3 2 3 1 2 4 5 5 6",
+          "expectedOutput": "4",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-medium-buy-sell-stock-28",
+      "section": "Coding",
+      "topic": "Greedy",
+      "difficulty": "Medium",
+      "type": "Coding",
+      "question": "### Best Time to Buy and Sell Stock\n\nGiven an array of **N** prices where `prices[i]` is the price of a stock on day **i**, you may buy on one day and sell on a **later** day. Compute the **maximum profit**. If no profit is possible, print `0`.\n\n#### Input Format\n- The first line contains an integer **N**.\n- The second line contains **N** space-separated integers (the prices).\n\n#### Output Format\n- Print a single integer — the maximum profit achievable.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= N <= 10^5\n0 <= prices[i] <= 10^4\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef maxProfit(nums):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    nums = [int(x) for x in data[1:1 + n]]\n    print(maxProfit(nums))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction maxProfit(nums) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    const nums = data.slice(1, 1 + n).map(Number);\n    console.log(maxProfit(nums));\n}\n\n\nmain();\n",
+        "typescript": "// TypeScript\ndeclare const require: any;\nconst fs = require('fs');\n\n\nfunction maxProfit(nums: number[]): number {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nfunction main(): void {\n    const data: string[] = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n: number = parseInt(data[0], 10);\n    const nums: number[] = data.slice(1, 1 + n).map(Number);\n    console.log(maxProfit(nums));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <vector>\n#include <string>\n#include <algorithm>\n#include <unordered_map>\n#include <unordered_set>\n#include <climits>\n\nusing namespace std;\n\n\nlong long maxProfit(const vector<long long>& nums) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    int n;\n    if (!(cin >> n)) return 0;\n    vector<long long> nums(n);\n    for (int i = 0; i < n; i++) cin >> nums[i];\n    cout << maxProfit(nums) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long maxProfit(long[] nums) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextInt()) return;\n        int n = scanner.nextInt();\n        long[] nums = new long[n];\n        for (int i = 0; i < n; i++) nums[i] = scanner.nextLong();\n        System.out.println(maxProfit(nums));\n        scanner.close();\n    }\n}\n",
+        "c": "// C (GCC)\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <limits.h>\n\nlong long maxProfit(long long* nums, int n) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 0;\n    long long* nums = (long long*)malloc(sizeof(long long) * (n > 0 ? n : 1));\n    for (int i = 0; i < n; i++) scanf(\"%lld\", &nums[i]);\n    printf(\"%lld\\n\", maxProfit(nums, n));\n    free(nums);\n    return 0;\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "6\n7 1 5 3 6 4",
+          "expectedOutput": "5",
+          "isHidden": false,
+          "explanation": "buy at 1, sell at 6"
+        },
+        {
+          "id": 2,
+          "input": "5\n7 6 4 3 1",
+          "expectedOutput": "0",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "2\n1 2",
+          "expectedOutput": "1",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "3\n2 4 1",
+          "expectedOutput": "2",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-medium-longest-consecutive-29",
+      "section": "Coding",
+      "topic": "Hashing",
+      "difficulty": "Medium",
+      "type": "Coding",
+      "question": "### Longest Consecutive Sequence\n\nGiven an array of **N** integers, find the length of the **longest run of consecutive integers** (values that differ by 1). The values need not be adjacent in the array, and duplicates should be ignored.\n\n#### Input Format\n- The first line contains an integer **N**.\n- The second line contains **N** space-separated integers.\n\n#### Output Format\n- Print a single integer — the length of the longest consecutive sequence.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= N <= 10^5\n-10^9 <= arr[i] <= 10^9\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef longestConsecutive(nums):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    nums = [int(x) for x in data[1:1 + n]]\n    print(longestConsecutive(nums))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction longestConsecutive(nums) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    const nums = data.slice(1, 1 + n).map(Number);\n    console.log(longestConsecutive(nums));\n}\n\n\nmain();\n",
+        "typescript": "// TypeScript\ndeclare const require: any;\nconst fs = require('fs');\n\n\nfunction longestConsecutive(nums: number[]): number {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nfunction main(): void {\n    const data: string[] = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n: number = parseInt(data[0], 10);\n    const nums: number[] = data.slice(1, 1 + n).map(Number);\n    console.log(longestConsecutive(nums));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <vector>\n#include <string>\n#include <algorithm>\n#include <unordered_map>\n#include <unordered_set>\n#include <climits>\n\nusing namespace std;\n\n\nlong long longestConsecutive(const vector<long long>& nums) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    int n;\n    if (!(cin >> n)) return 0;\n    vector<long long> nums(n);\n    for (int i = 0; i < n; i++) cin >> nums[i];\n    cout << longestConsecutive(nums) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long longestConsecutive(long[] nums) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextInt()) return;\n        int n = scanner.nextInt();\n        long[] nums = new long[n];\n        for (int i = 0; i < n; i++) nums[i] = scanner.nextLong();\n        System.out.println(longestConsecutive(nums));\n        scanner.close();\n    }\n}\n",
+        "c": "// C (GCC)\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <limits.h>\n\nlong long longestConsecutive(long long* nums, int n) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 0;\n    long long* nums = (long long*)malloc(sizeof(long long) * (n > 0 ? n : 1));\n    for (int i = 0; i < n; i++) scanf(\"%lld\", &nums[i]);\n    printf(\"%lld\\n\", longestConsecutive(nums, n));\n    free(nums);\n    return 0;\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "6\n100 4 200 1 3 2",
+          "expectedOutput": "4",
+          "isHidden": false,
+          "explanation": "1,2,3,4"
+        },
+        {
+          "id": 2,
+          "input": "10\n0 3 7 2 5 8 4 6 0 1",
+          "expectedOutput": "9",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "1\n1",
+          "expectedOutput": "1",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "3\n5 5 5",
+          "expectedOutput": "1",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "code-q-medium-majority-element-30",
+      "section": "Coding",
+      "topic": "Arrays & Algorithms",
+      "difficulty": "Medium",
+      "type": "Coding",
+      "question": "### Majority Element\n\nGiven an array of **N** integers, find the **majority element** — the element that appears **more than ⌊N/2⌋ times**. You may assume the majority element always exists.\n\n#### Input Format\n- The first line contains an integer **N**.\n- The second line contains **N** space-separated integers.\n\n#### Output Format\n- Print a single integer — the majority element.",
+      "marks": 10,
+      "timeLimitSec": 120,
+      "constraints": "1 <= N <= 10^5\n-10^9 <= arr[i] <= 10^9\nThe majority element is guaranteed to exist\nTime Limit: 1.0s",
+      "starterTemplates": {
+        "python": "# Python 3\nimport sys\n\n\ndef majorityElement(nums):\n    # TODO: implement your solution here and return the answer\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    nums = [int(x) for x in data[1:1 + n]]\n    print(majorityElement(nums))\n\n\nif __name__ == '__main__':\n    main()\n",
+        "javascript": "// JavaScript (Node.js)\nconst fs = require('fs');\n\n\nfunction majorityElement(nums) {\n    // TODO: implement your solution here and return the answer\n    return null;\n}\n\n\nfunction main() {\n    const data = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n = parseInt(data[0], 10);\n    const nums = data.slice(1, 1 + n).map(Number);\n    console.log(majorityElement(nums));\n}\n\n\nmain();\n",
+        "typescript": "// TypeScript\ndeclare const require: any;\nconst fs = require('fs');\n\n\nfunction majorityElement(nums: number[]): number {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nfunction main(): void {\n    const data: string[] = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n    if (!data || data.length === 0 || data[0] === '') return;\n    const n: number = parseInt(data[0], 10);\n    const nums: number[] = data.slice(1, 1 + n).map(Number);\n    console.log(majorityElement(nums));\n}\n\n\nmain();\n",
+        "cpp": "// C++ (GCC)\n#include <iostream>\n#include <vector>\n#include <string>\n#include <algorithm>\n#include <unordered_map>\n#include <unordered_set>\n#include <climits>\n\nusing namespace std;\n\n\nlong long majorityElement(const vector<long long>& nums) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    int n;\n    if (!(cin >> n)) return 0;\n    vector<long long> nums(n);\n    for (int i = 0; i < n; i++) cin >> nums[i];\n    cout << majorityElement(nums) << endl;\n    return 0;\n}\n",
+        "java": "// Java (OpenJDK)\nimport java.util.Scanner;\n\n\npublic class Main {\n    static long majorityElement(long[] nums) {\n        // TODO: implement your solution here and return the answer\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextInt()) return;\n        int n = scanner.nextInt();\n        long[] nums = new long[n];\n        for (int i = 0; i < n; i++) nums[i] = scanner.nextLong();\n        System.out.println(majorityElement(nums));\n        scanner.close();\n    }\n}\n",
+        "c": "// C (GCC)\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <limits.h>\n\nlong long majorityElement(long long* nums, int n) {\n    // TODO: implement your solution here and return the answer\n    return 0;\n}\n\n\nint main() {\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 0;\n    long long* nums = (long long*)malloc(sizeof(long long) * (n > 0 ? n : 1));\n    for (int i = 0; i < n; i++) scanf(\"%lld\", &nums[i]);\n    printf(\"%lld\\n\", majorityElement(nums, n));\n    free(nums);\n    return 0;\n}\n"
+      },
+      "testCases": [
+        {
+          "id": 1,
+          "input": "3\n3 2 3",
+          "expectedOutput": "3",
+          "isHidden": false
+        },
+        {
+          "id": 2,
+          "input": "7\n2 2 1 1 1 2 2",
+          "expectedOutput": "2",
+          "isHidden": false
+        },
+        {
+          "id": 3,
+          "input": "1\n1",
+          "expectedOutput": "1",
+          "isHidden": true
+        },
+        {
+          "id": 4,
+          "input": "5\n4 4 5 5 4",
+          "expectedOutput": "4",
+          "isHidden": true
+        }
+      ]
     }
   ]
 }
