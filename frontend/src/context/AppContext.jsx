@@ -770,6 +770,8 @@ export const AppProvider = ({ children }) => {
     '/results': '/results',
     'candidate-analytics': '/results',
     '/candidate-analytics': '/results',
+    'ai-analysis': '/results',
+    'admin-reports': '/admin/analytics',
     'admin-candidates': '/admin/candidates',
     'admin-questions': '/admin/questions',
     'admin-assessments': '/admin/assessments',
